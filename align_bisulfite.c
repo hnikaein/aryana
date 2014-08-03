@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #include "utils.h"
 #include "bwt.h"
@@ -46,9 +47,8 @@ int main(int argc, char *argv[]) {
     int i;
     char *annotationFile="hg19-cpg-islands.txt";
     ReadCpGIslands(annotationFile);
-    for(i=0;i<islandsNum;i++){
-        printf("start: %" PRIu64 "     end : %" PRIu64 "", islandStarts[i],islandEnds);
-    }
+    
+
 	referenceName = "hgTest.fa";
 	fprintf(stderr, "salam");
 	ref_read(referenceName);
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 		if (!header) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 			//fprintf(stderr, "%s\t%s\n", cigar, seq_string);
-            printf("%s\n",cigar);
+            //printf("%s\n",cigar);
             readCigar(cigar,pos,seq_string);
 		} else {
 			if (line[0] == '@')
@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
     printf("hhh : %d", isInIsland(711539));
+//    for(i=0;i<100;i++){
+//        printf("sssstart: %" PRIu64 "     eeeend : %" PRIu64 " ", islandStarts[i],islandEnds[i]);
+//    }
 }
 uint64_t * reference;
 uint32_t  reference_size;
@@ -204,27 +207,25 @@ void ReadCpGIslands(char * annotationFile) {
         
 		//if (! fLine[0]) continue;
 		// cerr << fLine << endl;
-        if(islandsNum==0){
-            islandsNum++;
-            continue;
-        }
+//        if(islandsNum==0){
+//            islandsNum++;
+//            continue;
+//        }
 		wStart = 0;
         sscanf(fLine, "%s %" PRIu64 " %" PRIu64 " ", chrom, &wStart, &wEnd);
-        if(islandsNum<100){
-            //printf("%s", fLine);
 
-            printf("start:%ld      end :%ld \n",  wStart, wEnd);
-        }
 		if (! wStart) continue;
 		// cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
 		islandStarts[index] = wStart;
 		islandEnds[index] = wEnd;
+        //printf("starts: %" PRIu64 "     ends : %" PRIu64 "", islandStarts[index],islandEnds[index]);
         chr = ChromIndex(chrom);
         islandsNum++;
+        index++;
         
 		//ConvertSequence(chr, wStart, wEnd);
     }
-    islandsNum--;
+    //islandsNum--;
 }
 
 void setPenalties(int p1,int p2,int p3){
@@ -238,12 +239,12 @@ int isInIsland(uint64_t ref_i){
     
     printf("island refindex : %" PRIu64 "\n",ref_i);
     
-	uint64_t first =0,last = reference_size-1;
+	uint64_t first =0,last = islandsNum-1;
 	uint64_t middle = (first+last)/2;
 	int isInIsland = 0;
 	while( first <= last )
 	{
-            printf("first :%" PRIu64 "  last :%" PRIu64 "",first,last);
+            printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
 		if ( islandStarts[middle] >= ref_i && ref_i <= islandEnds[middle]){
 			
 			isInIsland = 1;
@@ -260,18 +261,19 @@ int isInIsland(uint64_t ref_i){
 }
 
 void CalcPenalties(uint64_t ref_i , char read ,uint64_t seq_len){
-    printf("   7salam");
+    //printf("   7salam");
+     printf("read : %c   ",read);
     char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
-    printf("read : %c   refindex : %" PRIu64 "\n",read ,ref_i);
+    //printf("read : %c   refindex : %" PRIu64 "\n",read ,ref_i);
     //getNuc(ref_i,seq_len);
-    printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
+    //printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
 	if(read == 'A' || read =='G'){
 		if(getNuc(ref_i,seq_len) != read )
 			penalties += highPenalty;
 	}
 	else{ //read = C or T
         
-		if(read == 'T' && atomic[getNuc(ref_i,seq_len)] == 'C'){
+		if(read == 'T' && getNuc(ref_i,seq_len) == 'C'){
 			if(getNuc(ref_i + 1,seq_len) =='G'){ // in the CpG context
 				if(isInIsland(ref_i) ){ // in CpG and also island
 					penalties += medPenalty;
@@ -285,7 +287,7 @@ void CalcPenalties(uint64_t ref_i , char read ,uint64_t seq_len){
 				penalties += lowPenalty;
 			}
 		}
-		else if(read =='C' && atomic[getNuc(ref_i,seq_len)] == 'C'){
+		else if(read =='C' && getNuc(ref_i,seq_len) == 'C'){
 			if(getNuc(ref_i + 1,seq_len) =='G'){ // in the CpG context
 				int temp = isInIsland(ref_i);
 				if(temp == 1 ){ // in CpG and also island
@@ -301,12 +303,12 @@ void CalcPenalties(uint64_t ref_i , char read ,uint64_t seq_len){
             
             
 		}
-		else if(read = 'C' && getNuc(ref_i,seq_len) == 'T')
+		else if(read == 'C' && getNuc(ref_i,seq_len) == 'T')
             penalties += highPenalty;
         
         
 	}
-        printf("read : %c \n",read);
+       
 }
 void readCigar(char * cigar,uint64_t ref_i,char *seq_string){
     fprintf(stderr, "salam");
@@ -315,16 +317,17 @@ void readCigar(char * cigar,uint64_t ref_i,char *seq_string){
     uint64_t ref_index = ref_i;
     long read_index = 0;
     char alignType ;
+                  printf("   %s",seq_string);
     while ( 1 ) {
         if ( !isdigit(cigar[pos]) ) {
             	//printf("   1salam");
             if ( value > 0 ){
-                //printf("   7salam");
-                printf("value:   %d",value);
+  
+                //printf("value:   %d",value);
                 if(cigar[pos] == 'm'){
                     int j;
                     for (j=0; j < value; j++) {
-                        printf("   71salam");
+                        //printf("   71salam");
                         CalcPenalties(++ref_index ,seq_string[read_index++], reference_size  );
                     }
                 }
