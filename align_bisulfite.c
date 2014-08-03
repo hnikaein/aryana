@@ -7,6 +7,33 @@
 
 #include "utils.h"
 #include "bwt.h"
+#include "align_bisulfite.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define maxGenomeSize 4e9
+#define maxChromosomeNum 1000
+//const long maxGenomeSize = 4e9;
+//const int maxChromosomeNum = 1000;
+
+const int interval_side = 3000;
+long chromPos[maxChromosomeNum];
+unsigned long gs;
+char chromName[maxChromosomeNum][100];
+char * genome;
+int chromNum, xChromosome = -1, yChromosome = -1;
+char * genomeFile, * annotationFile, * outputFile;
+
+
+
+uint64_t islandStarts[(long)maxGenomeSize];
+uint64_t islandEnds[(long)maxGenomeSize];
+long islandsNum = 0;
+int highPenalty=0,medPenalty=0,lowPenalty=0;
+long penalties;
+
 
 char* samName, *referenceName;
 FILE *samFile;
@@ -16,6 +43,12 @@ int main(int argc, char *argv[]) {
 //		fprintf(stderr, "Need more inputs\n");
 //		return -1;
 //	}
+    int i;
+    char *annotationFile="hg19-cpg-islands.txt";
+    ReadCpGIslands(annotationFile);
+    for(i=0;i<islandsNum;i++){
+        printf("start: %" PRIu64 "     end : %" PRIu64 "", islandStarts[i],islandEnds);
+    }
 	referenceName = "hgTest.fa";
 	fprintf(stderr, "salam");
 	ref_read(referenceName);
@@ -35,22 +68,26 @@ int main(int argc, char *argv[]) {
 	pnext = malloc(100 * sizeof(char));
 	seq_string = malloc(1000 * sizeof(char));
 	quality_string = malloc(500 * sizeof(char));
+ 
 	while (fgets(line, 1000, samFile) != NULL) {
 		if (!header) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
-			fprintf(stderr, "%s\t%s\n", cigar, seq_string);
+			//fprintf(stderr, "%s\t%s\n", cigar, seq_string);
+            printf("%s\n",cigar);
+            readCigar(cigar,pos,seq_string);
 		} else {
 			if (line[0] == '@')
 				fprintf(stderr, "header\t");
 			else {
 				header = 0;
-				fprintf(stderr, line);
+				//fprintf(stderr, line);
 				sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
-				fprintf(stderr, "salam");
-				fprintf(stderr, "\n%s\t%lld\t%s\n", cigar, tlen, seq_string);
+				//fprintf(stderr, "salam");
+				//fprintf(stderr, "\n%s\t%lld\t%s\n", cigar, tlen, seq_string);
 			}
 		}
 	}
+    printf("hhh : %d", isInIsland(711539));
 }
 uint64_t * reference;
 uint32_t  reference_size;
@@ -109,17 +146,211 @@ int ref_read(char * file_name){
 }
 
 char getNuc(uint64_t place, uint64_t seq_len){
-	int rev=0;
-	if(place > (seq_len / 2))
+//    char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
+//	int rev=0;
+//	if(place > (seq_len / 2))
+//	{
+//		place = (seq_len / 2) - (place - (seq_len / 2))-1;
+//		rev=1;
+//	}
+//	uint64_t block=place/(sizeof(bwtint_t)*4);
+//	int offset=place%(sizeof(bwtint_t)*4);
+//	uint64_t mask=3;
+//	mask=mask & (reference[block] >> (2*offset));
+//	if (rev==1)
+//		mask=3-mask;
+//	return mask;
+    return 'A';
+}
+
+inline void ToLower(char * s) {
+    int i=0;
+    for (i = 0; i < strlen(s); i++)
+        if (s[i] >= 'A' && s[i] <= 'Z') s[i] += 'a' - 'A';
+}
+
+int ChromIndex(char * chrom) {
+    ToLower(chrom);
+    if (strstr(chrom, "chr") == chrom) chrom += 3;
+    if (strstr(chrom, "ch") == chrom) chrom += 2;
+	if (chrom[0] >= '0' && chrom[0] <= '9' && strlen(chrom) < 3)
+		return atoi(chrom) - 1;
+    if (strlen(chrom) > 1) return -1;
+	if (chrom[0] == 'x') return xChromosome;
+	else
+	    if (chrom[0] == 'y') return yChromosome;
+		else return -1;
+}
+
+
+void ReadCpGIslands(char * annotationFile) {
+   // cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
+   // ifstream f(annotationFile);
+//    if (! f.is_open()) {
+//       // cerr << "Error: CpG island locations file not found or could not be opened" << endl;
+//        exit(1);
+//    }
+    	fprintf(stderr, "salam");
+    FILE* file = fopen(annotationFile, "r"); /* should check the result */
+    	fprintf(stderr, "salam2");
+    char fLine[10000], chrom[10], strand[10];
+    uint64_t wStart, wEnd, chr;
+    int bin;
+   //	f.getline(fLine, sizeof(fLine)); // First row
+   	long index = 0;
+    while (fgets(fLine, sizeof(fLine), file)) {
+		//fLine[0] = 0;
+//        f.getline(fLine, sizeof(fLine));
+        
+		//if (! fLine[0]) continue;
+		// cerr << fLine << endl;
+        if(islandsNum==0){
+            islandsNum++;
+            continue;
+        }
+		wStart = 0;
+        sscanf(fLine, "%s %" PRIu64 " %" PRIu64 " ", chrom, &wStart, &wEnd);
+        if(islandsNum<100){
+            //printf("%s", fLine);
+
+            printf("start:%ld      end :%ld \n",  wStart, wEnd);
+        }
+		if (! wStart) continue;
+		// cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
+		islandStarts[index] = wStart;
+		islandEnds[index] = wEnd;
+        chr = ChromIndex(chrom);
+        islandsNum++;
+        
+		//ConvertSequence(chr, wStart, wEnd);
+    }
+    islandsNum--;
+}
+
+void setPenalties(int p1,int p2,int p3){
+	highPenalty = p1;
+	medPenalty = p2;
+	lowPenalty = p3;
+	return;
+}
+
+int isInIsland(uint64_t ref_i){
+    
+    printf("island refindex : %" PRIu64 "\n",ref_i);
+    
+	uint64_t first =0,last = reference_size-1;
+	uint64_t middle = (first+last)/2;
+	int isInIsland = 0;
+	while( first <= last )
 	{
-		place = (seq_len / 2) - (place - (seq_len / 2))-1;
-		rev=1;
+            printf("first :%" PRIu64 "  last :%" PRIu64 "",first,last);
+		if ( islandStarts[middle] >= ref_i && ref_i <= islandEnds[middle]){
+			
+			isInIsland = 1;
+			return 1;
+		}
+        else if ( islandEnds[middle] < ref_i )
+            first = middle + 1;
+        else
+            last = middle - 1;
+        
+        middle = (first + last)/2;
 	}
-	uint64_t block=place/(sizeof(bwtint_t)*4);
-	int offset=place%(sizeof(bwtint_t)*4);
-	uint64_t mask=3;
-	mask=mask & (reference[block] >> (2*offset));
-	if (rev==1)
-		mask=3-mask;
-	return mask;//atom[mask];
+	return 0;
+}
+
+void CalcPenalties(uint64_t ref_i , char read ,uint64_t seq_len){
+    printf("   7salam");
+    char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
+    printf("read : %c   refindex : %" PRIu64 "\n",read ,ref_i);
+    //getNuc(ref_i,seq_len);
+    printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
+	if(read == 'A' || read =='G'){
+		if(getNuc(ref_i,seq_len) != read )
+			penalties += highPenalty;
+	}
+	else{ //read = C or T
+        
+		if(read == 'T' && atomic[getNuc(ref_i,seq_len)] == 'C'){
+			if(getNuc(ref_i + 1,seq_len) =='G'){ // in the CpG context
+				if(isInIsland(ref_i) ){ // in CpG and also island
+					penalties += medPenalty;
+				}
+				else{
+					penalties += highPenalty;
+				}
+			}
+			else{ // out of CpG context
+                
+				penalties += lowPenalty;
+			}
+		}
+		else if(read =='C' && atomic[getNuc(ref_i,seq_len)] == 'C'){
+			if(getNuc(ref_i + 1,seq_len) =='G'){ // in the CpG context
+				int temp = isInIsland(ref_i);
+				if(temp == 1 ){ // in CpG and also island
+					penalties += medPenalty;
+				}
+				else{
+					penalties += lowPenalty;
+				}
+			}
+			else{ // out of CpG context
+				penalties += highPenalty;
+			}
+            
+            
+		}
+		else if(read = 'C' && getNuc(ref_i,seq_len) == 'T')
+            penalties += highPenalty;
+        
+        
+	}
+        printf("read : %c \n",read);
+}
+void readCigar(char * cigar,uint64_t ref_i,char *seq_string){
+    fprintf(stderr, "salam");
+    int pos = 0;
+    int value = 0;
+    uint64_t ref_index = ref_i;
+    long read_index = 0;
+    char alignType ;
+    while ( 1 ) {
+        if ( !isdigit(cigar[pos]) ) {
+            	//printf("   1salam");
+            if ( value > 0 ){
+                //printf("   7salam");
+                printf("value:   %d",value);
+                if(cigar[pos] == 'm'){
+                    int j;
+                    for (j=0; j < value; j++) {
+                        printf("   71salam");
+                        CalcPenalties(++ref_index ,seq_string[read_index++], reference_size  );
+                    }
+                }
+                else if (cigar[pos] == 'd') {
+                    ref_index += value;        
+                }
+                else if (cigar[pos] == 'i')
+                    read_index += value;
+                else{
+                    printf("*");
+                    break;
+                }
+ 
+            }
+            printf("*");
+            if ( cigar[pos]==0 )
+                break;
+//            else{
+//                printf("   3salam");
+//                alignType = cigar[pos];
+//                printf("  %c",alignType);
+//            }
+            value = 0;
+        } else {
+            value = value * 10 + cigar[pos]-'0';
+        }
+        pos++;
+    }
 }
