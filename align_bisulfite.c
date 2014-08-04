@@ -8,7 +8,7 @@
 
 #include "utils.h"
 #include "bwt.h"
-#include "align_bisulfite.h"
+//#include "align_bisulfite.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -36,23 +36,52 @@ int highPenalty=0,medPenalty=0,lowPenalty=0;
 long penalties;
 
 
-char* samName, *referenceName;
+char *samName, *referenceName, *annotationFile;
 FILE *samFile;
 
 int main(int argc, char *argv[]) {
-//	if (argc < 3) {
-//		fprintf(stderr, "Need more inputs\n");
-//		return -1;
-//	}
+	if (argc < 6) {
+		fprintf(stderr, "Need more inputs\n");
+		return -1;
+	}
+
+	
+	static struct option long_options[] =
+	{
+		{"samfiles", required_argument, 0, 's'},
+		{"reference", required_argument, 0, 'x'},
+		{"CpG-islands", required_argument, 0, 'c'}
+	//	{0, 0, 0, 0}
+	};
+	int option_index = 0;
+	int c;
+	while((c = getopt_long(argc, argv, "x:s:c:", long_options, &option_index)) >= 0){
+		switch(c){
+			case 0:
+				break;
+			case 1:
+				break;
+			case 'x':
+				referenceName = (char *)malloc(strlen(optarg));
+				strcpy(referenceName, optarg);
+				break;
+			case 's':
+				samName = (char *)malloc(strlen(optarg));
+				strcpy(samName, optarg);
+				break;
+			case 'c':
+				annotationFile= (char *)malloc(strlen(optarg));
+				strcpy(annotationFile, optarg);
+				break;
+		}
+	}
+	
     int i;
-    char *annotationFile="hg19-cpg-islands.txt";
     ReadCpGIslands(annotationFile);
     
 
-	referenceName = "hgTest.fa";
 	fprintf(stderr, "salam");
 	ref_read(referenceName);
-	samName = "a.sam";
 	samFile = fopen(samName, "r");
 	char line[1000];
 	int header = 1;
@@ -84,6 +113,7 @@ int main(int argc, char *argv[]) {
 				sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 				//fprintf(stderr, "salam");
 				//fprintf(stderr, "\n%s\t%lld\t%s\n", cigar, tlen, seq_string);
+				readCigar(cigar,pos,seq_string);
 			}
 		}
 	}
@@ -145,25 +175,31 @@ int ref_read(char * file_name){
 		return -1;
 	}
 
+	int i =0;
+	for (i=0; i< 10; i++)
+		fprintf(stderr, "%d\t", reference[i]);
 	return 0;
 }
 
 char getNuc(uint64_t place, uint64_t seq_len){
-//    char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
-//	int rev=0;
-//	if(place > (seq_len / 2))
-//	{
-//		place = (seq_len / 2) - (place - (seq_len / 2))-1;
-//		rev=1;
-//	}
-//	uint64_t block=place/(sizeof(bwtint_t)*4);
-//	int offset=place%(sizeof(bwtint_t)*4);
-//	uint64_t mask=3;
-//	mask=mask & (reference[block] >> (2*offset));
-//	if (rev==1)
-//		mask=3-mask;
-//	return mask;
-    return 'A';
+   char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
+	int rev=0;
+	fprintf(stderr, "AAAA %d %d\n", place, seq_len);
+	// if(place > (seq_len / 2))
+// 	{
+// 		place = (seq_len / 2) - (place - (seq_len / 2))-1;
+// 		rev=1;
+// 	}
+	uint64_t block=place/(sizeof(bwtint_t)*4);
+	fprintf(stderr, "BBBB %d\n", block);
+	int offset=place%(sizeof(bwtint_t)*4);
+	fprintf(stderr, "CCCC %d\n", offset);
+	uint64_t mask=3;
+	mask=mask & (reference[block] >> (2*offset));
+	fprintf(stderr, "DDDD %d\n", mask);
+	if (rev==1)
+		mask=3-mask;
+	return atomic[mask];
 }
 
 inline void ToLower(char * s) {
