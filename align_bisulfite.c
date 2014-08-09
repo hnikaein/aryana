@@ -99,15 +99,25 @@ int main(int argc, char *argv[]) {
 	pnext = malloc(100 * sizeof(char));
 	seq_string = malloc(1000 * sizeof(char));
 	quality_string = malloc(500 * sizeof(char));
-    long readNumber= 0;
- 
+	
+	struct stat file_info;
+	if(stat(referenceName , &file_info) == -1){
+		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", file_name);
+		return -1;
+	}
+	off_t file_size_bytes = file_info.st_size;
+	readNum = (ceil((double)file_size_bytes/800)+200)
+    readPenalties = malloc(readNum * sizeof(long));
+    memset (readPenalties, 0, sizeof (long) * readNum);
+	long readNumber= 0;
+    
 	while (fgets(line, 1000, samFile) != NULL) {
-        readNumber++;
 		if (!header) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 			//fprintf(stderr, "%s\t%s\n", cigar, seq_string);
             //printf("%s\n",cigar);
             readCigar(cigar,pos,seq_string,readNumber);
+	        readNumber++;
 		} else {
 			if (line[0] == '@')
 				fprintf(stderr, "header\t");
@@ -117,13 +127,12 @@ int main(int argc, char *argv[]) {
 				sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 				//fprintf(stderr, "salam");
 				//fprintf(stderr, "\n%s\t%lld\t%s\n", cigar, tlen, seq_string);
-				readCigar(cigar,pos,seq_string);
+				readCigar(cigar,pos,seq_string,readNumber);
+				readNumber++;
 			}
 		}
 	}
-    readNum = readNumber;
-    readPenalties = malloc(readNum * sizeof(long));
-    memset (readPenalties, 0, sizeof (long) * readNum);
+    
     
     printf("hhh : %d", isInIsland(711539));
 //    for(i=0;i<100;i++){
