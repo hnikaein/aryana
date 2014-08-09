@@ -12,7 +12,7 @@ unsigned long gs;
 char chromName[maxChromosomeNum][100];
 char * genome;
 int chromNum, xChromosome = -1, yChromosome = -1;
-char * genomeFile, * annotationFile, * outputFileIslandConsidered, * outputFileComplete;
+char * genomeFile, * annotationFile, * outputFileIslandConsidered, * outputFileContextConsidered, * outputFileComplete;
 
 void swap(int &a, int &b) {
     int c = a;
@@ -151,6 +151,12 @@ void ConvertWholeGenome() {
             genome[i] = 'T'; // Simulating bisulfite treatment, converting unmethylated Cytosine to Thymine		
 }
 
+void ConvertAllC() {
+	for (unsigned long i = 0; i < gs; i++)
+		if (genome[i] == 'c' || genome[i] == 'C')
+			genome[i] = 'T'; //Convert all the Cs to T
+}
+
 
 void ProcessCpGIslands(char * annotationFile) {
     cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
@@ -217,6 +223,7 @@ int main(int argc, char * argv[]) {
 						//strcat(outputFileIslandConsidered, "Is")
 						outputFileIslandConsidered = "BisulfiteGenomeIslandConsidered";
 						outputFileComplete = "BisulfiteGenomeComplete";
+						outputFileContextConsidered = "BisulfiteGenomeContextConsidered"
 					}
 	                else {
     	                cerr << "Not enough or invalid arguments."<< endl;
@@ -226,8 +233,10 @@ int main(int argc, char * argv[]) {
 // Reading input
     ReadGenome(genomeFile);
 	ConvertWholeGenome();
-	WriteGenome(outputFileComplete);
+	WriteGenome(outputFileContextConsidered);
    	ProcessCpGIslands(annotationFile);
 	WriteGenome(outputFileIslandConsidered);
+	ConvertAllC();
+	WriteGenome(outputFileComplete);
 	delete [] genome;
 }
