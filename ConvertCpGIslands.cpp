@@ -223,7 +223,7 @@ int main(int argc, char * argv[]) {
 						//strcat(outputFileIslandConsidered, "Is")
 						outputFileIslandConsidered = "BisulfiteGenomeIslandConsidered";
 						outputFileComplete = "BisulfiteGenomeComplete";
-						outputFileContextConsidered = "BisulfiteGenomeContextConsidered"
+						outputFileContextConsidered = "BisulfiteGenomeContextConsidered";
 					}
 	                else {
     	                cerr << "Not enough or invalid arguments."<< endl;
