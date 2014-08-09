@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 	off_t file_size_bytes = file_info.st_size;
-	readNum = (ceil((double)file_size_bytes/800)+200)
+	readNum = (ceil((double)file_size_bytes/800)+200);
     readPenalties = malloc(readNum * sizeof(long));
     memset (readPenalties, 0, sizeof (long) * readNum);
 	long readNumber= 0;
