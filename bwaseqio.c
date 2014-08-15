@@ -217,11 +217,8 @@ bwa_seq_t *bwa_read_seq2(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tr
 
 bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int trim_qual)
 {
-	fprintf(stderr,"DDDDD\n");
 	bwa_seq_t *seqs, *p;
-	fprintf(stderr,"FFFF\n");
 	kseq_t *seq = bs->ks;
-	fprintf(stderr,"EEEE\n");
 	int n_seqs, l, i, is_comp = mode&BWA_MODE_COMPREAD, is_64 = mode&BWA_MODE_IL13, l_bc = mode>>24;
 	long n_trimmed = 0, n_tot = 0;
 
@@ -229,12 +226,9 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
 		fprintf(stderr, "[%s] the maximum barcode length is %d.\n", __func__, BWA_MAX_BCLEN);
 		return 0;
 	}
-	fprintf(stderr,"AAAA\n");
 	if (bs->is_bam) return bwa_read_bam(bs, n_needed, n, is_comp, trim_qual); // l_bc has no effect for BAM input
-	fprintf(stderr,"BBBB\n");
 	n_seqs = 0;
 	seqs = (bwa_seq_t*)calloc(n_needed, sizeof(bwa_seq_t));
-	fprintf(stderr,"CCCC\n");
 	while ((l = kseq_read(seq)) >= 0) {
 		if ((mode & BWA_MODE_CFY) && (seq->comment.l != 0)) { //Afsoon: ??
 			// skip reads that are marked to be filtered by Casava

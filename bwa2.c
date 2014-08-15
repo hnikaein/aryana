@@ -571,7 +571,6 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 	while(true){
 		fprintf(stderr,"read start %d\n",tid);
 		pthread_mutex_lock(&input);
-		fprintf(stderr,"HEHEHE\n");
 		if((seqs = bwa_read_seq(ks, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
 			//finish = true;
 			pthread_mutex_unlock(&input);
