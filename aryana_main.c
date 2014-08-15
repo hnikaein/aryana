@@ -115,17 +115,23 @@ int main(int argc, char *argv[])
 		{"seed", required_argument, 0, 10},
 		{"factor", required_argument, 0, 'F'},
 		{"bisulfite", no_argument, 0, 'b'},
-		{"bisulfit-refs", required_argument, 0, 'B'}
+		{"bisulfit-refs", required_argument, 0, 'B'},
+		{"output", required_argument, 0, 'o'}
 	//	{0, 0, 0, 0}
 	};
+	char* output;
 	int option_index = 0;
 	int c;
-	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:", long_options, &option_index)) >= 0){
+	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:o:", long_options, &option_index)) >= 0){
 		switch(c){
 			case 0:
 				args.discordant=0;
 				break;
 			case 1:
+				break;
+			case 'o':
+				output = (char *)malloc(strlen(optarg));
+				strcpy(output, optarg);
 				break;
 			case 'x':
 				args.reference = (char *)malloc(strlen(optarg));
@@ -189,15 +195,48 @@ int main(int argc, char *argv[])
 		}
 	}
 	if(args.bisulfite){
+		if(!output){
+			fprintf(stderr, "The ouptut name should be specified\n");
+			return -1;
+		}
+		char *output_temp = malloc(strlen(output)+5);
+		strcpy(output_temp, output);
+		strcpy(output_temp, "-1");
+		FILE *sam = fopen(output_temp, "w");
+		stdout = sam;
 		args.reference = args.reference_island_considered;
 		bwa_aln_core2(&args);
+		fclose(sam);
+		free(output_temp);
+		output_temp = malloc(strlen(output)+5);
+		strcpy(output_temp, output);
+		strcpy(output_temp, "-2");
+		sam = fopen(output_temp, "w");
+		stdout = sam;
 		args.reference = args.reference_context_considered;
 		bwa_aln_core2(&args);
+		fclose(sam);
+		free(output_temp);
+		output_temp = malloc(strlen(output)+5);
+		strcpy(output_temp, output);
+		strcpy(output_temp, "-3");
+		sam = fopen(output_temp, "w");
+		stdout = sam;
 		args.reference = args.reference_all_converted;
 		bwa_aln_core2(&args);
+		fclose(sam);
+		free(output_temp);
 	}
-	else
+	else{
+		FILE *sam;
+		if(output){
+			sam = fopen(output, "w");
+			stdout = sam;
+		}
 		bwa_aln_core2(&args);
+		if(output)
+			fclose(sam);
+	}
 
 	//fprintf(stderr, "ori = %s\n", args.ori);
 	//bwa_aln_single(args.reference, args.fq);

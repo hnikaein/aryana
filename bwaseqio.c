@@ -38,9 +38,6 @@ bwa_seqio_t *bwa_seq_open(const char *fn)
 	bs = (bwa_seqio_t*)calloc(1, sizeof(bwa_seqio_t));
 	fp = xzopen(fn, "r");
 	bs->ks = kseq_init(fp);
-	fprintf(stderr, "AHAHAHA");
-	kseq_t *seq = bs->ks;
-	fprintf(stderr, "AHAHAHA2222");
 	return bs;
 }
 
