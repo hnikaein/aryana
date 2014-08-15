@@ -38,8 +38,8 @@ long readNum;
 long *readPenalties;
 
 
-char *samName, *referenceName, *annotationFile;
-FILE *samFile;
+char *samName1, *samName2, *samName3, *referenceName, *annotationFile;
+FILE *samFile1, *samFile2, *samFile3;
 
 int main(int argc, char *argv[]) {
 	if (argc < 6) {
@@ -68,8 +68,13 @@ int main(int argc, char *argv[]) {
 				strcpy(referenceName, optarg);
 				break;
 			case 's':
-				samName = (char *)malloc(strlen(optarg));
-				strcpy(samName, optarg);
+				samName1 = (char *)malloc(strlen(optarg));
+				strcpy(samName1, optarg);
+				samName2 = (char *)malloc(strlen(argv[optind]));
+				strcpy(samName2, argv[optind]);
+				samName3 = (char *)malloc(strlen(argv[optind+1]));
+				strcpy(samName3, argv[optind+1]);
+				optind = optind+2;
 				break;
 			case 'c':
 				annotationFile= (char *)malloc(strlen(optarg));
@@ -84,7 +89,9 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "salam");
 	ref_read(referenceName);
-	samFile = fopen(samName, "r");
+	samFile1 = fopen(samName1, "r");
+	samFile2 = fopen(samName2, "r");
+	samFile3 = fopen(samName3, "r");
 	char line[1000];
 	int header = 1;
 	char *qname, *rname, *cigar, *rnext, *pnext, *seq_string, *quality_string;
