@@ -89,9 +89,31 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr, "salam");
 	ref_read(referenceName);
-	samFile1 = fopen(samName1, "r");
-	samFile2 = fopen(samName2, "r");
-	samFile3 = fopen(samName3, "r");
+    
+    char * command="sort -k1 ";
+    char cmd_pointer[strlen(samName1) + strlen(command) + 1];
+    strcpy(cmd_pointer, command);
+    strcat(cmd_pointer, samName1);
+    strcat(cmd_pointer, " > samFile1.sam");
+    system(cmd_pointer);
+    
+    char cmd_pointer2[strlen(samName2) + strlen(command) + 1];
+    strcpy(cmd_pointer2, command);
+    strcat(cmd_pointer2, samName2);
+    strcat(cmd_pointer2, " > samFile2.sam");
+    system(cmd_pointer2);
+    
+    char cmd_pointer3[strlen(samName3) + strlen(command) + 1];
+    strcpy(cmd_pointer3, command);
+    strcat(cmd_pointer3, samName3);
+    strcat(cmd_pointer3, " > samFile3.sam");
+    system(cmd_pointer3);
+    
+    
+    
+	samFile1 = fopen("samFile1.sam", "r");
+	samFile2 = fopen("samFile2.sam", "r");
+	samFile3 = fopen("samFile3.sam", "r");
 	char line[1000];
 	int header = 1;
 	char *qname, *rname, *cigar, *rnext, *pnext, *seq_string, *quality_string;
