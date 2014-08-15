@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
 	
 	struct stat file_info;
 	if(stat(referenceName , &file_info) == -1){
-		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", file_name);
+		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", referenceName);
 		return -1;
 	}
 	off_t file_size_bytes = file_info.st_size;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     memset (readPenalties, 0, sizeof (long) * readNum);
 	long readNumber= 0;
     
-	while (fgets(line, 1000, samFile) != NULL) {
+	while (fgets(line, 1000, samFile1) != NULL) {
 		if (!header) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 			//fprintf(stderr, "%s\t%s\n", cigar, seq_string);
