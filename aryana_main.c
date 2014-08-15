@@ -201,25 +201,21 @@ int main(int argc, char *argv[])
 		}
 		char *output_temp = malloc(strlen(output)+5);
 		strcpy(output_temp, output);
-		strcpy(output_temp, "-1");
+		strcat(output_temp, "-1");
 		FILE *sam = fopen(output_temp, "w");
 		stdout = sam;
 		args.reference = args.reference_island_considered;
 		bwa_aln_core2(&args);
 		fclose(sam);
-		free(output_temp);
-		output_temp = malloc(strlen(output)+5);
 		strcpy(output_temp, output);
-		strcpy(output_temp, "-2");
+		strcat(output_temp, "-2");
 		sam = fopen(output_temp, "w");
 		stdout = sam;
 		args.reference = args.reference_context_considered;
 		bwa_aln_core2(&args);
 		fclose(sam);
-		free(output_temp);
-		output_temp = malloc(strlen(output)+5);
 		strcpy(output_temp, output);
-		strcpy(output_temp, "-3");
+		strcat(output_temp, "-3");
 		sam = fopen(output_temp, "w");
 		stdout = sam;
 		args.reference = args.reference_all_converted;
