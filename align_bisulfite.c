@@ -135,6 +135,7 @@ int main(int argc, char *argv[]) {
 				fgets(line, 1000, samFiles[i]);
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			fprintf(stderr, "AAA %s\n", qname);
+            printf("cigar : %s \n",cigar);
 			readCigar(cigar, pos, seq_string, i);
 		}
 		int min = min_penalty();
@@ -416,23 +417,24 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 
 }
 void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
-//	fprintf(stderr, "salam");
+	fprintf(stderr, "salam\n");
 	int pos = 0;
 	int value = 0;
 	uint64_t ref_index = ref_i;
 	long read_index = 0;
 	char alignType;
-//	printf("   %s", seq_string);
+	printf("   %s\n", seq_string);
+    printf("cigar:   %s\n", cigar);
 	while (1) {
 		if (!isdigit(cigar[pos])) {
-			//printf("   1salam");
+			printf("   1salam\n");
 			if (value > 0) {
 
-				//printf("value:   %d",value);
+				printf("value:   %d",value);
 				if (cigar[pos] == 'm') {
 					int j;
 					for (j = 0; j < value; j++) {
-						printf("   71salam");
+						printf("   71salam\n");
 						CalcPenalties(++ref_index, seq_string[read_index++],
 								reference_size, readNum);
 					}
