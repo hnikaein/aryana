@@ -126,16 +126,20 @@ int main(int argc, char *argv[]) {
 	quality_string = malloc(500 * sizeof(char));
 
 
-	while (1) {
-		for (i = 0; i < 3; i++) {
+	int stop = 0;
+	while (1 && !stop) {
+		for (i = 0; i < 3 && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
 				break;
 			}
 			while (line[0] == '@'){
-				char *temp = fgets(line, 1000, samFiles[i]);
-				if(! temp)
+				if(fgets(line, 1000, samFiles[i]) == NULL){
+					stop = 1;
 					break;
+				}
 			}
+			if(stop)
+				break;
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			fprintf(stderr, "AAA %s\n", qname);
             printf("cigar : %s \n",cigar[i]);
