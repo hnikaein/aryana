@@ -131,8 +131,11 @@ int main(int argc, char *argv[]) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
 				break;
 			}
-			while (line[0] == '@')
-				fgets(line, 1000, samFiles[i]);
+			while (line[0] == '@'){
+				char *temp = fgets(line, 1000, samFiles[i]);
+				if(! temp)
+					break;
+			}
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			fprintf(stderr, "AAA %s\n", qname);
             printf("cigar : %s \n",cigar[i]);
