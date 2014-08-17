@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define maxGenomeSize 4e9
+#define maxGenomeSize 1e5
 #define maxChromosomeNum 1000
 //const long maxGenomeSize = 4e9;
 //const int maxChromosomeNum = 1000;
