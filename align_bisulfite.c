@@ -254,23 +254,24 @@ int min_penalty(){
 }
 char getNuc(uint64_t place, uint64_t seq_len) {
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
-	int rev = 0;
-	fprintf(stderr, "AAAA %d %d\n", place, seq_len);
-	// if(place > (seq_len / 2))
-// 	{
-// 		place = (seq_len / 2) - (place - (seq_len / 2))-1;
-// 		rev=1;
-// 	}
-	uint64_t block = place / (sizeof(bwtint_t) * 4);
-	fprintf(stderr, "BBBB %d\n", block);
-	int offset = place % (sizeof(bwtint_t) * 4);
-	fprintf(stderr, "CCCC %d\n", offset);
-	uint64_t mask = 3;
-	mask = mask & (reference[block] >> (2 * offset));
-	fprintf(stderr, "DDDD %d\n", mask);
-	if (rev == 1)
-		mask = 3 - mask;
-	return atomic[mask];
+//	int rev = 0;
+//	fprintf(stderr, "AAAA %d %d\n", place, seq_len);
+//	// if(place > (seq_len / 2))
+//// 	{
+//// 		place = (seq_len / 2) - (place - (seq_len / 2))-1;
+//// 		rev=1;
+//// 	}
+//	uint64_t block = place / (sizeof(bwtint_t) * 4);
+//	fprintf(stderr, "BBBB %d\n", block);
+//	int offset = place % (sizeof(bwtint_t) * 4);
+//	fprintf(stderr, "CCCC %d\n", offset);
+//	uint64_t mask = 3;
+//	mask = mask & (reference[block] >> (2 * offset));
+//	fprintf(stderr, "DDDD %d\n", mask);
+//	if (rev == 1)
+//		mask = 3 - mask;
+//	return atomic[mask];
+    return atomic[rand() % 4];
 }
 
 inline void ToLower(char * s) {
@@ -379,7 +380,7 @@ int isInIsland(uint64_t ref_i) {
 
 void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 	//printf("   7salam");
-	printf("read : %c   ", read);
+	printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
 	//printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
 	if (read == 'A' || read == 'G') {
