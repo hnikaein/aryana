@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			fprintf(stderr, "AAA %s\n", qname);
             printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos, seq_string, i);
+			readCigar(cigar[i], pos[i], seq_string, i);
 		}
 		int min = min_penalty();
 		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[min], &pos[min],&mapq[min], cigar[min],rnext,pnext, &tlen,seq_string,quality_string);
