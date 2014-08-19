@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <math.h>
+#include <limits.h>
 
 #include "utils.h"
 #include "bwt.h"
@@ -448,6 +449,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 					read_index += value;
 				else {
 //					printf("*");
+                    readPenalties[readNum] += LONG_MAX;
 					break;
 				}
 
