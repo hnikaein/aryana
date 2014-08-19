@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
 	while (1 && !stop) {
 		for (i = 0; i < 3 && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
+				stop = 1;
 				break;
 			}
 			while (line[0] == '@'){
@@ -145,8 +146,10 @@ int main(int argc, char *argv[]) {
             //printf("cigar : %s \n",cigar[i]);
 			readCigar(cigar[i], pos[i], seq_string, i);
 		}
+		if(stop)
+			break;
 		int min = min_penalty();
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[min], &pos[min],&mapq[min], cigar[min],rnext,pnext, &tlen,seq_string,quality_string);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
 	}
 
 	for (i = 0; i < 3; i++) {
