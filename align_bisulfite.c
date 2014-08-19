@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define maxGenomeSize 4e9
+#define maxGenomeSize 1e5
 #define maxChromosomeNum 1000
 //const long maxGenomeSize = 4e9;
 //const int maxChromosomeNum = 1000;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 
 	ReadCpGIslands(annotationFile);
 
-	fprintf(stderr, "salam");
+	//fprintf(stderr, "salam");
 	ref_read(referenceName);
 
 	char * command = "sort -k1 ";
@@ -126,20 +126,30 @@ int main(int argc, char *argv[]) {
 	quality_string = malloc(500 * sizeof(char));
 
 
-	while (1) {
-		for (i = 0; i < 3; i++) {
+	int stop = 0;
+	while (1 && !stop) {
+		for (i = 0; i < 3 && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
+				stop = 1;
 				break;
 			}
-			while (line[0] == '@')
-				fgets(line, 1000, samFiles[i]);
+			while (line[0] == '@'){
+				if(fgets(line, 1000, samFiles[i]) == NULL){
+					stop = 1;
+					break;
+				}
+			}
+			if(stop)
+				break;
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
-			fprintf(stderr, "AAA %s\n", qname);
-            printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos, seq_string, i);
+			//fprintf(stderr, "AAA %s\n", qname);
+            //printf("cigar : %s \n",cigar[i]);
+			readCigar(cigar[i], pos[i], seq_string, i);
 		}
+		if(stop)
+			break;
 		int min = min_penalty();
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[min], &pos[min],&mapq[min], cigar[min],rnext,pnext, &tlen,seq_string,quality_string);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
 	}
 
 	for (i = 0; i < 3; i++) {
@@ -177,7 +187,7 @@ uint32_t reference_size;
 uint32_t reference_reminder;
 
 int ref_read(char * file_name) {
-	fprintf(stderr, "salam %s", file_name);
+	//fprintf(stderr, "salam %s", file_name);
 	fprintf(stderr, "inside ref_read with %s\n", file_name);
 	struct stat file_info;
 	if (stat(file_name, &file_info) == -1) {
@@ -196,16 +206,13 @@ int ref_read(char * file_name) {
 		return -1;
 	}
 	off_t file_size_bytes = file_info.st_size;
-	fprintf(stderr, "size: %d\n", file_size_bytes);
+	//fprintf(stderr, "size: %d\n", file_size_bytes);
 	reference_size = ceil(
 			((double) file_size_bytes) / (double) (sizeof(uint64_t)));
 	fprintf(stderr, "reference_size = %u\n", reference_size);
-	fprintf(stderr, "size: %d\n", file_size_bytes);
 	reference_reminder = file_size_bytes % sizeof(uint64_t);
 	//reference = new base64 [ reference_size ];
-	fprintf(stderr, "size: %d\n", file_size_bytes);
 	reference = (uint64_t *) malloc(reference_size * sizeof(uint64_t));
-	fprintf(stderr, "size: %d\n", file_size_bytes);
 	memset(reference, 0, reference_size * sizeof(uint64_t));
 	size_t read_size2 = 0; //there is a read_size defined above
 	size_t signal;
@@ -214,7 +221,6 @@ int ref_read(char * file_name) {
 	int counter = 0;
 
 	do {
-		fprintf(stderr, "size: %d, %d\n", file_size_bytes, read_size2);
 		signal = read(fd, (void *) uc_buffer, total_size - read_size2);
 		//signal = fread((void *)uc_buffer, )
 		if (signal == -1) {
@@ -231,10 +237,6 @@ int ref_read(char * file_name) {
 		fprintf(stderr, "Unable to close the file\n");
 		return -1;
 	}
-
-	int i = 0;
-	for (i = 0; i < 10; i++)
-		fprintf(stderr, "%d\t", reference[i]);
 	return 0;
 }
 
@@ -254,24 +256,24 @@ int min_penalty(){
 }
 char getNuc(uint64_t place, uint64_t seq_len) {
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
-//	int rev = 0;
-//	fprintf(stderr, "AAAA %d %d\n", place, seq_len);
-//	// if(place > (seq_len / 2))
-//// 	{
-//// 		place = (seq_len / 2) - (place - (seq_len / 2))-1;
-//// 		rev=1;
-//// 	}
-//	uint64_t block = place / (sizeof(bwtint_t) * 4);
-//	fprintf(stderr, "BBBB %d\n", block);
-//	int offset = place % (sizeof(bwtint_t) * 4);
-//	fprintf(stderr, "CCCC %d\n", offset);
-//	uint64_t mask = 3;
-//	mask = mask & (reference[block] >> (2 * offset));
-//	fprintf(stderr, "DDDD %d\n", mask);
-//	if (rev == 1)
-//		mask = 3 - mask;
-//	return atomic[mask];
-    return atomic[rand() % 4];
+	int rev = 0;
+	//fprintf(stderr, "AAAA %" PRIu64 " %" PRIu64 "\n", place, seq_len);
+	// if(place > (seq_len / 2))
+// 	{
+// 		place = (seq_len / 2) - (place - (seq_len / 2))-1;
+// 		rev=1;
+// 	}
+	uint64_t block = place / (sizeof(bwtint_t) * 4);
+	//fprintf(stderr, "BBBB %" PRIu64 "\n", block);
+	int offset = place % (sizeof(bwtint_t) * 4);
+	//fprintf(stderr, "CCCC %d\n", offset);
+	uint64_t mask = 3;
+	//mask = mask & (reference[block] >> (2 * offset));
+	//fprintf(stderr, "DDDD %" PRIu64 "\n", mask);
+	if (rev == 1)
+		mask = 3 - mask;
+	//return atomic[mask];
+	return 'A';
 }
 
 inline void ToLower(char * s) {
@@ -357,13 +359,13 @@ void setPenalties(int p1, int p2, int p3) {
 
 int isInIsland(uint64_t ref_i) {
 
-	printf("island refindex : %" PRIu64 "\n",ref_i);
+	//printf("island refindex : %" PRIu64 "\n",ref_i);
 
 	uint64_t first = 0, last = islandsNum - 1;
 	uint64_t middle = (first + last) / 2;
 	int isInIsland = 0;
 	while (first <= last) {
-		printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
+		//printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
 		if (islandStarts[middle] >= ref_i && ref_i <= islandEnds[middle]) {
 
 			isInIsland = 1;
@@ -380,7 +382,8 @@ int isInIsland(uint64_t ref_i) {
 
 void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 	//printf("   7salam");
-	printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
+	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
+	//printf("read : %c   ", read);
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
 	//printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
 	if (read == 'A' || read == 'G') {
@@ -418,24 +421,24 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 
 }
 void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
-	fprintf(stderr, "salam\n");
+	//fprintf(stderr, "salam\n");
 	int pos = 0;
 	int value = 0;
 	uint64_t ref_index = ref_i;
 	long read_index = 0;
 	char alignType;
-	printf("   %s\n", seq_string);
-    printf("cigar:   %s\n", cigar);
+	//printf("   %s\n", seq_string);
+    //printf("cigar:   %s\n", cigar);
 	while (1) {
 		if (!isdigit(cigar[pos])) {
-			printf("   1salam\n");
+			//printf("   1salam\n");
 			if (value > 0) {
 
-				printf("value:   %d",value);
+				//printf("value:   %d",value);
 				if (cigar[pos] == 'm') {
 					int j;
 					for (j = 0; j < value; j++) {
-						printf("   71salam\n");
+						//printf("   71salam\n");
 						CalcPenalties(++ref_index, seq_string[read_index++],
 								reference_size, readNum);
 					}
