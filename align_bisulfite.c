@@ -13,7 +13,6 @@
 //#include "align_bisulfite.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
 #define maxGenomeSize 1e5
