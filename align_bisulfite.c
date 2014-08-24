@@ -37,8 +37,8 @@ long readNum;
 long readPenalties[3];
 
 char *referenceName, *annotationFile;
-char *samNames[3];
-FILE *samFiles[3];
+char *samNames[4];
+FILE *samFiles[4];
 
 int main(int argc, char *argv[]) {
 	if (argc < 6) {
@@ -71,7 +71,9 @@ int main(int argc, char *argv[]) {
 			strcpy(samNames[1], argv[optind]);
 			samNames[2] = (char *) malloc(strlen(argv[optind + 1]));
 			strcpy(samNames[2], argv[optind + 1]);
-			optind = optind + 2;
+			samNames[3] = (char *) malloc(strlen(argv[optind + 2]));
+			strcpy(samNames[3], argv[optind + 2]);
+			optind = optind + 3;
 			break;
 		case 'c':
 			annotationFile = (char *) malloc(strlen(optarg));
@@ -104,18 +106,25 @@ int main(int argc, char *argv[]) {
 	strcat(cmd_pointer3, " > samFile3.sam");
 	system(cmd_pointer3);
 
+	char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
+	strcpy(cmd_pointer4, command);
+	strcat(cmd_pointer4, samNames[3]);
+	strcat(cmd_pointer4, " > samFile4.sam");
+	system(cmd_pointer4);
+
 	samFiles[0] = fopen("samFile1.sam", "r");
 	samFiles[1] = fopen("samFile2.sam", "r");
 	samFiles[2] = fopen("samFile3.sam", "r");
+	samFiles[3] = fopen("samFile4.sam", "r");
 	char line[1000];
 	int header = 1;
 	char *qname, *rnext, *pnext, *seq_string, *quality_string;
-	char *rname[3], *cigar[3];
+	char *rname[4], *cigar[4];
 	int flag, i;
-	uint64_t pos[3];
-	uint32_t mapq[3];
+	uint64_t pos[4];
+	uint32_t mapq[4];
 	long long int tlen;
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 4; i++) {
 		rname[i] = malloc(100 * sizeof(char));
 		cigar[i] = malloc(200 * sizeof(char));
 	}
@@ -128,7 +137,7 @@ int main(int argc, char *argv[]) {
 
 	int stop = 0;
 	while (1 && !stop) {
-		for (i = 0; i < 3 && !stop; i++) {
+		for (i = 0; i < 4 && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
 				stop = 1;
 				break;
@@ -152,7 +161,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
 	}
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 4; i++) {
 		fclose(samFiles[i]);
 	}
 //	while (fgets(line, 1000, samFile1) != NULL) {

@@ -15,6 +15,6 @@ typedef struct{
 	int seed_length;
 	int best_factor;
 	int bisulfite;
-	char *reference_island_considered, *reference_context_considered, *reference_all_converted;
+	int alter_reads;
 } aryana_args;
 
