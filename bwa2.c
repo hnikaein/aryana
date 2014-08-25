@@ -557,7 +557,7 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 			arr[j][del]=(char *)malloc(5*(sizeof (char)));
 		}
 */	}
-	fprintf(stderr,"aaaa reset hashed\n");
+	fprintf(stderr,"reset hashed\n");
 	//fprintf(stderr,"khodafez\n");
 	seqs = (bwa_seq_t*)calloc(each_read_size, sizeof(bwa_seq_t));
 	fprintf(stderr,"seqs created\n");
@@ -570,13 +570,9 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 	fprintf(stderr, "thread %d starting...\n", tid);
     set_arg_alterread(options->alter_reads);
 	while(true){
-        	fprintf(stderr, "thread ...\n");
 		pthread_mutex_lock(&input);
-        	fprintf(stderr, "thread %d starting...\n", tid);
 		if((seqs = bwa_read_seq(ks, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
 			//finish = true;
-			fprintf(stderr, "thread %d starts...\n", tid);
-
 			pthread_mutex_unlock(&input);
 			fprintf(stderr, "thread %d ending...\n", tid);
 			return;
