@@ -266,9 +266,12 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
 		n_tot += p->full_len;
 		p->seq = (ubyte_t*)calloc(p->len, 1);
 		for (i = 0; i != p->full_len; ++i){
-            if(alter_reads)
+            if(alter_reads){
                 if(seq->seq.s[i] == 'C')
                     seq->seq.s[i]='T';
+                else if(seq->seq.s[i]=='c')
+                    seq->seq.s[i]='t';
+            }
 			p->seq[i] = nst_nt4_table[(int)seq->seq.s[i]];
 			
 		}
