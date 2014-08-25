@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
 	args.seed_length = -1;
 	args.best_factor = -1;
 	args.bisulfite = 0;
+	char *refNames[4];
 	if(argc < 3){
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
@@ -184,13 +185,15 @@ int main(int argc, char *argv[])
 				args.bisulfite = 1;
 				break;
 			case 'B':
-				args.reference_island_considered = (char *)malloc(strlen(optarg));
-				strcpy(args.reference_island_considered, optarg);
-				args.reference_context_considered = (char *)malloc(strlen(argv[optind]));
-				strcpy(args.reference_context_considered, argv[optind]);
-				args.reference_all_converted = (char *)malloc(strlen(argv[optind+1]));
-				strcpy(args.reference_all_converted, argv[optind+1]);
-				optind = optind+2;
+				refNames[0] = (char *)malloc(strlen(optarg));
+				strcpy(refNames[0], optarg);
+				refNames[1] = (char *)malloc(strlen(argv[optind]));
+				strcpy(refNames[1], argv[optind]);
+				refNames[2] = (char *)malloc(strlen(argv[optind+1]));
+				strcpy(refNames[2], argv[optind+1]);
+				refNames[3] = (char *)malloc(strlen(argv[optind+2]));
+				strcpy(refNames[3], argv[optind+2]);
+				optind = optind+3;
 				break;
 		}
 	}
@@ -204,21 +207,30 @@ int main(int argc, char *argv[])
 		strcat(output_temp, "-1");
 		FILE *sam = fopen(output_temp, "w");
 		stdout = sam;
-		args.reference = args.reference_island_considered;
+		args.reference = refNames[0];
+		args.alter_reads = 0;
 		bwa_aln_core2(&args);
 		fclose(sam);
 		strcpy(output_temp, output);
 		strcat(output_temp, "-2");
 		sam = fopen(output_temp, "w");
 		stdout = sam;
-		args.reference = args.reference_context_considered;
+		args.reference = refNames[1];
 		bwa_aln_core2(&args);
 		fclose(sam);
 		strcpy(output_temp, output);
 		strcat(output_temp, "-3");
 		sam = fopen(output_temp, "w");
 		stdout = sam;
-		args.reference = args.reference_all_converted;
+		args.reference = refNames[2];
+		bwa_aln_core2(&args);
+		fclose(sam);
+		strcpy(output_temp, output);
+		strcat(output_temp, "-4");
+		sam = fopen(output_temp, "w");
+		stdout = sam;
+		args.reference = refNames[3];
+		args.alter_reads = 1;
 		bwa_aln_core2(&args);
 		fclose(sam);
 		free(output_temp);
