@@ -19,8 +19,8 @@ struct __bwa_seqio_t {
 	kseq_t *ks; //Afsoon: what is the type kseq_t?
 };
 
-void set_arg_alterread(){
-    alter_reads = 1;
+void set_arg_alterread(int alter){
+    alter_reads = alter;
 }
 
 bwa_seqio_t *bwa_bam_open(const char *fn, int which)
