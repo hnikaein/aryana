@@ -260,8 +260,12 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
 		p->full_len = p->clip_len = p->len = l;
 		n_tot += p->full_len;
 		p->seq = (ubyte_t*)calloc(p->len, 1);
-		for (i = 0; i != p->full_len; ++i)
+		for (i = 0; i != p->full_len; ++i){
+			if(i<50);
+			// printf("heyyy : %c\n",seq->seq.s[i]);
 			p->seq[i] = nst_nt4_table[(int)seq->seq.s[i]];
+			
+		}
 		if (seq->qual.l) { // copy quality
 			p->qual = (ubyte_t*)strdup((char*)seq->qual.s);
 			if (trim_qual >= 1) n_trimmed += bwa_trim_read(trim_qual, p);
