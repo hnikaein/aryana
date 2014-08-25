@@ -135,6 +135,7 @@ extern "C" {
 	void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt);
 //	void bwa_aln_core2(const char *prefix, const char *fn_fa, const gap_opt_t *opt);
 
+    void arg_set_alterread(int alter_reads);
 	bwa_seqio_t *bwa_seq_open(const char *fn);
 	bwa_seqio_t *bwa_bam_open(const char *fn, int which);
 	void bwa_seq_close(bwa_seqio_t *bs);
