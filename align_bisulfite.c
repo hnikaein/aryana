@@ -31,7 +31,7 @@ char * genomeFile, *annotationFile, *outputFile;
 uint64_t islandStarts[(long) maxGenomeSize];
 uint64_t islandEnds[(long) maxGenomeSize];
 long islandsNum = 0;
-int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
+int highPenalty = 100, medPenalty = 50, lowPenalty = 10;
 long penalties;
 long readNum;
 long readPenalties[4];
@@ -83,12 +83,12 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-    printf("heu1");
+   // printf("heu1");
 	ReadCpGIslands(annotationFile);
-        printf("heu2");
+        //printf("heu2");
 	//fprintf(stderr, "salam");
 	ref_read(referenceName);
-        printf("heu3");
+       // printf("heu3");
 	char * command = "sort -k1 ";
 	char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
 	strcpy(cmd_pointer, command);
@@ -160,11 +160,12 @@ int main(int argc, char *argv[]) {
 		if(stop)
 			break;
 		int min = min_penalty();
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
+		//fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
 	}
 
 	for (i = 0; i < 4; i++) {
 		fclose(samFiles[i]);
+        printf("penalty for samfile %d : %lld \n",i,readPenalties[i]);
 	}
 //	while (fgets(line, 1000, samFile1) != NULL) {
 //		if (!header) {

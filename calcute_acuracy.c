@@ -77,20 +77,22 @@ int main(int argc, char *argv[]) {
             //printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
             if(start-20 <= pos && pos <=end+20);
                 //exact aligning
-            else if(!strstr(cigar,"*"))
+            else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
+		fprintf(stdout,"%s\n",line);
+		}
             else
                 fprintf(stdout,"%s\n",line);
     //readCigar(cigar, pos, seq_string, i,start ,end);
 
             //fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
 
-            fprintf(stdout,"\n cigar %s \n ",cigar);
+           // fprintf(stdout,"\n cigar %s \n ",cigar);
             if(strstr(cigar,"*"))
                 notAlignedReads++;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
-    fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
+    //fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
     fclose(samFile);
     }
 }
