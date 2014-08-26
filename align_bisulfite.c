@@ -34,7 +34,7 @@ long islandsNum = 0;
 int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
 long penalties;
 long readNum;
-long readPenalties[3];
+long readPenalties[4];
 
 char *referenceName, *annotationFile;
 char *samNames[4];
