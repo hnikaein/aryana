@@ -261,6 +261,10 @@ int min_penalty(){
 		min = readPenalties[2];
 		i = 2;
 	}
+	if(min > readPenalties[3]){
+		min = readPenalties[3];
+		i = 3;
+	}
 	return i;
 }
 char getNuc(uint64_t place, uint64_t seq_len) {
