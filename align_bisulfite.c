@@ -41,6 +41,7 @@ char *samNames[4];
 FILE *samFiles[4];
 
 int main(int argc, char *argv[]) {
+        printf("heu1");
 	if (argc < 6) {
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
 	int c;
 	while ((c = getopt_long(argc, argv, "x:s:c:", long_options, &option_index))
 			>= 0) {
+            printf("heu0");
 		switch (c) {
 		case 0:
 			break;
@@ -81,12 +83,12 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 	}
-
+    printf("heu1");
 	ReadCpGIslands(annotationFile);
-
+        printf("heu2");
 	//fprintf(stderr, "salam");
 	ref_read(referenceName);
-
+        printf("heu3");
 	char * command = "sort -k1 ";
 	char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
 	strcpy(cmd_pointer, command);

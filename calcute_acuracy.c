@@ -10,14 +10,27 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
     
-    FILE *samFile;
-    samFile = fopen("a.sam", "r");
+    
+    if ( argc != 2 ){
+        /* We print argv[0] assuming it is the program name */
+        printf( "usage: %s filename", argv[0] );
+    }
+    else
+    {
+        // We assume argv[1] is a filename to open
+        FILE *samFile = fopen( argv[1], "r" );
+        /* fopen returns 0, the NULL pointer, on failure */
+        if ( samFile == 0 )
+            printf( "Could not open file\n" );
+    
+//    FILE *samFile;
+//    samFile = fopen(samName, "r");
     long long badAlignedReads = 0;
     long long notAlignedReads = 0;
     long long readNum = 0;
@@ -57,18 +70,20 @@ int main(int argc, char *argv[]) {
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
     
-            printf( "f: %s   sec:%s \n",first,second  );
+            //printf( "f: %s   sec:%s \n",first,second  );
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
-            printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
+            //printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
             if(start-20 <= pos && pos <=end+20);
                 //exact aligning
             else if(!strstr(cigar,"*"))
                 badAlignedReads += 1;
+            else
+                fprintf(stdout,"%s\n",line);
     //readCigar(cigar, pos, seq_string, i,start ,end);
 
-            fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
+            //fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
 
             fprintf(stdout,"\n cigar %s \n ",cigar);
             if(strstr(cigar,"*"))
@@ -77,7 +92,7 @@ int main(int argc, char *argv[]) {
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
     fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
     fclose(samFile);
-    
+    }
 }
 void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum ) {
 	//fprintf(stderr, "salam\n");
