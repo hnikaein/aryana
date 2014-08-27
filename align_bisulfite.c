@@ -41,22 +41,24 @@ char *samNames[4];
 FILE *samFiles[4];
 
 int main(int argc, char *argv[]) {
-        printf("heu1");
+        //printf("heu1");
 	if (argc < 6) {
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
 	}
 
-	static struct option long_options[] = { { "samfiles", required_argument, 0,
-			's' }, { "reference", required_argument, 0, 'x' }, { "CpG-islands",
-			required_argument, 0, 'c' }
+	static struct option long_options[] = {
+		{ "samfiles", required_argument, 0, 's' },
+		{ "reference", required_argument, 0, 'x' },
+		{ "CpG-islands", required_argument, 0, 'c' },
+		{ "penalties", required_argument, 0, 'p' }
 	//	{0, 0, 0, 0}
 			};
 	int option_index = 0;
 	int c;
-	while ((c = getopt_long(argc, argv, "x:s:c:", long_options, &option_index))
+	while ((c = getopt_long(argc, argv, "x:s:c:p:", long_options, &option_index))
 			>= 0) {
-            printf("heu0");
+            //printf("heu0");
 		switch (c) {
 		case 0:
 			break;
@@ -80,6 +82,12 @@ int main(int argc, char *argv[]) {
 		case 'c':
 			annotationFile = (char *) malloc(strlen(optarg));
 			strcpy(annotationFile, optarg);
+			break;
+		case 'p':
+			lowPenalty = atoi(optarg);
+			medPenalty = atoi(argv[optind]);
+			highPenalty = atoi(argv[optind + 1]);
+			optind = optind + 2;
 			break;
 		}
 	}
@@ -165,6 +173,7 @@ int main(int argc, char *argv[]) {
         for (j; j < 4; j++) {
             readPenalties[j]=0;
 	}
+
 
 //	while (fgets(line, 1000, samFile1) != NULL) {
 //		if (!header) {
