@@ -27,7 +27,6 @@ char chromName[maxChromosomeNum][100];
 char * genome;
 int chromNum, xChromosome = -1, yChromosome = -1;
 char * genomeFile, *annotationFile, *outputFile;
-
 uint64_t islandStarts[(long) maxGenomeSize];
 uint64_t islandEnds[(long) maxGenomeSize];
 long islandsNum = 0;
@@ -40,6 +39,7 @@ char *referenceName, *annotationFile;
 char *samNames[4];
 FILE *samFiles[4];
 
+int count =0; ////////////////////////////////
 int main(int argc, char *argv[]) {
         //printf("heu1");
 	if (argc < 6) {
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
 		int min = min_penalty();
 		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
         int j=0;
-        for (j; j < 4; j++) {
+        for (j; j < 4; j++)
             readPenalties[j]=0;
 	}
 
@@ -206,7 +206,7 @@ uint64_t * reference;
 uint32_t reference_size;
 uint32_t reference_reminder;
 
-int ref_read(char * file_name) {
+int ref_read(char * file_name){
 	//fprintf(stderr, "salam %s", file_name);
 	fprintf(stderr, "inside ref_read with %s\n", file_name);
 	struct stat file_info;
@@ -496,4 +496,6 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 	}
     if(count <50)
         fprintf(stdout, "read : %s , cigar : %s , penalties : %lld ",seq_string,cigar,readNum);
+}
+    
 }
