@@ -41,7 +41,7 @@ char *samNames[4];
 FILE *samFiles[4];
 
 int main(int argc, char *argv[]) {
-        printf("heu1");
+        //printf("heu1");
 	if (argc < 6) {
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	int c;
 	while ((c = getopt_long(argc, argv, "x:s:c:", long_options, &option_index))
 			>= 0) {
-            printf("heu0");
+            //printf("heu0");
 		switch (c) {
 		case 0:
 			break;
@@ -160,12 +160,12 @@ int main(int argc, char *argv[]) {
 		if(stop)
 			break;
 		int min = min_penalty();
-		//fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
 	}
 
 	for (i = 0; i < 4; i++) {
 		fclose(samFiles[i]);
-        printf("penalty for samfile %d : %lld \n",i,readPenalties[i]);
+        //printf("penalty for samfile %d : %lld \n",i,readPenalties[i]);
 	}
 //	while (fgets(line, 1000, samFile1) != NULL) {
 //		if (!header) {
