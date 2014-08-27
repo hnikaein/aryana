@@ -47,14 +47,16 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	static struct option long_options[] = { { "samfiles", required_argument, 0,
-			's' }, { "reference", required_argument, 0, 'x' }, { "CpG-islands",
-			required_argument, 0, 'c' }
+	static struct option long_options[] = {
+		{ "samfiles", required_argument, 0, 's' },
+		{ "reference", required_argument, 0, 'x' },
+		{ "CpG-islands", required_argument, 0, 'c' },
+		{ "penalties", required_argument, 0, 'p' }
 	//	{0, 0, 0, 0}
 			};
 	int option_index = 0;
 	int c;
-	while ((c = getopt_long(argc, argv, "x:s:c:", long_options, &option_index))
+	while ((c = getopt_long(argc, argv, "x:s:c:p:", long_options, &option_index))
 			>= 0) {
             //printf("heu0");
 		switch (c) {
@@ -80,6 +82,12 @@ int main(int argc, char *argv[]) {
 		case 'c':
 			annotationFile = (char *) malloc(strlen(optarg));
 			strcpy(annotationFile, optarg);
+			break;
+		case 'p':
+			lowPenalty = atoi(optarg);
+			medPenalty = atoi(argv[optind]);
+			highPenalty = atoi(argv[optind + 1]);
+			optind = optind + 2;
 			break;
 		}
 	}
