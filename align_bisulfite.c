@@ -265,7 +265,7 @@ int min_penalty(){
 	int i = 0,j;
     if(count++<50)
         for(j=0;j<4;j++)
-            fprintf(stderr, "Penalties %d : %lld \n",j,readPenalties[i]);
+            fprintf(stderr, "Penalties %d : %lld \n",j,readPenalties[j]);
 	long min = readPenalties[0];
 	if(min > readPenalties[1]){
 		min = readPenalties[1];
@@ -468,6 +468,8 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 						//printf("   71salam\n");
 						CalcPenalties(++ref_index, seq_string[read_index++],
 								reference_size, readNum);
+                        //          if(strstr(cigar,"79m1d9m1d5m1i6m"))
+                        //                  fprintf(stderr,"   penalties for cigar : %lld   ",readPenalties[readNum]);
 					}
 				} else if (cigar[pos] == 'd') {
 					ref_index += value;
@@ -494,8 +496,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 		}
 		pos++;
 	}
-    if(count <50)
-        fprintf(stdout, "read : %s , cigar : %s , penalties : %lld ",seq_string,cigar,readNum);
+    if(count <20)
+        fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %lld \n",seq_string,cigar,readNum);
 }
     
-}
