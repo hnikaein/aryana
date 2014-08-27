@@ -160,13 +160,12 @@ int main(int argc, char *argv[]) {
 		if(stop)
 			break;
 		int min = min_penalty();
-		//fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
+        int j=0;
+        for (j; j < 4; j++) {
+            readPenalties[j]=0;
 	}
 
-	for (i = 0; i < 4; i++) {
-		fclose(samFiles[i]);
-        printf("penalty for samfile %d : %lld \n",i,readPenalties[i]);
-	}
 //	while (fgets(line, 1000, samFile1) != NULL) {
 //		if (!header) {
 //			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
@@ -254,7 +253,10 @@ int ref_read(char * file_name) {
 
 
 int min_penalty(){
-	int i = 0;
+	int i = 0,j;
+    if(count++<50)
+        for(j=0;j<4;j++)
+            fprintf(stderr, "Penalties %d : %lld \n",j,readPenalties[i]);
 	long min = readPenalties[0];
 	if(min > readPenalties[1]){
 		min = readPenalties[1];
@@ -483,4 +485,6 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 		}
 		pos++;
 	}
+    if(count <50)
+        fprintf(stdout, "read : %s , cigar : %s , penalties : %lld ",seq_string,cigar,readNum);
 }
