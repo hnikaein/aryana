@@ -79,10 +79,10 @@ int main(int argc, char *argv[]) {
                 //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
-		fprintf(stdout,"%s\n",line);
+		//fprintf(stdout,"%s\n",line);
 		}
-            else
-                fprintf(stdout,"%s\n",line);
+           // else
+             //   fprintf(stdout,"%s\n",line);
     //readCigar(cigar, pos, seq_string, i,start ,end);
 
             //fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
                 notAlignedReads++;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
-    //fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
+    fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
     fclose(samFile);
     }
 }
@@ -120,7 +120,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum ) {
 					read_index += value;
 				else {
                     //					printf("*");
-                    //readPenalties[readNum] += LONG_MAX;
+                   // readPenalties[readNum] += LONG_MAX;
 					break;
 				}
                 

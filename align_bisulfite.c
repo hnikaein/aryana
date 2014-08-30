@@ -30,7 +30,7 @@ char * genomeFile, *annotationFile, *outputFile;
 uint64_t islandStarts[(long) maxGenomeSize];
 uint64_t islandEnds[(long) maxGenomeSize];
 long islandsNum = 0;
-int highPenalty = 100, medPenalty = 50, lowPenalty = 10;
+int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
 long penalties;
 long readNum;
 long readPenalties[4];
@@ -473,8 +473,13 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 					}
 				} else if (cigar[pos] == 'd') {
 					ref_index += value;
-				} else if (cigar[pos] == 'i')
+                    readPenalties[readNum] += highPenalty * value;
+
+				} else if (cigar[pos] == 'i'){
 					read_index += value;
+                    readPenalties[readNum] += highPenalty * value;
+
+                }
 				else {
 //					printf("*");
                     readPenalties[readNum] += LONG_MAX;
