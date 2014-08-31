@@ -480,13 +480,12 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
                     readPenalties[readNum] += highPenalty * value;
 
                 }
-				else {
-//					printf("*");
-                    readPenalties[readNum] += LONG_MAX;
-					break;
-				}
 
 			}
+            else if(cigar[pos]=='*'){
+                readPenalties[readNum] += LONG_MAX;
+                break;
+            }
 //			printf("*");
 			if (cigar[pos] == 0)
 				break;
@@ -496,10 +495,10 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 //                printf("  %c",alignType);
 //            }
 			value = 0;
-		} else {
-			value = value * 10 + cigar[pos] - '0';
-		}
-		pos++;
+            } else {
+                value = value * 10 + cigar[pos] - '0';
+            }
+            pos++;
 	}
     if(count <20)
         fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %lld \n",seq_string,cigar,readNum);
