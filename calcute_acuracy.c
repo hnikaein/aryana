@@ -92,7 +92,8 @@ int main(int argc, char *argv[]) {
                 notAlignedReads++;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
-    fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy);
+    float accuracy2 = ((float)notAlignedReads/readNum)*100.0 ;
+    fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n percentage of not aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy,accuracy2);
     fclose(samFile);
     }
 }
