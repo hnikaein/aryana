@@ -144,6 +144,9 @@ int main(int argc, char *argv[]) {
 	seq_string = malloc(1000 * sizeof(char));
 	quality_string = malloc(500 * sizeof(char));
 	int chosen[4];
+    int j=0;
+    for (j; j < 4; j++)
+		chosen[j] = 0;
 
 
 	int stop = 0;
@@ -176,9 +179,8 @@ int main(int argc, char *argv[]) {
             readPenalties[j]=0;
 	}
 	
-    int j=0;
-    for (j; j < 4; j++)
-		fprintf(stderr, "CHOSEN %d: %d", j, chosen[j]);
+    for (j=0; j < 4; j++)
+		fprintf(stderr, "CHOSEN %d: %d\n", j, chosen[j]);
 
 
 //	while (fgets(line, 1000, samFile1) != NULL) {
