@@ -39,6 +39,18 @@ char *referenceName, *annotationFile;
 char *samNames[4];
 FILE *samFiles[4];
 
+
+struct ChrIslands
+{
+	int chrNum;
+	int islandsNum;
+	uint64_t islandStarts[(long) maxGenomeSize];
+	uint64_t islandEnds[(long) maxGenomeSize];
+    
+};
+
+struct ChrIslands chrIslands[maxChromosomeNum] ;
+
 int count =0; ////////////////////////////////
 int main(int argc, char *argv[]) {
         //printf("heu1");
@@ -163,7 +175,7 @@ int main(int argc, char *argv[]) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i], seq_string, i);
+			readCigar(cigar[i], pos[i], seq_string, i ,ChromIndex(rname[i]));
 		}
 		if(stop)
 			break;
@@ -337,44 +349,53 @@ int compare_function(const void *a, const void *b) {
 void ReadCpGIslands(char * annotationFile) {
 	// cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
 	// ifstream f(annotationFile);
-//    if (! f.is_open()) {
-//       // cerr << "Error: CpG island locations file not found or could not be opened" << endl;
-//        exit(1);
-//    }
-//	fprintf(stderr, "salam");
+    //    if (! f.is_open()) {
+    //       // cerr << "Error: CpG island locations file not found or could not be opened" << endl;
+    //        exit(1);
+    //    }
+	fprintf(stderr, "salam");
 	FILE* file = fopen(annotationFile, "r"); /* should check the result */
-//	fprintf(stderr, "salam2");
+	fprintf(stderr, "salam2");
 	char fLine[10000], chrom[10], strand[10];
 	uint64_t wStart, wEnd, chr;
 	int bin;
-	//	f.getline(fLine, sizeof(fLine)); // First row
+    
 	long index = 0;
-	while (fgets(fLine, sizeof(fLine), file)) {
-		//fLine[0] = 0;
-//        f.getline(fLine, sizeof(fLine));
-
-		//if (! fLine[0]) continue;
-		// cerr << fLine << endl;
-//        if(islandsNum==0){
-//            islandsNum++;
-//            continue;
-//        }
-		wStart = 0;
-		sscanf(fLine, "%s %" PRIu64 " %" PRIu64 " ", chrom, &wStart, &wEnd);
-
-		if (!wStart)
-			continue;
-		// cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-		islandStarts[index] = wStart;
-		islandEnds[index] = wEnd;
-		//printf("starts: %" PRIu64 "     ends : %" PRIu64 "", islandStarts[index],islandEnds[index]);
-		chr = ChromIndex(chrom);
-		islandsNum++;
-		index++;
+	fgets(fLine, sizeof(fLine), file);
+	fgets(fLine, sizeof(fLine), file);
+	wStart = 0;
+	sscanf(fLine, "%s %" PRIu64 " %" PRIu64 " ", chrom, &wStart, &wEnd);
+	fprintf(stderr, "%s \n",fLine);
+	long chrIndex =0;
+	int stop = 0;
+	while (!stop) {
+		char *copy = (char *)malloc(strlen(chrom));
+		memcpy(copy, chrom,strlen(chrom));
+		index = 0;
+		while(!strcmp(copy, chrom)){
+            
+			if (!wStart)
+				continue;
+            
+			// cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
+			//islandStarts[index] = wStart;
+			chrIslands[chrIndex].islandStarts[index] = wStart;
+			chrIslands[chrIndex].islandEnds[index] = wEnd;
+			printf("starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[chrIndex].islandStarts[index],chrIslands[chrIndex].islandEnds[index]);
+			chrIslands[chrIndex].chrNum = ChromIndex(chrom);
+			chrIslands[chrIndex].islandsNum++;
+			index++;
+			if(NULL==fgets(fLine, sizeof(fLine), file)){
+				stop =1;
+				break;
+			}
+			sscanf(fLine, "%s %" PRIu64 " %" PRIu64 " ", chrom, &wStart, &wEnd);
+			
+		}
+		chrIndex++;
+		index=0;
+        
 	}
-//    qsort(islandStarts,sizeof(islandStarts)/sizeof(*islandStarts),sizeof(*islandStarts),compare_function);
-//    qsort(islandEnds,maxGenomeSize,sizeof(uint64_t),compare_function);
-	//islandsNum--;
 }
 
 void setPenalties(int p1, int p2, int p3) {
@@ -384,20 +405,20 @@ void setPenalties(int p1, int p2, int p3) {
 	return;
 }
 
-int isInIsland(uint64_t ref_i) {
+int isInIsland(uint64_t ref_i , int chr) {
 
 	//printf("island refindex : %" PRIu64 "\n",ref_i);
 
-	uint64_t first = 0, last = islandsNum - 1;
+	uint64_t first = 0, last = chrIslands[chr].islandsNum - 1;
 	uint64_t middle = (first + last) / 2;
 	int isInIsland = 0;
 	while (first <= last) {
 		//printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
-		if (islandStarts[middle] >= ref_i && ref_i <= islandEnds[middle]) {
+		if (chrIslands[chr].islandStarts[middle] >= ref_i && ref_i <= chrIslands[chr].islandEnds[middle]) {
 
 			isInIsland = 1;
 			return 1;
-		} else if (islandEnds[middle] < ref_i)
+		} else if (chrIslands[chr].islandEnds[middle] < ref_i)
 			first = middle + 1;
 		else
 			last = middle - 1;
@@ -407,7 +428,7 @@ int isInIsland(uint64_t ref_i) {
 	return 0;
 }
 
-void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
+void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum,int chr) {
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
@@ -420,7 +441,7 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 
 		if (read == 'T' && getNuc(ref_i, seq_len) == 'C') {
 			if (getNuc(ref_i + 1, seq_len) == 'G') { // in the CpG context
-				if (isInIsland(ref_i)) { // in CpG and also island
+				if (isInIsland(ref_i,chr)) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
 					readPenalties[readNum] += highPenalty;
@@ -431,7 +452,7 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 			}
 		} else if (read == 'C' && getNuc(ref_i, seq_len) == 'C') {
 			if (getNuc(ref_i + 1, seq_len) == 'G') { // in the CpG context
-				int temp = isInIsland(ref_i);
+				int temp = isInIsland(ref_i,chr);
 				if (temp == 1) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
@@ -447,7 +468,7 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum) {
 	}
 
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
+void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,int chr) {
 	//fprintf(stderr, "salam\n");
 	int pos = 0;
 	int value = 0;
@@ -467,7 +488,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum) {
 					for (j = 0; j < value; j++) {
 						//printf("   71salam\n");
 						CalcPenalties(++ref_index, seq_string[read_index++],
-								reference_size, readNum);
+								reference_size, readNum,chr);
                         //          if(strstr(cigar,"79m1d9m1d5m1i6m"))
                         //                  fprintf(stderr,"   penalties for cigar : %lld   ",readPenalties[readNum]);
 					}

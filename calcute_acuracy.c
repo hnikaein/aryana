@@ -63,24 +63,46 @@ int main(int argc, char *argv[]) {
                 break;
             readNum++;
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
-            char* tokens=strtok(qname, ":");
+            //1000000_chr21:30778456-30778555
+        
+            char *copy = (char *)malloc(strlen(qname) + 1);
+            strcpy(copy, qname);
+
+            char* token=strtok(copy, ":");
+            char* chrom = strtok(token, "_");
+            chrom = strtok(NULL, "_");
+        
+            char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
-    
+            //printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
+
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
+            if (strstr(chrom, "chr") == chrom) chrom += 3;
+            int chromNum;
+            //printf( "11chrom: %s   rname:    %s \n",chrom,rname  );
+            if (chrom[0] >= '0' && chrom[0] <= '9' && strlen(chrom) < 3)
+                chromNum = atoi(chrom) ;
+        
+            if (strstr(rname, "chr") == rname) rname += 3;
+            int alignedChrNum;;
+            if (rname[0] >= '0' && rname[0] <= '9')
+                alignedChrNum = atoi(rname) ;
+            //printf( "chrom: %d   al:%d \n",chromNum,alignedChrNum  );
     
             //printf( "f: %s   sec:%s \n",first,second  );
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
             //printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
-            if(start-20 <= pos && pos <=end+20);
-                //exact aligning
+        if(start-20 <= pos && pos <=end+20 && (chromNum == alignedChrNum || !strcmp(chrom,rname )));
+                    //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
+                
 		//fprintf(stdout,"%s\n",line);
-		}
+            }
            // else
              //   fprintf(stdout,"%s\n",line);
     //readCigar(cigar, pos, seq_string, i,start ,end);
@@ -90,6 +112,8 @@ int main(int argc, char *argv[]) {
            // fprintf(stdout,"\n cigar %s \n ",cigar);
             if(strstr(cigar,"*"))
                 notAlignedReads++;
+            chromNum=0;
+        alignedChrNum=0;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
     float accuracy2 = ((float)notAlignedReads/readNum)*100.0 ;
