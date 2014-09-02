@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
             if(stop)
                 break;
             readNum++;
+
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
             //1000000_chr21:30778456-30778555
         
@@ -74,46 +75,41 @@ int main(int argc, char *argv[]) {
         
             char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
-            //printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
+            printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
 
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
             if (strstr(chrom, "chr") == chrom) chrom += 3;
             int chromNum;
-            //printf( "11chrom: %s   rname:    %s \n",chrom,rname  );
-            if (chrom[0] >= '0' && chrom[0] <= '9' && strlen(chrom) < 3)
-                chromNum = atoi(chrom) ;
-        
-            if (strstr(rname, "chr") == rname) rname += 3;
-            int alignedChrNum;;
-            if (rname[0] >= '0' && rname[0] <= '9')
-                alignedChrNum = atoi(rname) ;
-            //printf( "chrom: %d   al:%d \n",chromNum,alignedChrNum  );
-    
-            //printf( "f: %s   sec:%s \n",first,second  );
+//            printf( "11chrom: %s   rname:    %s \n",chrom,rname  );
+//            if (chrom[0] >= '0' && chrom[0] <= '9' && strlen(chrom) < 3)
+//                chromNum = atoi(chrom) ;
+//        
+//            if (strstr(rname, "chr") == rname) rname += 3;
+//            int alignedChrNum;;
+//            if (rname[0] >= '0' && rname[0] <= '9')
+//                alignedChrNum = atoi(rname) ;
+ //           printf( "chrom: %d   al:%d \n",chromNum,alignedChrNum  );
+            printf( "1: %s   2:%s \n",chrom,rname  );
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
             //printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
-        if(start-20 <= pos && pos <=end+20 && (chromNum == alignedChrNum || !strcmp(chrom,rname )));
+        if(start-20 <= pos && pos <=end+20 && !strcmp(chrom,rname ));
                     //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
                 
 		//fprintf(stdout,"%s\n",line);
             }
-           // else
-             //   fprintf(stdout,"%s\n",line);
-    //readCigar(cigar, pos, seq_string, i,start ,end);
 
             //fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
 
-           // fprintf(stdout,"\n cigar %s \n ",cigar);
             if(strstr(cigar,"*"))
                 notAlignedReads++;
             chromNum=0;
-        alignedChrNum=0;
+ //       alignedChrNum=0;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
     float accuracy2 = ((float)notAlignedReads/readNum)*100.0 ;
@@ -121,43 +117,3 @@ int main(int argc, char *argv[]) {
     fclose(samFile);
     }
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum ) {
-	//fprintf(stderr, "salam\n");
-	int pos = 0;
-	int value = 0;
-	uint64_t ref_index = ref_i;
-	long read_index = 0;
-	char alignType;
-	//printf("   %s\n", seq_string);
-    //printf("cigar:   %s\n", cigar);
-	while (1) {
-		if (!isdigit(cigar[pos])) {
-			//printf("   1salam\n");
-			if (value > 0) {
-                
-				//printf("value:   %d",value);
-				if (cigar[pos] == 'm') {
-					int j;
-                    
-				} else if (cigar[pos] == 'd') {
-					ref_index += value;
-				} else if (cigar[pos] == 'i')
-					read_index += value;
-				else {
-                    //					printf("*");
-                   // readPenalties[readNum] += LONG_MAX;
-					break;
-				}
-                
-			}
-            //			printf("*");
-			if (cigar[pos] == 0)
-				break;
-			value = 0;
-		} else {
-			value = value * 10 + cigar[pos] - '0';
-		}
-		pos++;
-	}
-}
-
