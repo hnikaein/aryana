@@ -44,6 +44,7 @@ struct ChrIslands
 {
 	int chrNum;
 	int islandsNum;
+    char * chrName;
 	uint64_t islandStarts[(long) maxGenomeSize];
 	uint64_t islandEnds[(long) maxGenomeSize];
     
@@ -180,7 +181,7 @@ int main(int argc, char *argv[]) {
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i], seq_string, i ,ChromIndex(rname[i]));
+			readCigar(cigar[i], pos[i], seq_string, i ,rname[i]);
 		}
 		if(stop)
 			break;
@@ -390,6 +391,7 @@ void ReadCpGIslands(char * annotationFile) {
 			//islandStarts[index] = wStart;
 			chrIslands[chrIndex].islandStarts[index] = wStart;
 			chrIslands[chrIndex].islandEnds[index] = wEnd;
+            chrIslands[chrIndex].chrName= chrom;
 			//printf("starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[chrIndex].islandStarts[index],chrIslands[chrIndex].islandEnds[index]);
 			chrIslands[chrIndex].chrNum = ChromIndex(chrom);
 			chrIslands[chrIndex].islandsNum++;
@@ -414,13 +416,13 @@ void setPenalties(int p1, int p2, int p3) {
 	return;
 }
 
-int isInIsland(uint64_t ref_i , int chr) {
+int isInIsland(uint64_t ref_i , char *chr) {
 
 	//printf("island refindex : %" PRIu64 "\n",ref_i);
     int i;
     int chr2;
     for(i=0;i<maxChromosomeNum ; i++)
-        if(chrIslands[i].chrNum == chr){
+        if(!strcmp(chrIslands[i].chrName ,chr)){
             chr2 = i;
             break;
         }
@@ -443,7 +445,7 @@ int isInIsland(uint64_t ref_i , int chr) {
 	return 0;
 }
 
-void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum,int chr) {
+void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum,char *chr) {
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
@@ -483,7 +485,7 @@ void CalcPenalties(uint64_t ref_i, char read, uint64_t seq_len, long readNum,int
 	}
 
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,int chr) {
+void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr) {
 	//fprintf(stderr, "salam\n");
 	int pos = 0;
 	int value = 0;
