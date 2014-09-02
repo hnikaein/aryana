@@ -80,8 +80,8 @@ int main(int argc, char *argv[]) {
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
-            if (strstr(chrom, "chr") == chrom) chrom += 3;
-            int chromNum;
+           // if (strstr(chrom, "chr") == chrom) chrom += 3;
+           // int chromNum;
 //            printf( "11chrom: %s   rname:    %s \n",chrom,rname  );
 //            if (chrom[0] >= '0' && chrom[0] <= '9' && strlen(chrom) < 3)
 //                chromNum = atoi(chrom) ;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 //            if (rname[0] >= '0' && rname[0] <= '9')
 //                alignedChrNum = atoi(rname) ;
  //           printf( "chrom: %d   al:%d \n",chromNum,alignedChrNum  );
-            printf( "1: %s   2:%s \n",chrom,rname  );
+  //          printf( "1: %s   2:%s \n",chrom,rname  );
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 
             if(strstr(cigar,"*"))
                 notAlignedReads++;
-            chromNum=0;
+      //      chromNum=0;
  //       alignedChrNum=0;
     }
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;

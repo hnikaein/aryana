@@ -106,10 +106,8 @@ int main(int argc, char *argv[]) {
    // printf("heu1");
 	ReadCpGIslands(annotationFile);
     int p=0;
-    for(p;p<100;p++)
-        fprintf(stderr,"start:  %lld    end : %lld number:  %d \n",chrIslands[4].islandStarts[p],chrIslands[4].islandEnds[p],chrIslands[4].chrNum);
-        //printf("heu2");
-	//fprintf(stderr, "salam");
+   // for(p;p<100;p++)
+       // fprintf(stderr,"start:  %lld    end : %lld number:  %d \n",chrIslands[4].islandStarts[p],chrIslands[4].islandEnds[p],chrIslands[4].chrNum);
 	ref_read(referenceName);
        // printf("heu3");
 	char * command = "sort -k1 ";
@@ -392,7 +390,7 @@ void ReadCpGIslands(char * annotationFile) {
 			//islandStarts[index] = wStart;
 			chrIslands[chrIndex].islandStarts[index] = wStart;
 			chrIslands[chrIndex].islandEnds[index] = wEnd;
-			printf("starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[chrIndex].islandStarts[index],chrIslands[chrIndex].islandEnds[index]);
+			//printf("starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[chrIndex].islandStarts[index],chrIslands[chrIndex].islandEnds[index]);
 			chrIslands[chrIndex].chrNum = ChromIndex(chrom);
 			chrIslands[chrIndex].islandsNum++;
 			index++;
