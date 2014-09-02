@@ -855,5 +855,7 @@ void bwa_aln_core2(aryana_args *args)
 		bwa_seq_close(ks2);
 	}
 
+	offInd = 0;
+
 	//fclose(fout);
 }
