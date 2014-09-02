@@ -105,6 +105,9 @@ int main(int argc, char *argv[]) {
 	}
    // printf("heu1");
 	ReadCpGIslands(annotationFile);
+    int p=0;
+    for(p;p<100;p++)
+        fprintf(stderr,"start:  %lld    end : %lld number:  %d \n",chrIslands[4].islandStarts[p],chrIslands[4].islandEnds[p],chrIslands[4].chrNum);
         //printf("heu2");
 	//fprintf(stderr, "salam");
 	ref_read(referenceName);
@@ -416,17 +419,23 @@ void setPenalties(int p1, int p2, int p3) {
 int isInIsland(uint64_t ref_i , int chr) {
 
 	//printf("island refindex : %" PRIu64 "\n",ref_i);
-
-	uint64_t first = 0, last = chrIslands[chr].islandsNum - 1;
+    int i;
+    int chr2;
+    for(i=0;i<maxChromosomeNum ; i++)
+        if(chrIslands[i].chrNum == chr){
+            chr2 = i;
+            break;
+        }
+	uint64_t first = 0, last = chrIslands[chr2].islandsNum - 1;
 	uint64_t middle = (first + last) / 2;
 	int isInIsland = 0;
 	while (first <= last) {
 		//printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
-		if (chrIslands[chr].islandStarts[middle] >= ref_i && ref_i <= chrIslands[chr].islandEnds[middle]) {
+		if (chrIslands[chr2].islandStarts[middle] >= ref_i && ref_i <= chrIslands[chr2].islandEnds[middle]) {
 
 			isInIsland = 1;
 			return 1;
-		} else if (chrIslands[chr].islandEnds[middle] < ref_i)
+		} else if (chrIslands[chr2].islandEnds[middle] < ref_i)
 			first = middle + 1;
 		else
 			last = middle - 1;
