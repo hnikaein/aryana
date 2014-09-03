@@ -8,11 +8,31 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+
+
+char * run(const char* cmd){
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return "ERROR";
+    char buffer[262144];
+    char data[100];
+    char *result;
+    int dist=0;
+    int size;
+    //TIME_START
+    while(!feof(pipe)) {
+        size=(int)fread(buffer,1,262144, pipe); //cout<<buffer<<" size="<<size<<endl;
+        memcpy(data,buffer,100);
+    }
+    //TIME_PRINT_
+    fprintf(stdout,"%s \n",data);
+    pclose(pipe);
+    return data;
+}
 
 int main(int argc, char *argv[]) {
     
@@ -41,7 +61,7 @@ int main(int argc, char *argv[]) {
     uint64_t pos;
     uint32_t mapq;
     long long int tlen;
-        int min;
+    int min;
     rname = malloc(100 * sizeof(char));
     cigar = malloc(200 * sizeof(char));
     qname = malloc(100 * sizeof(char));
@@ -63,8 +83,8 @@ int main(int argc, char *argv[]) {
             if(stop)
                 break;
             readNum++;
-            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string,min);
-            char* tokens=strtok(qname, ":");
+            long long penalty;
+            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\t%lld\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string,&min,&penalty);           char* tokens=strtok(qname, ":");
             tokens = strtok(NULL, ":");
     
             char *first,*second;
@@ -80,7 +100,27 @@ int main(int argc, char *argv[]) {
                 //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
-            fprintf(stdout,"aligned with: %d /t line :%s\n",min+1,line);
+                char str[80];
+                strcpy (str,rname);
+                strcat (str,":");
+                char buffer [33];
+                sprintf(buffer,"%d",pos);
+                strcat (str,buffer);
+                strcat (str,"-");
+                sprintf(buffer,"%d",pos+99);
+                strcat (str,buffer);
+                fprintf(stdout,"%s \n",str);
+                
+                char * command = "samtools faidx /home/a.sharifi/Aryana_BS/Resources/Resources/Human/Index/hg19.fa ";
+                char cmd_pointer[strlen(command) + 60];
+                strcpy(cmd_pointer, command);
+                strcat(cmd_pointer, str);
+                //system(cmd_pointer);
+                char * data=run(cmd_pointer);
+        
+                
+                fprintf(stdout,"aligned with: %d \t line :%s\t penalty:%ld\n",min+1,line,penalty);
+
 		}
            // else
              //   fprintf(stdout,"%s\n",line);
