@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
     uint64_t pos;
     uint32_t mapq;
     long long int tlen;
+        int min;
     rname = malloc(100 * sizeof(char));
     cigar = malloc(200 * sizeof(char));
     qname = malloc(100 * sizeof(char));
@@ -62,7 +63,7 @@ int main(int argc, char *argv[]) {
             if(stop)
                 break;
             readNum++;
-            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
+            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string,min);
             char* tokens=strtok(qname, ":");
             tokens = strtok(NULL, ":");
     
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]) {
                 //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
-		//fprintf(stdout,"%s\n",line);
+            fprintf(stdout,"aligned with: %d /t line :%s\n",min+1,line);
 		}
            // else
              //   fprintf(stdout,"%s\n",line);
