@@ -358,8 +358,13 @@ void ReadCpGIslands(char * annotationFile) {
     long chrIndex =0;
     int stop = 0;
     while (!stop) {
+        
+        chrIslands[chrIndex].chrName = (char *) malloc(strlen(chrom) * sizeof(char));
+        strcpy(chrIslands[chrIndex].chrName, chrom);
+        
         char *copy = (char *)malloc(strlen(chrom));
         memcpy(copy, chrom,strlen(chrom));
+
         index = 0;
         while(!strcmp(copy, chrom)){
             
@@ -367,7 +372,6 @@ void ReadCpGIslands(char * annotationFile) {
                 continue;
             chrIslands[chrIndex].islandStarts[index] = wStart;
             chrIslands[chrIndex].islandEnds[index] = wEnd;
-            chrIslands[chrIndex].chrName= chrom;
             //printf("starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[chrIndex].islandStarts[index],chrIslands[chrIndex].islandEnds[index]);
             chrIslands[chrIndex].chrNum = ChromIndex(chrom);
             chrIslands[chrIndex].islandsNum++;
@@ -382,6 +386,15 @@ void ReadCpGIslands(char * annotationFile) {
         chrIndex++;
         index=0;
         
+    }
+    
+    int k=0,m=0;
+    for(k ; k< 100;k++){
+        fprintf(stderr, "number of %s: %d\n",chrIslands[k].chrName,chrIslands[k].islandsNum);
+//        for(m ; m< chrIslands[k].islandsNum;m++)
+//
+//       fprintf(stderr,"starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[k].islandStarts[m],chrIslands[k].islandEnds[m]);
+
     }
 }
 
@@ -407,7 +420,7 @@ int isInIsland(uint64_t ref_i , char *chr) {
     int isInIsland = 0;
     while (first <= last) {
         //printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
-        if (chrIslands[chr2].islandStarts[middle] >= ref_i && ref_i <= chrIslands[chr2].islandEnds[middle]) {
+        if (chrIslands[chr2].islandStarts[middle] <= ref_i && ref_i <= chrIslands[chr2].islandEnds[middle]) {
             
             isInIsland = 1;
             return 1;
