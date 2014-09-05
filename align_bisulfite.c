@@ -191,14 +191,14 @@ int main(int argc, char *argv[]) {
 				break;
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			int index = ChromIndex(rname[i]);
-			fprintf(stderr, "INDEX %d\n", index);
+			//fprintf(stderr, "INDEX %d\n", index);
 			if(index == -1){
 				readPenalties[i] += LONG_MAX;
 				continue;
 			}
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i]+chrom[i].chrStart-1, seq_string, i);
+			readCigar(cigar[i], pos[i]+chrom[i].chrStart-1, seq_string, i ,rname[i],pos[i]);
 		}
 		if(stop)
 			break;
@@ -214,62 +214,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "CHOSEN %d: %d\n", j, chosen[j]);
 
 }
-
-// int ref_read(char * file_name){
-// 	//fprintf(stderr, "salam %s", file_name);
-// 	fprintf(stderr, "inside ref_read with %s\n", file_name);
-// 	struct stat file_info;
-// 	if (stat(file_name, &file_info) == -1) {
-// 		fprintf(stderr,
-// 				"Could not get the information of file %s\nplease make sure the file exists\n",
-// 				file_name);
-// 		return -1;
-// 	}
-// 	int fd = open(file_name, O_RDONLY);
-// 	//FILE *fd;
-// 	//fd = xopen(file_name, "rb");
-// 	if (fd == -1) {
-// 		fprintf(stderr,
-// 				"Could not open the file %s\nplease make sure the file exists\n",
-// 				file_name);
-// 		return -1;
-// 	}
-// 	off_t file_size_bytes = file_info.st_size;
-// 	//fprintf(stderr, "size: %d\n", file_size_bytes);
-// 	reference_size = ceil(
-// 			((double) file_size_bytes) / (double) (sizeof(uint64_t)));
-// 	fprintf(stderr, "reference_size = %u\n", reference_size);
-// 	reference_reminder = file_size_bytes % sizeof(uint64_t);
-// 	//reference = new base64 [ reference_size ];
-// 	reference = (uint64_t *) malloc(reference_size * sizeof(uint64_t));
-// 	memset(reference, 0, reference_size * sizeof(uint64_t));
-// 	size_t read_size2 = 0; //there is a read_size defined above
-// 	size_t signal;
-// 	size_t total_size = (file_size_bytes);
-// 	unsigned char *uc_buffer = (unsigned char *) (reference);
-// 	int counter = 0;
-//
-// 	do {
-// 		signal = read(fd, (void *) uc_buffer, total_size - read_size2);
-// 		//signal = fread((void *)uc_buffer, )
-// 		if (signal == -1) {
-// 			fprintf(stderr, "Error: while writing to file\n");
-// 			if (close(fd) == -1)
-// 				fprintf(stderr, "Error: while closing file\n");
-// 			return -1;
-// 		}
-// 		counter++;
-// 		read_size2 += signal;
-// 		uc_buffer += signal;
-// 	} while (read_size2 < total_size);
-// 	if (close(fd) == -1) {
-// 		fprintf(stderr, "Unable to close the file\n");
-// 		return -1;
-// 	}
-// 	return 0;
-// }
-
-
 
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
@@ -383,12 +327,6 @@ int ChromIndex(char * chr) {
 
 }
 
-int compare_function(const void *a, const void *b) {
-    int *x = (uint64_t *) a;
-    int *y = (uint64_t *) b;
-    return *x - *y;
-}
-
 void ReadCpGIslands(char * annotationFile) {
     // cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
     // ifstream f(annotationFile);
@@ -419,9 +357,6 @@ void ReadCpGIslands(char * annotationFile) {
             
             if (!wStart)
                 continue;
-            
-            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-            //islandStarts[index] = wStart;
             chrIslands[chrIndex].islandStarts[index] = wStart;
             chrIslands[chrIndex].islandEnds[index] = wEnd;
             chrIslands[chrIndex].chrName= chrom;
@@ -454,11 +389,11 @@ int isInIsland(uint64_t ref_i , char *chr) {
     //printf("island refindex : %" PRIu64 "\n",ref_i);
     int i;
     int chr2;
-    for(i=0;i<maxChromosomeNum ; i++)
-        if(!strcmp(chrIslands[i].chrName ,chr)){
-            chr2 = i;
-            break;
-        }
+    chr2 = ChromIndex(chr);
+    if(chr2 == -1){
+        fprintf(stderr, "wrong chromosome..\n");
+        return -1;
+    }
     uint64_t first = 0, last = chrIslands[chr2].islandsNum - 1;
     uint64_t middle = (first + last) / 2;
     int isInIsland = 0;
@@ -479,7 +414,7 @@ int isInIsland(uint64_t ref_i , char *chr) {
 }
 
 
-void CalcPenalties(uint64_t ref_i, char read, long readNum) {
+void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t chrPos) {
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
@@ -492,7 +427,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum) {
 
 		if (read == 'T' && reference[ref_i] == 'C') {
 			if (reference[ref_i + 1] == 'G') { // in the CpG context
-				if (isInIsland(ref_i)) { // in CpG and also island
+				if (isInIsland(chrPos,chr)) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
 					readPenalties[readNum] += highPenalty;
@@ -503,7 +438,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum) {
 			}
 		} else if (read == 'C' && reference[ref_i] == 'C') {
 			if (reference[ref_i+1] == 'G') { // in the CpG context
-				int temp = isInIsland(ref_i);
+				int temp = isInIsland(chrPos,chr);
 				if (temp == 1) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
@@ -519,7 +454,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum) {
 	}
 
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr) {
+void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos) {
     //fprintf(stderr, "salam\n");
     int pos = 0;
     int value = 0;
@@ -538,7 +473,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
 					int j;
 					for (j = 0; j < value; j++) {
 						//printf("   71salam\n");
-						CalcPenalties(++ref_index, seq_string[read_index++], readNum);
+						CalcPenalties(++ref_index, seq_string[read_index++], readNum,chr,chrPos);
 
                         //          if(strstr(cigar,"79m1d9m1d5m1i6m"))
                         //                  fprintf(stderr,"   penalties for cigar : %lld   ",readPenalties[readNum]);
