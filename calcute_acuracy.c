@@ -8,11 +8,31 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+
+
+char * run(const char* cmd){
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) return "ERROR";
+    char buffer[262144];
+    char data[100];
+    char *result;
+    int dist=0;
+    int size;
+    //TIME_START
+    while(!feof(pipe)) {
+        size=(int)fread(buffer,1,262144, pipe); //cout<<buffer<<" size="<<size<<endl;
+        memcpy(data,buffer,100);
+    }
+    //TIME_PRINT_
+    fprintf(stdout,"%s \n",data);
+    pclose(pipe);
+    return data;
+}
 
 int main(int argc, char *argv[]) {
     
@@ -41,6 +61,8 @@ int main(int argc, char *argv[]) {
     uint64_t pos;
     uint32_t mapq;
     long long int tlen;
+    int min;
+        int repeated = 0;
     rname = malloc(100 * sizeof(char));
     cigar = malloc(200 * sizeof(char));
     qname = malloc(100 * sizeof(char));
@@ -62,10 +84,13 @@ int main(int argc, char *argv[]) {
             if(stop)
                 break;
             readNum++;
-            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
-            char* tokens=strtok(qname, ":");
+            long long penalty;
+            sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\t%lld\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string,&min,&penalty);
+        char *copy = (char *)malloc(strlen(qname) + 1);
+        strcpy(copy, qname);
+        char* tokens=strtok(qname, ":");
             tokens = strtok(NULL, ":");
-    
+            
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
@@ -79,7 +104,38 @@ int main(int argc, char *argv[]) {
                 //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
-		//fprintf(stdout,"%s\n",line);
+                char str[80];
+                strcpy (str,rname);
+                strcat (str,":");
+                char buffer [33];
+                sprintf(buffer,"%d",pos);
+                strcat (str,buffer);
+                strcat (str,"-");
+                sprintf(buffer,"%d",pos+99);
+                strcat (str,buffer);
+                fprintf(stdout,"%s \n",str);
+                
+                char * command = "samtools faidx /home/a.sharifi/Aryana_BS/Resources/Resources/Human/Index/hg19.fa ";
+                char cmd_pointer[strlen(command) + 60];
+                strcpy(cmd_pointer, command);
+                strcat(cmd_pointer, str);
+                //system(cmd_pointer);
+                char * data=run(cmd_pointer);
+                //1043_>chr8:6522050-6522149
+                tokens=strtok(copy, ">");
+                tokens = strtok(NULL, ">");
+                char cmd_pointer2[strlen(command) + 60];
+                strcpy(cmd_pointer2, command);
+                strcat(cmd_pointer2, tokens);
+                char * data2=run(cmd_pointer2);
+                if(strcmp(data, data2)){
+                    fprintf(stdout,"hooooooraaaaa \n");
+                    repeated++;
+                }
+
+                
+                fprintf(stdout,"aligned with: %d \t line :%s\t penalty:%ld\n",min+1,line,penalty);
+
 		}
            // else
              //   fprintf(stdout,"%s\n",line);
@@ -94,46 +150,8 @@ int main(int argc, char *argv[]) {
     float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
     float accuracy2 = ((float)notAlignedReads/readNum)*100.0 ;
     fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n percentage of not aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy,accuracy2);
+        
+        fprintf(stdout, "reapeted: %d \n",repeated);
     fclose(samFile);
     }
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum ) {
-	//fprintf(stderr, "salam\n");
-	int pos = 0;
-	int value = 0;
-	uint64_t ref_index = ref_i;
-	long read_index = 0;
-	char alignType;
-	//printf("   %s\n", seq_string);
-    //printf("cigar:   %s\n", cigar);
-	while (1) {
-		if (!isdigit(cigar[pos])) {
-			//printf("   1salam\n");
-			if (value > 0) {
-                
-				//printf("value:   %d",value);
-				if (cigar[pos] == 'm') {
-					int j;
-                    
-				} else if (cigar[pos] == 'd') {
-					ref_index += value;
-				} else if (cigar[pos] == 'i')
-					read_index += value;
-				else {
-                    //					printf("*");
-                   // readPenalties[readNum] += LONG_MAX;
-					break;
-				}
-                
-			}
-            //			printf("*");
-			if (cigar[pos] == 0)
-				break;
-			value = 0;
-		} else {
-			value = value * 10 + cigar[pos] - '0';
-		}
-		pos++;
-	}
-}
-
