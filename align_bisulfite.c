@@ -423,20 +423,35 @@ int isInIsland(uint64_t ref_i , char *chr) {
     uint64_t first = 0, last = chrIslands[chr2].islandsNum - 1;
     uint64_t middle = (first + last) / 2;
     int isInIsland = 0;
-    while (first <= last) {
-        //printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
-        if (chrIslands[chr2].islandStarts[middle] <= ref_i && ref_i <= chrIslands[chr2].islandEnds[middle]) {
-            
-            isInIsland = 1;
-            return 1;
-        } else if (chrIslands[chr2].islandEnds[middle] < ref_i)
-            first = middle + 1;
-        else
-            last = middle - 1;
+    
+//    while (first <= last) {
+//        //printf("first :%" PRIu64 "  last :%" PRIu64 "",islandStarts[middle],islandEnds[middle]);
+//        if(count <2000)
+//            fprintf(stderr,"chr : %d chr: %s, middle: %d",chr2,chr,middle);
+//        if (chrIslands[chr2].islandStarts[middle] <= ref_i && ref_i <= chrIslands[chr2].islandEnds[middle]) {
+//            
+//            isInIsland = 1;
+//            return 1;
+//        } else if (chrIslands[chr2].islandEnds[middle] < ref_i)
+//            first = middle + 1;
+//        else
+//            last = middle - 1;
+//        
+//        middle = (first + last) / 2;
+//    }
+    while(first < chrIslands[chr2].islandsNum){
+        if (chrIslands[chr2].islandStarts[first] <= ref_i && ref_i <= chrIslands[chr2].islandEnds[first]) {
         
-        middle = (first + last) / 2;
+                        isInIsland = 1;
+                        break;
+        }
+        first++;
+
     }
-    return 0;
+    if (count < 10000) {
+        fprintf(stderr, "%s ref_i:%" PRIu64 " isinisland: %d\n ",chr,ref_i,isInIsland);
+    }
+    return isInIsland;
 }
 
 
