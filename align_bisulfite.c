@@ -408,9 +408,14 @@ void setPenalties(int p1, int p2, int p3) {
 int isInIsland(uint64_t ref_i , char *chr) {
     
     //printf("island refindex : %" PRIu64 "\n",ref_i);
-    int i;
+    int i=0;
     int chr2;
-    chr2 = ChromIndex(chr);
+    for(i; i < maxChromosomeNum; i++){
+		if(chrIslands[i].chrName == NULL)
+			break;
+		if(strcmp(chrIslands[i].chrName, chr) == 0)
+			chr2=i;
+	}
     if(chr2 == -1){
         fprintf(stderr, "wrong chromosome..\n");
         return -1;
