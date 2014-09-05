@@ -122,35 +122,42 @@ int main(int argc, char *argv[]) {
     // fprintf(stderr,"start:  %lld    end : %lld number:  %d \n",chrIslands[4].islandStarts[p],chrIslands[4].islandEnds[p],chrIslands[4].chrNum);
     ReadGenome(referenceName);
     // printf("heu3");
-    char * command = "sort -k1 ";
-    char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
-    strcpy(cmd_pointer, command);
-    strcat(cmd_pointer, samNames[0]);
-    strcat(cmd_pointer, " > samFile1.sam");
-    system(cmd_pointer);
     
-    char cmd_pointer2[strlen(samNames[1]) + strlen(command) + 1];
-    strcpy(cmd_pointer2, command);
-    strcat(cmd_pointer2, samNames[1]);
-    strcat(cmd_pointer2, " > samFile2.sam");
-    system(cmd_pointer2);
+//    char * command = "sort -k1 ";
+//    char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
+//    strcpy(cmd_pointer, command);
+//    strcat(cmd_pointer, samNames[0]);
+//    strcat(cmd_pointer, " > samFile1.sam");
+//    system(cmd_pointer);
+//    
+//    char cmd_pointer2[strlen(samNames[1]) + strlen(command) + 1];
+//    strcpy(cmd_pointer2, command);
+//    strcat(cmd_pointer2, samNames[1]);
+//    strcat(cmd_pointer2, " > samFile2.sam");
+//    system(cmd_pointer2);
+//    
+//    char cmd_pointer3[strlen(samNames[2]) + strlen(command) + 1];
+//    strcpy(cmd_pointer3, command);
+//    strcat(cmd_pointer3, samNames[2]);
+//    strcat(cmd_pointer3, " > samFile3.sam");
+//    system(cmd_pointer3);
+//    
+//    char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
+//    strcpy(cmd_pointer4, command);
+//    strcat(cmd_pointer4, samNames[3]);
+//    strcat(cmd_pointer4, " > samFile4.sam");
+//    system(cmd_pointer4);
     
-    char cmd_pointer3[strlen(samNames[2]) + strlen(command) + 1];
-    strcpy(cmd_pointer3, command);
-    strcat(cmd_pointer3, samNames[2]);
-    strcat(cmd_pointer3, " > samFile3.sam");
-    system(cmd_pointer3);
+//    samFiles[0] = fopen("samFile1.sam", "r");
+//    samFiles[1] = fopen("samFile2.sam", "r");
+//    samFiles[2] = fopen("samFile3.sam", "r");
+//    samFiles[3] = fopen("samFile4.sam", "r");
+
+    samFiles[0] = fopen(samNames[0], "r");
+    samFiles[1] = fopen(samNames[1], "r");
+    samFiles[2] = fopen(samNames[2], "r");
+    samFiles[3] = fopen(samNames[3], "r");
     
-    char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
-    strcpy(cmd_pointer4, command);
-    strcat(cmd_pointer4, samNames[3]);
-    strcat(cmd_pointer4, " > samFile4.sam");
-    system(cmd_pointer4);
-    
-    samFiles[0] = fopen("samFile1.sam", "r");
-    samFiles[1] = fopen("samFile2.sam", "r");
-    samFiles[2] = fopen("samFile3.sam", "r");
-    samFiles[3] = fopen("samFile4.sam", "r");
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string;
@@ -198,7 +205,7 @@ int main(int argc, char *argv[]) {
 			}
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i]+chrom[i].chrStart-1, seq_string, i ,rname[i],pos[i]);
+			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i]);
 		}
 		if(stop)
 			break;
@@ -419,7 +426,8 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
-	//printf("read : %c    ref : %c  refindex : %" PRIu64 "\n",read,getNuc(ref_i,seq_len) ,ref_i);
+    if(count++<100)
+        fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,reference[ref_i] ,ref_i,chr);
 	if (read == 'A' || read == 'G') {
 		if (reference[ref_i] != read)
 			readPenalties[readNum] += highPenalty;
@@ -472,8 +480,10 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
 				if (cigar[pos] == 'm') {
 					int j;
 					for (j = 0; j < value; j++) {
-						//printf("   71salam\n");
-						CalcPenalties(++ref_index, seq_string[read_index++], readNum,chr,chrPos);
+
+						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos);
+                        ref_index++;
+                        read_index++;
 
                         //          if(strstr(cigar,"79m1d9m1d5m1i6m"))
                         //                  fprintf(stderr,"   penalties for cigar : %lld   ",readPenalties[readNum]);
