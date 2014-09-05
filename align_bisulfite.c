@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <math.h>
 #include <limits.h>
+#include <ctype.h>
 
 #include "utils.h"
 #include "bwt.h"
@@ -425,6 +426,11 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
+    read = toupper(read);
+    reference[ref_i] = toupper(reference[ref_i]);
+    reference[ref_i+1] = toupper(reference[ref_i+1]);
+    
+    
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
     if(count++<100)
         fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,reference[ref_i] ,ref_i,chr);
