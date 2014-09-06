@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 		{"threads", required_argument, 0, 'p'},
 		{"reorder", no_argument, 0, 5},
 		{"mm", no_argument, 0, 6},
-		{"seed", required_argument, 0, 7},
+		//{"seed", required_argument, 0, 7},
 		{"version", no_argument, 0, 8},
 		{"help", no_argument, 0, 9},
 		{"seed", required_argument, 0, 10},
@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
 				args.potents = atoi(optarg);
 				break;
 			case 10:
+				fprintf(stderr,"Seed: %s\n", optarg);
 				args.seed_length = atoi(optarg);
 				break;
 			case 'F':
