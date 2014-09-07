@@ -284,6 +284,10 @@ int bwt_match_limit_maxocc(const bwt_t *bwt, int len, const ubyte_t *str, bwtint
 	return l - k + 1;
 }*/
 
+
+// Tries to find the exact matches of a read (str) having length (len) 
+// Returns the interval of the identified exact matches in bwt table, from (sa_begin) to (sa_end)
+// If no exact matches are found, it returns the maximum length of a suffix of (str) with exact match (limit)
 int bwt_match_limit(const bwt_t *bwt, int len, const ubyte_t *str, bwtint_t *sa_begin, bwtint_t *sa_end, bwtint_t *limit)
 {
 	bwtint_t k, l, ok, ol,bk=0,bl=0;
@@ -320,36 +324,22 @@ int bwt_match_limit(const bwt_t *bwt, int len, const ubyte_t *str, bwtint_t *sa_
 	return l - k + 1;
 }
 
+// Same as bwt_match_limit, but finds the exact matches for the reverse complement of (str)
 int bwt_match_limit_rev(const bwt_t *bwt, int len, const ubyte_t *str, bwtint_t *sa_begin, bwtint_t *sa_end, bwtint_t *limit)
 {
 	bwtint_t k, l, ok, ol;
 	int i;
-	//Afsoon: what is ubyte_t?
 
 	*limit=len;
 	k = 0; l = bwt->seq_len;
 	for (i = len - 1; i >= 0; --i) {
 		ubyte_t c = str[len-i-1];
-		switch (c)
-		{
-		case 0:
-			c=3;
-			break;
-		case 1:
-			c=2;
-			break;
-		case 2:
-			c=1;
-			break;
-		case 3:
-			c=0;
-			break;
-		};
 		if (c > 3)
 		{
 			(*limit)=(bwtint_t)(len-i-1);
 			return 0; // no match
 		}
+		c = 3 - c;
 		bwt_2occ(bwt, k - 1, l, c, &ok, &ol);
 		k = bwt->L2[c] + ok + 1;
 		l = bwt->L2[c] + ol;
