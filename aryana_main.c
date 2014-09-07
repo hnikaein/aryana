@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 		{"output", required_argument, 0, 'o'}
 	//	{0, 0, 0, 0}
 	};
-	char* output;
+	char* output = NULL;
 	int option_index = 0;
 	int c;
 	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:o:", long_options, &option_index)) >= 0){
@@ -240,6 +240,7 @@ int main(int argc, char *argv[])
 			sam = fopen(output, "w");
 			stdout = sam;
 		}
+		args.alter_reads = 0;
 		bwa_aln_core2(&args);
 		if(output)
 			fclose(sam);
