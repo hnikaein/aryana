@@ -324,6 +324,7 @@ int bwt_match_limit(const bwt_t *bwt, int len, const ubyte_t *str, bwtint_t *sa_
 	return l - k + 1;
 }
 
+
 // Same as bwt_match_limit, but finds the exact matches for the reverse complement of (str)
 int bwt_match_limit_rev(const bwt_t *bwt, int len, const ubyte_t *str, bwtint_t *sa_begin, bwtint_t *sa_end, bwtint_t *limit)
 {
