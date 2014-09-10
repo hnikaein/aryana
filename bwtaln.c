@@ -204,7 +204,7 @@ typedef struct {
 
 bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa)
 {
-	fprintf(stderr,"READ\n");
+	//fprintf(stderr,"READ\n");
 	bwa_seqio_t *ks;
 	if (mode & BWA_MODE_BAM) { // open BAM
 		int which = 0;

@@ -254,7 +254,10 @@ int align_paired_read(char * buffer, char *cigar1[20], char *cigar2[20], bwa_seq
 		flag2 |= 32;
 	}
 	if(flag1 & 16)
-		seqs1->index = (bwt->seq_len / 2) - (seqs1->index - (bwt->seq_len / 2))-seqs1->len;
+	{
+		//fprintf(stderr,"index: %d, len: %d, seq_len: %d\n", seqs1->index, seqs1->len, bwt->seq_len);
+		seqs1->index = (bwt->seq_len / 2) - (seqs1->index - (bwt->seq_len / 2))-2*seqs1->len;
+	}
 
 	if (mate2_matched==0)
 	{
@@ -269,7 +272,7 @@ int align_paired_read(char * buffer, char *cigar1[20], char *cigar2[20], bwa_seq
 		flag1 |= 32;
 	}
 	if(flag2 & 16)
-		seqs2->index = (bwt->seq_len / 2) - (seqs2->index - (bwt->seq_len / 2))-seqs2->len;
+		seqs2->index = (bwt->seq_len / 2) - (seqs2->index - (bwt->seq_len / 2))-2*seqs2->len;
 	ind1 = offsearch(0, offInd - 1, offset, seqs1->index);
 	ind2 = offsearch(0, offInd - 1, offset, seqs2->index);
 	seqs1->index -= offset[ind1];
@@ -434,10 +437,6 @@ uint64_t reverse_cigar(char *cigar)
 	return length;
 }
 
-		
-
-
-
 	
 
 //////////////////////////////////
@@ -472,6 +471,7 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 			int tmp_errors=create_cigar(&table[best[ii]], cigar[ii], seq->len, seq->seq,bwt->seq_len,d,arr,tmp_cigar);
 
 			seq->index=table[best[ii]].index;
+			//fprintf(stderr, "seq->index: %d\n", seq->index);
 			//seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-seq->len;
 //			fprintf(stderr,"%d\n",tmp_errors);
 			double scaled_err=scmax*tmp_errors/(seq->len);
@@ -498,7 +498,7 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 
 	if (best_found!=-1)
 		seq->index=table[best[best_found]].index;
-
+//	fprintf(stderr, "seq->index : %d\n", seq->index);
 	if (best_found==-1 || seq->index >= bwt->seq_len)
 		flag = 4;
 	else if(seq->index <= bwt->seq_len / 2)
@@ -508,7 +508,8 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 	if(flag == 16)
 	{
 		uint64_t ref_aligned_len=reverse_cigar(cigar[best_found]);
-		seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-ref_aligned_len;
+		seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-2*ref_aligned_len;
+//                fprintf(stderr,"index: %d, ref_aligned_len: %d, seq_len: %d\n", seq->index, ref_aligned_len, bwt->seq_len);
 	}
 	ind = offsearch(0, offInd - 1, offset, seq->index);
 
@@ -528,25 +529,25 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 }
 
 void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
-	fprintf(stderr,"Thread #%d started\n",tid);
+//	fprintf(stderr,"Thread #%d started\n",tid);
 	bwa_seq_t *seqs;
 	int n_seqs = 0;
 	int total_seqs = 0;
 	bwtint_t j = 0;
-	fprintf(stderr,"salam\n");
+//	fprintf(stderr,"salam\n");
 	//fprintf(stderr,"allocate hash\n");
 	//hash_element table[4000];
 	//	hash_element table[TABLESIZE];
 	hash_element *table;
 	table=(hash_element *)malloc(TABLESIZE*(sizeof (hash_element)));
-	fprintf(stderr,"salam2\n");
+//	fprintf(stderr,"salam2\n");
 	reset_hash(table);
 	int **d=(int **)malloc(MAX_READ_SIZE*(sizeof (int *)));
-	fprintf(stderr,"salam3\n");
+//	fprintf(stderr,"salam3\n");
 	char **arr=(char **)malloc(MAX_READ_SIZE*(sizeof (char *)));
-	fprintf(stderr,"salam4\n");
+//	fprintf(stderr,"salam4\n");
 	char *tmp_cigar=(char *)malloc(MAX_READ_SIZE*(sizeof (char)));
-	fprintf(stderr,"salam5\n");
+//	fprintf(stderr,"salam5\n");
 	for (j=0; j<MAX_READ_SIZE; j++){
 		d[j]=(int *)malloc(300*(sizeof (int)));
 		arr[j]=(char *)malloc(300*(sizeof (char)));
@@ -557,24 +558,24 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 			arr[j][del]=(char *)malloc(5*(sizeof (char)));
 		}
 */	}
-	fprintf(stderr,"reset hashed\n");
+//	fprintf(stderr,"reset hashed\n");
 	//fprintf(stderr,"khodafez\n");
 	seqs = (bwa_seq_t*)calloc(each_read_size, sizeof(bwa_seq_t));
-	fprintf(stderr,"seqs created\n");
+//	fprintf(stderr,"seqs created\n");
 	char *buffer=(char *)malloc(100*max_sam_line*(sizeof (char)));
 	buffer[0] = '\0';
 	int lasttmpsize = 0;
 	char *cigar[100];
 	for (j=0; j<100; j++)
 		cigar[j]=(char *)malloc(MAX_CIGAR_SIZE*(sizeof (char)));
-	fprintf(stderr, "thread %d starting...\n", tid);
+//	fprintf(stderr, "thread %d starting...\n", tid);
     set_arg_alterread(options->alter_reads);
 	while(true){
 		pthread_mutex_lock(&input);
 		if((seqs = bwa_read_seq(ks, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
 			//finish = true;
 			pthread_mutex_unlock(&input);
-			fprintf(stderr, "thread %d ending...\n", tid);
+			//fprintf(stderr, "thread %d ending...\n", tid);
 			return;
 		}
 		pthread_mutex_unlock(&input);
@@ -646,7 +647,7 @@ char getIndexChar(uint32_t place){
 }
 
 int ref_read(char * file_name){
-	fprintf(stderr, "inside ref_read with %s\n", file_name);
+	//fprintf(stderr, "inside ref_read with %s\n", file_name);
 	struct stat file_info;
 	if(stat(file_name , &file_info) == -1){
 		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", file_name);
@@ -661,7 +662,7 @@ int ref_read(char * file_name){
 	}
 	off_t file_size_bytes = file_info.st_size;
 	reference_size = ceil ( ((double)file_size_bytes) / (double)(sizeof(uint64_t)) );
-	fprintf(stderr, "reference_size = %u\n", reference_size);
+	//fprintf(stderr, "reference_size = %u\n", reference_size);
 	reference_reminder = file_size_bytes % sizeof(uint64_t) ;
 	//reference = new base64 [ reference_size ];
 	reference = (uint64_t *)malloc(reference_size * sizeof(uint64_t));
@@ -725,13 +726,13 @@ void bwa_aln_core2(aryana_args *args)
 	char *fn_fa = args->read_file;
 	char *fn_fa1 = args->read_file1;
 	char *fn_fa2 = args->read_file2;
-	if (args->paired==0)
+/*	if (args->paired==0)
 		fprintf(stderr, "bwa_aln_core2 => prefix: %s, fn_fa: %s\n+", prefix, fn_fa);
 	else
 		fprintf(stderr, "bwa_aln_core2 => prefix: %s, fn_fa1: %s, fn_fa2: %s\n", prefix, fn_fa1,fn_fa2);
-	int i, j;
+*/	int i, j;
 
-	fprintf(stderr,"before open...\n");
+	//fprintf(stderr,"before open...\n");
 	if (args->paired==0)
 		ks = bwa_open_reads(opt->mode, fn_fa);
 	else
@@ -741,7 +742,7 @@ void bwa_aln_core2(aryana_args *args)
 	}
 	// initialization
 
-	fprintf(stderr,"loading...\n");
+	//fprintf(stderr,"loading...\n");
 	{ // load BWT
 		char *str = (char*)calloc(strlen(prefix) + 10, 1);
 		strcpy(str, prefix); strcat(str, ".bwt");  bwt = bwt_restore_bwt(str);
@@ -756,13 +757,13 @@ void bwa_aln_core2(aryana_args *args)
 		//pac_size = (bwt->seq_len>>2) + ((bwt->seq_len&3) == 0? 0 : 1);
 		//reference = (bwtint_t*)calloc(pac_size, 1);
 		//fread(reference, 1, pac_size, fp);
-		fprintf(stderr, "HERE\n");
+		//fprintf(stderr, "HERE\n");
 		ref_read(str);
 		free(str);
 		//fclose(fp);
 	}
 
-	fprintf(stderr,"finished loading\n");
+	//fprintf(stderr,"finished loading\n");
 
 	memset(offset, 0, sizeof(offset));
 	char *str = (char*)calloc(strlen(prefix) + 10, 1);
@@ -812,11 +813,11 @@ void bwa_aln_core2(aryana_args *args)
 	//FILE * fout = fopen("errors.txt", "w");
 
 
-	fprintf(stderr, "primary:%" PRIu64 "\n", bwt->primary);
-	fprintf(stderr, "seq_len: %"PRIu64"\n", bwt->seq_len);
-	fprintf(stderr, "bwt_size: %"PRIu64"\n", bwt->bwt_size);
-	fprintf(stderr, "sa_intv: %d\n", bwt->sa_intv);
-	fprintf(stderr, "n_sa: %"PRIu64"\n", bwt->n_sa);
+	//fprintf(stderr, "primary:%" PRIu64 "\n", bwt->primary);
+	//fprintf(stderr, "seq_len: %"PRIu64"\n", bwt->seq_len);
+	//fprintf(stderr, "bwt_size: %"PRIu64"\n", bwt->bwt_size);
+	//fprintf(stderr, "sa_intv: %d\n", bwt->sa_intv);
+	//fprintf(stderr, "n_sa: %"PRIu64"\n", bwt->n_sa);
 
 	pthread_t *threads;
 	pthread_attr_t attr;
