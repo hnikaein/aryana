@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string.h>
 #include <stdlib.h>
+#include <map>
+#include <vector>
 using namespace std;
 
 const long maxGenomeSize = 4e9;
@@ -9,15 +11,33 @@ const int maxChromosomeNum = 1000;
 const int interval_side = 3000;
 long chromPos[maxChromosomeNum];
 unsigned long gs;
-char chromName[maxChromosomeNum][100];
+map <string, int> chromIndex;
+map <int, string> chromName;
+// char chromName[maxChromosomeNum][100];
 char * genome;
 int chromNum, xChromosome = -1, yChromosome = -1;
-char * genomeFile, * annotationFile, * outputFileIslandConsidered, * outputFileContextConsidered, * outputFileComplete;
-
+char * genomeFile, * annotationFile, * CToutputFileIslandConsidered, * CToutputFileContextConsidered, * CToutputFileComplete;
+char *originalGenome, * GAoutputFileIslandConsidered, * GAoutputFileContextConsidered, * GAoutputFileComplete;
 void swap(int &a, int &b) {
     int c = a;
     a = b;
     b = c;
+}
+
+struct window {
+	int chr;
+	long long wStart, wEnd;
+	window(int c, long long s, long long e) {
+		chr = c;
+		wStart = s;
+		wEnd = e;
+	}
+};
+
+vector <window> islands;
+
+void clean(){
+	chromNum = 0;
 }
 
 struct Gene {
@@ -71,12 +91,8 @@ void ReadGenome(char * genomeFile) {
 			chromPos[chromNum++] = gs;
 			if (chromNum > 1) cerr << " Length: " << chromPos[chromNum - 1] - chromPos[chromNum - 2] <<  endl;
 			cerr << fLine;
-			strcpy(chromName[chromNum - 1], fLine);
-            ToLower(fLine);
-            if (xChromosome == 0 && strstr(fLine, "x"))
-                xChromosome = chromNum - 1;
-            if (yChromosome == 0 && strstr(fLine, "y"))
-                yChromosome = chromNum - 1;
+			chromIndex[fLine] = chromNum - 1;
+			chromName[chromNum - 1] = fLine;
 		} else {
 //            ToUpper(fLine);
 			memcpy(genome+gs, fLine, n);
@@ -129,7 +145,7 @@ bool GetSequence(long chr, bool strand, long wStart, long wEnd, char * seq) {
 
 // Converts all CpGs of a sequence in chromosome "chr" at position "wStart:wEnd" to TpG 
 // Returns true if the sequence is in valid position and containing no NAs
-bool ConvertSequence(long chr, long wStart, long wEnd) {
+bool ConvertSequence(long chr, long wStart, long wEnd, int CT) {
     //pos--; // Converting 1 base position to 0 base
     bool result = true;
     if (wStart < 1 || wStart + chromPos[chr] - 1 >= chromPos[chr + 1]) return false;
@@ -137,28 +153,45 @@ bool ConvertSequence(long chr, long wStart, long wEnd) {
 	//cout << chr << "\t" << wStart << "\t" << wEnd << endl; 
 	for (unsigned long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
 		//cout << genome[i];
-		if ((genome[i] == 'c' || genome[i] == 'C') && (genome[i+1] == 'g' || genome[i+1] == 'G')) // A CpG
-			genome[i] = 'T'; // Simulating bisulfite treatment for non-CpG cytosines
+		if ((genome[i] == 'c' || genome[i] == 'C') && (genome[i+1] == 'g' || genome[i+1] == 'G')) {// A CpG
+			if(CT)
+				genome[i] = 'T'; // Simulating bisulfite treatment for non-CpG cytosines
+			else
+				genome[i+1] = 'A';
+		}
     }
 	
 	//cout << endl;
 	return true;
 }
 
-void ConvertWholeGenome() {
-	for (unsigned long i = 0; i < gs; i++)
-        if ((genome[i] == 'c' || genome[i] == 'C') && genome[i+1] != 'g' && genome[i+1] != 'G') // A CpG
-            genome[i] = 'T'; // Simulating bisulfite treatment, converting unmethylated Cytosine to Thymine		
+void ConvertWholeGenome(int CT) {
+	if(CT){
+		for (unsigned long i = 0; i < gs; i++){
+			if ((genome[i] == 'c' || genome[i] == 'C') && genome[i+1] != 'g' && genome[i+1] != 'G'){ // A CpG
+	            genome[i] = 'T'; // Simulating bisulfite treatment, converting unmethylated Cytosine to Thymine
+			}
+		}
+	} else{
+		for (unsigned long i = 0; i < gs; i++){
+	        if ((genome[i] != 'c' && genome[i] != 'C') && (genome[i+1] == 'g' || genome[i+1] == 'G')) { // A CpG
+	            genome[i+1] = 'A'; // Simulating bisulfite treatment, converting unmethylated Guanin to Athenin
+			}
+		}
+	}
 }
 
-void ConvertAllC() {
-	for (unsigned long i = 0; i < gs; i++)
-		if (genome[i] == 'c' || genome[i] == 'C')
+void ConvertAll(int CT) {
+	for (unsigned long i = 0; i < gs; i++){
+		if (CT && (genome[i] == 'c' || genome[i] == 'C'))
 			genome[i] = 'T'; //Convert all the Cs to T
+		if (!CT && (genome[i] == 'g' || genome[i] == 'G'))
+			genome[i] = 'A';
+	}
 }
 
 
-void ProcessCpGIslands(char * annotationFile) {
+void ProcessCpGIslands(char * annotationFile, int CT) {
     cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
     ifstream f(annotationFile);
     if (! f.is_open()) {
@@ -166,20 +199,20 @@ void ProcessCpGIslands(char * annotationFile) {
         exit(1);
     }
     char fLine[10000], chrom[10], strand[10];
-    long wStart, wEnd, chr;
-    int bin;
-   	f.getline(fLine, sizeof(fLine)); // First row
+    long long wStart, wEnd, chr;
+    f.getline(fLine, sizeof(fLine)); // First row
     while (!f.eof()) {
-		fLine[0] = 0;
+        fLine[0] = 0;
         f.getline(fLine, sizeof(fLine));
-		if (! fLine[0]) continue;
-		// cerr << fLine << endl;
-		wStart = 0;
-        sscanf(fLine, "%s %ld %ld", chrom, &wStart, &wEnd);
-		if (! wStart) continue;
-		// cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-        chr = ChromIndex(chrom);
-		ConvertSequence(chr, wStart, wEnd);
+        if (! fLine[0]) continue;
+        // cerr << fLine << endl;
+        wStart = 0;
+        sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
+        if (! wStart) continue;
+        // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
+        chr = chromIndex[chrom];
+		islands.push_back(window(chr, wStart, wEnd));
+        ConvertSequence(chr, wStart, wEnd, CT);
     }
 }
 
@@ -188,7 +221,7 @@ void WriteGenome(char * outputFile)
 	FILE * f = fopen(outputFile, "w");
 	char s[100], tmp;
 	for (int i = 0; i < chromNum; i++) {
-		fprintf(f, "%s\n", chromName[i]);
+		fprintf(f, "%s\n", chromName[i].c_str());
 		unsigned long j;
 		for (j = chromPos[i]; j + 50 < chromPos[i + 1]; j+= 50) {
 			tmp = genome[j + 50];
@@ -200,14 +233,14 @@ void WriteGenome(char * outputFile)
 		genome[chromPos[i+1]] = 0;
 		fprintf(f, "%s\n", genome + j);
 		genome[chromPos[i+1]] = tmp;
-	}	
+	}
 	fclose(f);
 }
 
 int main(int argc, char * argv[]) {
 // Parsing Arugments
 	if (argc < 6) { 
-        	cerr << "Usage is -g <reference genome> -a <position of CpG islands file> -o <output bisulfite treated genome>" << endl;
+        	cerr << "Usage is -g <reference genome> -a <position of CpG islands file> -o <output folder>" << endl;
         	exit(1);
     }  
     for (int i = 1; i < argc; i++) 
@@ -219,11 +252,28 @@ int main(int argc, char * argv[]) {
                     annotationFile = argv[++i];
 				else 
 					if (strcmp(argv[i], "-o") == 0){
-						//outputFileIslandConsidered = argv[++i];
-						//strcat(outputFileIslandConsidered, "Is")
-						outputFileIslandConsidered = "BisulfiteGenomeIslandConsidered";
-						outputFileComplete = "BisulfiteGenomeComplete";
-						outputFileContextConsidered = "BisulfiteGenomeContextConsidered";
+						char * outputFolder = argv[++i];
+						originalGenome = (char*) malloc(strlen(outputFolder)+50);
+						strcpy(originalGenome, outputFolder);
+						strcat(originalGenome, "originalGenome.fa");
+						CToutputFileIslandConsidered = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(CToutputFileIslandConsidered, outputFolder);
+						strcat(CToutputFileIslandConsidered, "BisulfiteGenomeIslandConsideredCT.fa");
+						CToutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(CToutputFileContextConsidered, outputFolder);
+						strcat(CToutputFileContextConsidered, "BisulfiteGenomeContextConsideredCT.fa");
+						CToutputFileComplete = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(CToutputFileComplete, outputFolder);
+						strcat(CToutputFileComplete, "BisulfiteGenomeCompleteCT.fa");
+						GAoutputFileIslandConsidered = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(GAoutputFileIslandConsidered, outputFolder);
+						strcat(GAoutputFileIslandConsidered, "BisulfiteGenomeIslandConsideredGA.fa");
+						GAoutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(GAoutputFileContextConsidered, outputFolder);
+						strcat(GAoutputFileContextConsidered, "BisulfiteGenomeContextConsideredGA.fa");
+						GAoutputFileComplete = (char*)malloc(strlen(outputFolder)+50);
+						strcpy(GAoutputFileComplete, outputFolder);
+						strcat(GAoutputFileComplete, "BisulfiteGenomeCompleteGA.fa");
 					}
 	                else {
     	                cerr << "Not enough or invalid arguments."<< endl;
@@ -232,11 +282,22 @@ int main(int argc, char * argv[]) {
         }
 // Reading input
     ReadGenome(genomeFile);
-	ConvertWholeGenome();
-	WriteGenome(outputFileContextConsidered);
-   	ProcessCpGIslands(annotationFile);
-	WriteGenome(outputFileIslandConsidered);
-	ConvertAllC();
-	WriteGenome(outputFileComplete);
+	WriteGenome(originalGenome);
+	ConvertWholeGenome(1);
+	WriteGenome(CToutputFileContextConsidered);
+   	ProcessCpGIslands(annotationFile, 1);
+	WriteGenome(CToutputFileIslandConsidered);
+	ConvertAll(1);
+	WriteGenome(CToutputFileComplete);
+	delete [] genome;
+	clean();
+//Convert G to A
+	ReadGenome(genomeFile);
+	ConvertWholeGenome(0);
+	WriteGenome(GAoutputFileContextConsidered);
+	ProcessCpGIslands(annotationFile, 0);
+	WriteGenome(GAoutputFileIslandConsidered);
+	ConvertAll(0);
+	WriteGenome(GAoutputFileComplete);
 	delete [] genome;
 }
