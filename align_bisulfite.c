@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
 			}
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i]);
+			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag);
 		}
 		if(stop)
 			break;
@@ -294,7 +294,7 @@ int min_penalty(){
     return i;
 }
 
-char getNuc(uint64_t place, uint64_t seq_len) {
+char getNuc(uint64_t place,int flag) {
 	// char atomic[4] = { 'A', 'C', 'G', 'T' };
 // 	int rev = 0;
 // 	fprintf(stderr, "AAAA %" PRIu64 " %" PRIu64 "\n", place, seq_len);
@@ -313,6 +313,24 @@ char getNuc(uint64_t place, uint64_t seq_len) {
 // 	if (rev == 1)
 // 		mask = 3 - mask;
 // 	return atomic[mask];
+    char temp;
+    if (flag == 16){
+        switch (reference[place]) {
+            case 'T':
+                return 'A';
+            case 'C':
+                return 'G';
+            case 'G':
+                return 'C';
+            case 'A':
+                return 'G';
+                
+            default:
+                break;
+        }
+        
+    }else
+        
 	return reference[place];
 }
 
@@ -455,7 +473,7 @@ int isInIsland(uint64_t ref_i , char *chr) {
 }
 
 
-void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t chrPos) {
+void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t chrPos,int flag) {
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
@@ -466,14 +484,14 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
     
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
     if(count++<100)
-        fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,reference[ref_i] ,ref_i,chr);
+        fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,getNuc(ref_i+1, flag) ,ref_i,chr);
 	if (read == 'A' || read == 'G') {
-		if (reference[ref_i] != read)
+		if (getNuc(ref_i, flag) != read)
 			readPenalties[readNum] += highPenalty;
 	} else { //read = C or T
 
-		if (read == 'T' && reference[ref_i] == 'C') {
-			if (reference[ref_i + 1] == 'G') { // in the CpG context
+		if (read == 'T' && getNuc(ref_i, flag) == 'C') {
+			if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
 				if (isInIsland(chrPos,chr)) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
@@ -483,8 +501,8 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 
 				readPenalties[readNum] += lowPenalty;
 			}
-		} else if (read == 'C' && reference[ref_i] == 'C') {
-			if (reference[ref_i+1] == 'G') { // in the CpG context
+		} else if (read == 'C' && getNuc(ref_i, flag) == 'C') {
+			if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
 				int temp = isInIsland(chrPos,chr);
 				if (temp == 1) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
@@ -495,13 +513,13 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 				readPenalties[readNum] += highPenalty;
 			}
 
-		} else if (read == 'C' && reference[ref_i] == 'T')
+		} else if (read == 'C' && getNuc(ref_i+1, flag) == 'T')
 			readPenalties[readNum] += highPenalty;
 
 	}
 
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos) {
+void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos,int flag) {
     //fprintf(stderr, "salam\n");
     int pos = 0;
     int value = 0;
@@ -520,7 +538,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
 					int j;
 					for (j = 0; j < value; j++) {
 
-						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos);
+						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos,flag);
                         ref_index++;
                         read_index++;
 
