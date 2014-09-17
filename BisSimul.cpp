@@ -374,9 +374,9 @@ int main(int argc, char * argv[]) {
 // Parsing Arugments
     if (argc < 6) {
         cerr << "Usage is -g <reference genome> -n <number of simulated reads from whole genome>  -ni <number of simulated reads from CpG-Islands>" << endl <<
-             "-l <length of each read> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -ch <methylation ratio of CH dinucleotides> -cg <methylation ratio of CG dinucleotides>" << endl <<
-             "-i <methylation ratio of CG dinucleotides in CpG-Islands> -e <sequencing errors ratio> -s <number of SNPs> -a <genomic map of CpG-Islands>" <<endl <<
-             "-neg (generate reads from negative strand) -p (generate pcr amplified reads) -o <fastq output file>" << endl;
+             "-l <length of each read> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -ch <methylation ratio of CH dinucleotides>" << endl <<
+             "-cg <methylation ratio of CG dinucleotides> -i <methylation ratio of CG dinucleotides in CpG-Islands> -e <sequencing errors ratio> -s <number of SNPs>"<<endl <<
+             " -a <genomic map of CpG-Islands> -neg (generate reads from negative strand) -p (generate pcr amplified reads) -o <fastq output file>" << endl;
         exit(1);
     }
     for (int i = 1; i < argc; i++)
