@@ -65,6 +65,19 @@ struct ChrIslands
 
 struct ChrIslands chrIslands[maxChromosomeNum] ;
 
+
+struct ChrIslands
+{
+	int chrNum;
+	int islandsNum;
+    char * chrName;
+	uint64_t islandStarts[(long) maxGenomeSize];
+	uint64_t islandEnds[(long) maxGenomeSize];
+    
+};
+
+struct ChrIslands chrIslands[maxChromosomeNum] ;
+
 int count =0; ////////////////////////////////
 int main(int argc, char *argv[]) {
     //printf("heu1");
@@ -365,12 +378,6 @@ int ChromIndex(char * chr) {
 }
 
 void ReadCpGIslands(char * annotationFile) {
-    // cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
-    // ifstream f(annotationFile);
-    //    if (! f.is_open()) {
-    //       // cerr << "Error: CpG island locations file not found or could not be opened" << endl;
-    //        exit(1);
-    //    }
     fprintf(stderr, "salam");
     FILE* file = fopen(annotationFile, "r"); /* should check the result */
     fprintf(stderr, "salam2");
@@ -425,6 +432,7 @@ void ReadCpGIslands(char * annotationFile) {
 //       fprintf(stderr,"starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[k].islandStarts[m],chrIslands[k].islandEnds[m]);
 
     }
+
 }
 
 void setPenalties(int p1, int p2, int p3) {
@@ -515,6 +523,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 		} else if (read == 'C' && getNuc(ref_i, flag) == 'C') {
 			if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
 				int temp = isInIsland(chrPos,chr);
+
 				if (temp == 1) { // in CpG and also island
 					readPenalties[readNum] += medPenalty;
 				} else {
@@ -530,6 +539,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 	}
 
 }
+
 void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos,int flag) {
     //fprintf(stderr, "salam\n");
     int pos = 0;
@@ -548,7 +558,6 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
 				if (cigar[pos] == 'm') {
 					int j;
 					for (j = 0; j < value; j++) {
-
 						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos,flag);
                         ref_index++;
                         read_index++;

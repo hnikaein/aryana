@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
+			second = strtok(second, "_");
 
             uint64_t start, end;
             start = strtoll(first,NULL,10);

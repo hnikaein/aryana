@@ -110,7 +110,6 @@ int main(int argc, char *argv[])
 		{"threads", required_argument, 0, 'p'},
 		{"reorder", no_argument, 0, 5},
 		{"mm", no_argument, 0, 6},
-		//{"seed", required_argument, 0, 7},
 		{"version", no_argument, 0, 8},
 		{"help", no_argument, 0, 9},
 		{"seed", required_argument, 0, 10},
@@ -120,7 +119,7 @@ int main(int argc, char *argv[])
 		{"output", required_argument, 0, 'o'}
 	//	{0, 0, 0, 0}
 	};
-	char* output;
+	char* output = NULL;
 	char* inputFolder;
 	int option_index = 0;
 	int c;
@@ -240,6 +239,7 @@ int main(int argc, char *argv[])
 			sam = fopen(output, "w");
 			stdout = sam;
 		}
+		args.alter_reads = 0;
 		bwa_aln_core2(&args);
 		if(output)
 			fclose(sam);
