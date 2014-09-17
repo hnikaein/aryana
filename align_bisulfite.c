@@ -18,6 +18,7 @@
 
 #define maxGenomeSize 1e5
 #define maxChromosomeNum 1000
+#define numberOfGenomes 7
 //const long maxGenomeSize = 4e9;
 //const int maxChromosomeNum = 1000;
 
@@ -34,11 +35,11 @@ long islandsNum = 0;
 int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
 long penalties;
 long readNum;
-long readPenalties[4];
+long readPenalties[numberOfGenomes];
 
 char *referenceName, *annotationFile;
-char *samNames[4];
-FILE *samFiles[4];
+char *samNames[numberOfGenomes];
+FILE *samFiles[numberOfGenomes];
 
 
 struct Chrom
@@ -80,7 +81,8 @@ int main(int argc, char *argv[]) {
         //  {0, 0, 0, 0}
     };
     int option_index = 0;
-    int c;
+	char* samFileName;
+    int c, i;
     while ((c = getopt_long(argc, argv, "x:s:c:p:", long_options, &option_index))
            >= 0) {
         //printf("heu0");
@@ -94,15 +96,12 @@ int main(int argc, char *argv[]) {
                 strcpy(referenceName, optarg);
                 break;
             case 's':
-                samNames[0] = (char *) malloc(strlen(optarg));
-                strcpy(samNames[0], optarg);
-                samNames[1] = (char *) malloc(strlen(argv[optind]));
-                strcpy(samNames[1], argv[optind]);
-                samNames[2] = (char *) malloc(strlen(argv[optind + 1]));
-                strcpy(samNames[2], argv[optind + 1]);
-                samNames[3] = (char *) malloc(strlen(argv[optind + 2]));
-                strcpy(samNames[3], argv[optind + 2]);
-                optind = optind + 3;
+                samFileName = (char *) malloc(strlen(optarg));
+                strcpy(samFileName, optarg);
+				for(i=0; i<numberOfGenomes; i++){
+	                samNames[i] = (char *) malloc(strlen(samFileName) + 5);
+	                sprintf(samNames[i], "%s-%d", samFileName, i);
+				}
                 break;
             case 'c':
                 annotationFile = (char *) malloc(strlen(optarg));
@@ -149,25 +148,25 @@ int main(int argc, char *argv[]) {
 //    strcat(cmd_pointer4, " > samFile4.sam");
 //    system(cmd_pointer4);
     
-//    samFiles[0] = fopen("samFile1.sam", "r");
-//    samFiles[1] = fopen("samFile2.sam", "r");
-//    samFiles[2] = fopen("samFile3.sam", "r");
-//    samFiles[3] = fopen("samFile4.sam", "r");
 
     samFiles[0] = fopen(samNames[0], "r");
     samFiles[1] = fopen(samNames[1], "r");
     samFiles[2] = fopen(samNames[2], "r");
     samFiles[3] = fopen(samNames[3], "r");
+	samFiles[4] = fopen(samNames[4], "r");
+	samFiles[5] = fopen(samNames[5], "r");
+	samFiles[6] = fopen(samNames[6], "r");
+	
     
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string;
-    char *rname[4], *cigar[4];
-    int flag, i;
-    uint64_t pos[4];
-    uint32_t mapq[4];
+    char *rname[numberOfGenomes], *cigar[numberOfGenomes];
+    int flag;
+    uint64_t pos[numberOfGenomes];
+    uint32_t mapq[numberOfGenomes];
     long long int tlen;
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < numberOfGenomes; i++) {
         rname[i] = malloc(100 * sizeof(char));
         cigar[i] = malloc(200 * sizeof(char));
     }
@@ -176,15 +175,15 @@ int main(int argc, char *argv[]) {
     pnext = malloc(100 * sizeof(char));
     seq_string = malloc(1000 * sizeof(char));
     quality_string = malloc(500 * sizeof(char));
-    int chosen[4];
+    int chosen[numberOfGenomes];
     int j=0;
-    for (j; j < 4; j++)
+    for (j; j < numberOfGenomes; j++)
 		chosen[j] = 0;
 
 	int stop = 0;
 
 	while (1 && !stop) {
-		for (i = 0; i < 4 && !stop; i++) {
+		for (i = 0; i < numberOfGenomes && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
 				stop = 1;
 				break;
@@ -214,11 +213,11 @@ int main(int argc, char *argv[]) {
 		chosen[min]++;
 		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
-        for (j; j < 4; j++)
+        for (j; j < numberOfGenomes; j++)
             readPenalties[j]=0;
     }
     
-    for (j=0; j < 4; j++)
+    for (j=0; j < numberOfGenomes; j++)
 		fprintf(stderr, "CHOSEN %d: %d\n", j, chosen[j]);
 
 }
@@ -290,6 +289,18 @@ int min_penalty(){
     if(min > readPenalties[3]){
         min = readPenalties[3];
         i = 3;
+    }
+    if(min > readPenalties[4]){
+        min = readPenalties[4];
+        i = 4;
+    }
+    if(min > readPenalties[5]){
+        min = readPenalties[5];
+        i = 5;
+    }
+    if(min > readPenalties[6]){
+        min = readPenalties[6];
+        i = 6;
     }
     return i;
 }
