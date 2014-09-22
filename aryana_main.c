@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 	args.seed_length = -1;
 	args.best_factor = -1;
 	args.bisulfite = 0;
-	char *refNames[4];
+	char *refNames[7];
 	if(argc < 3){
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
@@ -110,7 +110,6 @@ int main(int argc, char *argv[])
 		{"threads", required_argument, 0, 'p'},
 		{"reorder", no_argument, 0, 5},
 		{"mm", no_argument, 0, 6},
-		//{"seed", required_argument, 0, 7},
 		{"version", no_argument, 0, 8},
 		{"help", no_argument, 0, 9},
 		{"seed", required_argument, 0, 10},
@@ -120,7 +119,8 @@ int main(int argc, char *argv[])
 		{"output", required_argument, 0, 'o'}
 	//	{0, 0, 0, 0}
 	};
-	char* output;
+	char* output = NULL;
+	char* inputFolder;
 	int option_index = 0;
 	int c;
 	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:o:", long_options, &option_index)) >= 0){
@@ -186,15 +186,29 @@ int main(int argc, char *argv[])
 				args.bisulfite = 1;
 				break;
 			case 'B':
-				refNames[0] = (char *)malloc(strlen(optarg));
-				strcpy(refNames[0], optarg);
-				refNames[1] = (char *)malloc(strlen(argv[optind]));
-				strcpy(refNames[1], argv[optind]);
-				refNames[2] = (char *)malloc(strlen(argv[optind+1]));
-				strcpy(refNames[2], argv[optind+1]);
-				refNames[3] = (char *)malloc(strlen(argv[optind+2]));
-				strcpy(refNames[3], argv[optind+2]);
-				optind = optind+3;
+				inputFolder = (char *)malloc(strlen(optarg));
+				strcpy(inputFolder, optarg);
+				refNames[0] = (char*) malloc(strlen(inputFolder)+50);
+				strcpy(refNames[0], inputFolder);
+				strcat(refNames[0], "originalGenome.fa");
+				refNames[1] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[1], inputFolder);
+				strcat(refNames[1], "BisulfiteGenomeIslandConsideredCT.fa");
+				refNames[2] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[2], inputFolder);
+				strcat(refNames[2], "BisulfiteGenomeContextConsideredCT.fa");
+				refNames[3] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[3], inputFolder);
+				strcat(refNames[3], "BisulfiteGenomeCompleteCT.fa");
+				refNames[4] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[4], inputFolder);
+				strcat(refNames[4], "BisulfiteGenomeIslandConsideredGA.fa");
+				refNames[5] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[5], inputFolder);
+				strcat(refNames[5], "BisulfiteGenomeContextConsideredGA.fa");
+				refNames[6] = (char*)malloc(strlen(inputFolder)+50);
+				strcpy(refNames[6], inputFolder);
+				strcat(refNames[6], "BisulfiteGenomeCompleteGA.fa");
 				break;
 		}
 	}
@@ -204,36 +218,19 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 		char *output_temp = malloc(strlen(output)+5);
-		strcpy(output_temp, output);
-		strcat(output_temp, "-1");
-		FILE *sam = fopen(output_temp, "w");
-		stdout = sam;
-		args.reference = refNames[0];
-		args.alter_reads = 0;
-		bwa_aln_core2(&args);
-		fclose(sam);
-		strcpy(output_temp, output);
-		strcat(output_temp, "-2");
-		sam = fopen(output_temp, "w");
-		stdout = sam;
-		args.reference = refNames[1];
-		bwa_aln_core2(&args);
-		fclose(sam);
-		strcpy(output_temp, output);
-		strcat(output_temp, "-3");
-		sam = fopen(output_temp, "w");
-		stdout = sam;
-		args.reference = refNames[2];
-		bwa_aln_core2(&args);
-		fclose(sam);
-		strcpy(output_temp, output);
-		strcat(output_temp, "-4");
-		sam = fopen(output_temp, "w");
-		stdout = sam;
-		args.reference = refNames[3];
-		args.alter_reads = 1;
-		bwa_aln_core2(&args);
-		fclose(sam);
+		int i;
+		for(i=0; i<7; i++){
+			sprintf(output_temp, "%s-%d", output, i);
+			FILE *sam = fopen(output_temp, "w");
+			stdout = sam;
+			args.reference = refNames[i];
+			if(i==6 || i==3)
+				args.alter_reads = 1;
+			else
+				args.alter_reads = 0;
+			bwa_aln_core2(&args);
+			fclose(sam);
+		}
 		free(output_temp);
 	}
 	else{
@@ -242,6 +239,7 @@ int main(int argc, char *argv[])
 			sam = fopen(output, "w");
 			stdout = sam;
 		}
+		args.alter_reads = 0;
 		bwa_aln_core2(&args);
 		if(output)
 			fclose(sam);
