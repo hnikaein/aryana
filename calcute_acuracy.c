@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
             
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
             //1000000_chr21:30778456-30778555
-            //968_>chr2:24442257-24442356
+            //968_>chr2:24442257-24442356_-o
             
             char *copy = (char *)malloc(strlen(qname) + 1);
             strcpy(copy, qname);
@@ -81,6 +81,8 @@ int main(int argc, char *argv[]) {
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
+            
+           // second = strtok(second,"_");
 
             uint64_t start, end;
             start = strtoll(first,NULL,10);
