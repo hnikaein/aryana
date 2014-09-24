@@ -67,7 +67,6 @@ struct ChrIslands chrIslands[maxChromosomeNum] ;
 
 int count =0; ////////////////////////////////
 int main(int argc, char *argv[]) {
-    //printf("heu1");
     if (argc < 6) {
         fprintf(stderr, "Need more inputs\n");
         return -1;
@@ -123,39 +122,57 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     // printf("heu3");
     
-//    char * command = "sort -k1 ";
-//    char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
-//    strcpy(cmd_pointer, command);
-//    strcat(cmd_pointer, samNames[0]);
-//    strcat(cmd_pointer, " > samFile1.sam");
-//    system(cmd_pointer);
-//    
-//    char cmd_pointer2[strlen(samNames[1]) + strlen(command) + 1];
-//    strcpy(cmd_pointer2, command);
-//    strcat(cmd_pointer2, samNames[1]);
-//    strcat(cmd_pointer2, " > samFile2.sam");
-//    system(cmd_pointer2);
-//    
-//    char cmd_pointer3[strlen(samNames[2]) + strlen(command) + 1];
-//    strcpy(cmd_pointer3, command);
-//    strcat(cmd_pointer3, samNames[2]);
-//    strcat(cmd_pointer3, " > samFile3.sam");
-//    system(cmd_pointer3);
-//    
-//    char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
-//    strcpy(cmd_pointer4, command);
-//    strcat(cmd_pointer4, samNames[3]);
-//    strcat(cmd_pointer4, " > samFile4.sam");
-//    system(cmd_pointer4);
+    char * command = "sort -k 3,3 -k 4,4n ";
+    char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
+    strcpy(cmd_pointer, command);
+    strcat(cmd_pointer, samNames[0]);
+    strcat(cmd_pointer, " > samFile1.sam");
+    system(cmd_pointer);
+
+    char cmd_pointer2[strlen(samNames[1]) + strlen(command) + 1];
+    strcpy(cmd_pointer2, command);
+    strcat(cmd_pointer2, samNames[1]);
+    strcat(cmd_pointer2, " > samFile2.sam");
+    system(cmd_pointer2);
+
+    char cmd_pointer3[strlen(samNames[2]) + strlen(command) + 1];
+    strcpy(cmd_pointer3, command);
+    strcat(cmd_pointer3, samNames[2]);
+    strcat(cmd_pointer3, " > samFile3.sam");
+    system(cmd_pointer3);
+    
+    char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
+    strcpy(cmd_pointer4, command);
+    strcat(cmd_pointer4, samNames[3]);
+    strcat(cmd_pointer4, " > samFile4.sam");
+    system(cmd_pointer4);
+    
+    char cmd_pointer5[strlen(samNames[4]) + strlen(command) + 1];
+    strcpy(cmd_pointer5, command);
+    strcat(cmd_pointer5, samNames[4]);
+    strcat(cmd_pointer5, " > samFile5.sam");
+    system(cmd_pointer5);
+    
+    char cmd_pointer6[strlen(samNames[5]) + strlen(command) + 1];
+    strcpy(cmd_pointer6, command);
+    strcat(cmd_pointer6, samNames[5]);
+    strcat(cmd_pointer6, " > samFile6.sam");
+    system(cmd_pointer6);
+    
+    char cmd_pointer7[strlen(samNames[6]) + strlen(command) + 1];
+    strcpy(cmd_pointer7, command);
+    strcat(cmd_pointer7, samNames[6]);
+    strcat(cmd_pointer7, " > samFile7.sam");
+    system(cmd_pointer7);
     
 
-    samFiles[0] = fopen(samNames[0], "r");
-    samFiles[1] = fopen(samNames[1], "r");
-    samFiles[2] = fopen(samNames[2], "r");
-    samFiles[3] = fopen(samNames[3], "r");
-	samFiles[4] = fopen(samNames[4], "r");
-	samFiles[5] = fopen(samNames[5], "r");
-	samFiles[6] = fopen(samNames[6], "r");
+    samFiles[0] = fopen("samFile0.sam", "r");
+    samFiles[1] = fopen("samFile1.sam", "r");
+    samFiles[2] = fopen("samFile2.sam", "r");
+    samFiles[3] = fopen("samFile3.sam", "r");
+	samFiles[4] = fopen("samFile4.sam", "r");
+	samFiles[5] = fopen("samFile5.sam", "r");
+	samFiles[6] = fopen("samFile6.sam", "r");
 	
     
     char line[1000];
@@ -210,6 +227,8 @@ int main(int argc, char *argv[]) {
                  flag2 = 1;
              if((i > 3 && flag == 0) || (flag == 16 && i <= 3))
                  flag2 = 0;
+            if(flag == 16)
+                reverseRead(rname[i]);
 			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i],flag2);
 		}
 		if(stop)
@@ -276,6 +295,20 @@ int ReadGenome(char * genomeFile) {
     fclose(fp);
 }
 
+void reverseRead(char *s){////
+    char  c;
+    char* s0 = s - 1;
+    char* s1 = s;
+    while (*s1) ++s1;
+    while (s1-- > ++s0)
+    {
+        c   = *s0;
+        *s0 = *s1;
+        *s1 =  c;
+    }
+    
+    return;
+}
 
 int min_penalty(){
     int i = 0,j;
