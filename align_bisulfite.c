@@ -166,13 +166,13 @@ int main(int argc, char *argv[]) {
     system(cmd_pointer7);
     
 
-    samFiles[0] = fopen("samFile0.sam", "r");
-    samFiles[1] = fopen("samFile1.sam", "r");
-    samFiles[2] = fopen("samFile2.sam", "r");
-    samFiles[3] = fopen("samFile3.sam", "r");
-	samFiles[4] = fopen("samFile4.sam", "r");
-	samFiles[5] = fopen("samFile5.sam", "r");
-	samFiles[6] = fopen("samFile6.sam", "r");
+    samFiles[0] = fopen("samFile1.sam", "r");
+    samFiles[1] = fopen("samFile2.sam", "r");
+    samFiles[2] = fopen("samFile3.sam", "r");
+    samFiles[3] = fopen("samFile4.sam", "r");
+	samFiles[4] = fopen("samFile5.sam", "r");
+	samFiles[5] = fopen("samFile6.sam", "r");
+	samFiles[6] = fopen("samFile7.sam", "r");
 	
     
     char line[1000];
@@ -223,12 +223,12 @@ int main(int argc, char *argv[]) {
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
             int flag2 = 0;
-             if((i <=3 && flag == 0) || (flag == 16 && i > 3))
+             if((i <=3 && flag[i] == 0) || (flag[i] == 16 && i > 3))
                  flag2 = 1;
-             if((i > 3 && flag == 0) || (flag == 16 && i <= 3))
+             if((i > 3 && flag[i] == 0) || (flag[i] == 16 && i <= 3))
                  flag2 = 0;
-            if(flag == 16)
-                reverseRead(rname[i]);
+            if(flag[i] == 16)
+                reverseRead(seq_string);
 			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i],flag2);
 		}
 		if(stop)
