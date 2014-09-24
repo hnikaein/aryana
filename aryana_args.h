@@ -15,6 +15,5 @@ typedef struct{
 	int seed_length;
 	int best_factor;
 	int bisulfite;
-	int alter_reads;
 } aryana_args;
 

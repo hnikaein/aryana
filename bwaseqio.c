@@ -9,7 +9,6 @@ KSEQ_INIT(gzFile, gzread)
 
 extern unsigned char nst_nt4_table[256];
 static char bam_nt16_nt4_table[] = { 4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4 };
-int alter_reads =0 ;
 
 struct __bwa_seqio_t {
 	// for BAM input
@@ -19,9 +18,6 @@ struct __bwa_seqio_t {
 	kseq_t *ks; //Afsoon: what is the type kseq_t?
 };
 
-void set_arg_alterread(int alter){
-    alter_reads = alter;
-}
 
 bwa_seqio_t *bwa_bam_open(const char *fn, int which)
 {
@@ -266,12 +262,6 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
 		n_tot += p->full_len;
 		p->seq = (ubyte_t*)calloc(p->len, 1);
 		for (i = 0; i != p->full_len; ++i){
-            if(alter_reads){
-                if(seq->seq.s[i] == 'C')
-                    seq->seq.s[i]='T';
-                else if(seq->seq.s[i]=='c')
-                    seq->seq.s[i]='t';
-            }
 			p->seq[i] = nst_nt4_table[(int)seq->seq.s[i]];
 			
 		}

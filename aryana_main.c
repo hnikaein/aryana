@@ -224,10 +224,6 @@ int main(int argc, char *argv[])
 			FILE *sam = fopen(output_temp, "w");
 			stdout = sam;
 			args.reference = refNames[i];
-			if(i==6 || i==3)
-				args.alter_reads = 1;
-			else
-				args.alter_reads = 0;
 			bwa_aln_core2(&args);
 			fclose(sam);
 		}
@@ -239,7 +235,6 @@ int main(int argc, char *argv[])
 			sam = fopen(output, "w");
 			stdout = sam;
 		}
-		args.alter_reads = 0;
 		bwa_aln_core2(&args);
 		if(output)
 			fclose(sam);

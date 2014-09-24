@@ -568,7 +568,6 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 	for (j=0; j<100; j++)
 		cigar[j]=(char *)malloc(MAX_CIGAR_SIZE*(sizeof (char)));
 	fprintf(stderr, "thread %d starting...\n", tid);
-    set_arg_alterread(options->alter_reads);
 	while(true){
 		pthread_mutex_lock(&input);
 		if((seqs = bwa_read_seq(ks, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
