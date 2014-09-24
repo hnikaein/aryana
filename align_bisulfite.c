@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string;
     char *rname[numberOfGenomes], *cigar[numberOfGenomes];
-    int flag;
+    int flag[numberOfGenomes];
     uint64_t pos[numberOfGenomes];
     uint32_t mapq[numberOfGenomes];
     long long int tlen;
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 			}
 			if(stop)
 				break;
-			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
+			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			int index = ChromIndex(rname[i]);
 			//fprintf(stderr, "INDEX %d\n", index);
 			if(index == -1){
@@ -205,13 +205,13 @@ int main(int argc, char *argv[]) {
 			}
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag);
+			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i]);
 		}
 		if(stop)
 			break;
 		int min = min_penalty();
 		chosen[min]++;
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag, rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[i], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
         for (j; j < numberOfGenomes; j++)
             readPenalties[j]=0;
