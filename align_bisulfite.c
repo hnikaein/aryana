@@ -205,7 +205,12 @@ int main(int argc, char *argv[]) {
 			}
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
-			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i]);
+            int flag2 = 0;
+             if((i <=3 && flag == 0) || (flag == 16 && i > 3))
+                 flag2 = 1;
+             if((i > 3 && flag == 0) || (flag == 16 && i <= 3))
+                 flag2 = 0;
+			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i],flag2);
 		}
 		if(stop)
 			break;
@@ -484,7 +489,7 @@ int isInIsland(uint64_t ref_i , char *chr) {
 }
 
 
-void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t chrPos,int flag) {
+void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t chrPos,int flag,int flag2) {
 	//printf("   7salam");
 	//printf("read : %c   refrence: %c \n ", read,getNuc(ref_i, seq_len));
 	//printf("read : %c   ", read);
@@ -496,41 +501,76 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
     if(count++<100)
         fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,getNuc(ref_i+1, flag) ,ref_i,chr);
-	if (read == 'A' || read == 'G') {
-		if (getNuc(ref_i, flag) != read)
-			readPenalties[readNum] += highPenalty;
-	} else { //read = C or T
+    if(flag2){
+        if (read == 'A' || read == 'G') 
+            if (getNuc(ref_i, flag) != read)
+                readPenalties[readNum] += highPenalty;
+        else { //read = C or T
 
-		if (read == 'T' && getNuc(ref_i, flag) == 'C') {
-			if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
-				if (isInIsland(chrPos,chr)) { // in CpG and also island
-					readPenalties[readNum] += medPenalty;
-				} else {
-					readPenalties[readNum] += highPenalty;
-				}
-			} else { // out of CpG context
+            if (read == 'T' && getNuc(ref_i, flag) == 'C') {
+                if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
+                    if (isInIsland(chrPos,chr)) // in CpG and also island
+                        readPenalties[readNum] += medPenalty;
+                    else
+                        readPenalties[readNum] += highPenalty;
+                
+                } else // out of CpG context
 
-				readPenalties[readNum] += lowPenalty;
-			}
-		} else if (read == 'C' && getNuc(ref_i, flag) == 'C') {
-			if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
-				int temp = isInIsland(chrPos,chr);
-				if (temp == 1) { // in CpG and also island
-					readPenalties[readNum] += medPenalty;
-				} else {
-					readPenalties[readNum] += lowPenalty;
-				}
-			} else { // out of CpG context
-				readPenalties[readNum] += highPenalty;
-			}
+                    readPenalties[readNum] += lowPenalty;
+        
+            } else if (read == 'C' && getNuc(ref_i, flag) == 'C') {
+                if (getNuc(ref_i+1, flag) == 'G') { // in the CpG context
+                    int temp = isInIsland(chrPos,chr);
+                    if (temp == 1)  // in CpG and also island
+                        readPenalties[readNum] += medPenalty;
+                    else
+                        readPenalties[readNum] += lowPenalty;
+                    
+                } else // out of CpG context
+                    readPenalties[readNum] += highPenalty;
 
-		} else if (read == 'C' && getNuc(ref_i+1, flag) == 'T')
-			readPenalties[readNum] += highPenalty;
+            } else if (read == 'C' && getNuc(ref_i+1, flag) == 'T')
+                readPenalties[readNum] += highPenalty;
 
-	}
+        }
+    }
+    else{
+        if (read == 'C' || read == 'T') 
+            if (getNuc(ref_i, flag) != read)
+                readPenalties[readNum] += highPenalty;
+        else { //read = C or T
+            
+            if (read == 'A' && getNuc(ref_i, flag) == 'G') {
+                if (getNuc(ref_i+1, flag) == 'C') { // in the CpG context
+                    if (isInIsland(chrPos,chr)) { // in CpG and also island
+                        readPenalties[readNum] += medPenalty;
+                    } else {
+                        readPenalties[readNum] += highPenalty;
+                    }
+                } else { // out of CpG context
+                    
+                    readPenalties[readNum] += lowPenalty;
+                }
+            } else if (read == 'G' && getNuc(ref_i, flag) == 'G') {
+                if (getNuc(ref_i+1, flag) == 'C') { // in the CpG context
+                    int temp = isInIsland(chrPos,chr);
+                    if (temp == 1) { // in CpG and also island
+                        readPenalties[readNum] += medPenalty;
+                    } else {
+                        readPenalties[readNum] += lowPenalty;
+                    }
+                } else { // out of CpG context
+                    readPenalties[readNum] += highPenalty;
+                }
+                
+            } else if (read == 'G' && getNuc(ref_i+1, flag) == 'A')
+                readPenalties[readNum] += highPenalty;
+        }
+
+    }
 
 }
-void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos,int flag) {
+void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char *chr,uint64_t chrPos,int flag, int refNum) {
     //fprintf(stderr, "salam\n");
     int pos = 0;
     int value = 0;
@@ -549,7 +589,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
 					int j;
 					for (j = 0; j < value; j++) {
 
-						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos,flag);
+						CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos,flag,refNum);
                         ref_index++;
                         read_index++;
 
@@ -586,5 +626,5 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
         pos++;
     }
     if(count <20)
-        fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %lld \n",seq_string,cigar,readNum);
+        fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %ld \n",seq_string,cigar,readNum);
 }
