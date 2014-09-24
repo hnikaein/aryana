@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
 			break;
 		int min = min_penalty();
 		chosen[min]++;
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[i], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
+		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
         for (j; j < numberOfGenomes; j++)
             readPenalties[j]=0;
