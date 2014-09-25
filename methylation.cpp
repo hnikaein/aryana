@@ -252,6 +252,7 @@ void convertRead(Line &line){
 }
 
 void reverseRead(Line &line){////
+    cout <<"before :  "<<line.seq_string<<endl;
     int i,j=0 ;
     char * copy = new char[lines[0].seq_string.size()+1];
 //    strcpy(copy , line.seq_string);
@@ -270,8 +271,10 @@ void reverseRead(Line &line){////
             line.seq_string[j]='C';
         }
         j++;
-    }    
+    }
+    cout <<"after :  "<<line.seq_string<<endl;
 }
+
 
 char * convertCigar(char * cigar){
     char * cigar2 = new char[500];
