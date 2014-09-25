@@ -156,7 +156,7 @@ int checkGAorCT2(Line line){
    // cerr<<"GA1 "<<ref<<endl;
     //cerr << "cigar2"<<line.cigar2<<endl;
     while (i < line.seq_string.size()) {
-       // cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
+        cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
         if(line.seq_string[i] == 'A'){
             if(reference[ref+i] == 'G')
                 GA++;
@@ -219,19 +219,21 @@ void computeMethylation(){
             //cout<<refPos + i<<"     "<<reference[refPos + i]<<"i:   "<<i<<endl;
            // cout << "rrrr"<<lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr, secondPointer);
-            cytosines.push_back(Cytosine(i + lines[0].pos,lines[0].chr));
+            cytosines.push_back(Cytosine(i + 1 ,lines[0].chr));
             if(debug)
                 cerr<<"scn "<<secondPointer<<endl;
 
 
             for(int j=0 ; j<  secondPointer ; j++){
                 //cout<<"seq_string[ i ].pos]  "<<lines[j].seq_string[i - lines[j].pos+1]<<endl;
-                int relative_pos = lines[0].pos - lines[j].pos;
-                if (relative_pos >= 0 && lines[j].seq_string[i - lines[j].pos+1] == 'C') {
-                    cytosines[cytosines.size()-1].methylated++;
-                }
-                else if(lines[j].seq_string[1 + i - lines[j].pos] == 'T' && relative_pos >= 0){
-                    cytosines[cytosines.size()-1].unmethylated++;
+                int relative_pos = lines[j].pos + lines[j].seq_string.size();
+                if(i < relative_pos){
+                    if (lines[j].seq_string[i - lines[j].pos+1] == 'C') {
+                        cytosines[cytosines.size()-1].methylated++;
+                    }
+                    else if(lines[j].seq_string[1 + i - lines[j].pos] == 'T'){
+                        cytosines[cytosines.size()-1].unmethylated++;
+                    }
                 }
             }
 //            for(int k=0;k<cytosines.size();k++)
@@ -274,6 +276,7 @@ void reverseRead(Line &line){////
     //    strcpy(copy , line.seq_string);
     line.seq_string.copy(copy, line.seq_string.size(),0);
     for (i = line.seq_string.size()-1; i >= 0 ; i--){
+        if(debug)
         cerr << copy[i]<<"c ";
         if(copy[i] == 'A'){
             line.seq_string[j]='T';
@@ -583,17 +586,19 @@ int main(int argc, char *argv[]) {
             printf( "Could not open file\n" );
         
         //readSamFile(samFile);
-        readSam_Compute();
+
         //        fclose(samFile);
         //        int i=0;
         //        while (i<100) {
         //            cerr << lines[i].pos << "\t"<<lines[i].cigar<<endl;
         //            i++;
         //        }
+        
         debug = atoi(argv[3]);
+        readSam_Compute();
         if(debug)
         for(int k=0;k<cytosines.size();k++)
-            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<endl;
+            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<" "<<cytosines[k].unmethylated<<endl;
         
         for (int i=0; i < cytosines.size(); i++) {
             float methylation_ratio = ((float)cytosines[i].methylated/(cytosines[i].methylated+cytosines[i].unmethylated))*100.0 ;
