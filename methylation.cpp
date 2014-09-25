@@ -28,7 +28,7 @@ using namespace std;
 #define maxGenomeSize 1e5
 #define maxChromosomeNum 1000
 #define READ_LENGHT 100
-#define READ_SAM_BY 5
+#define READ_SAM_BY 5000
 unsigned long gs;
 char chromName[maxChromosomeNum][100];
 int chromNum;
@@ -156,6 +156,7 @@ int checkGAorCT2(Line line){
    // cerr<<"GA1 "<<ref<<endl;
     //cerr << "cigar2"<<line.cigar2<<endl;
     while (i < line.seq_string.size()) {
+        if(debug)
         cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
         if(line.seq_string[i] == 'A'){
             if(reference[ref+i] == 'G')
@@ -379,7 +380,7 @@ int readSamFile(FILE * samFile){
             break;
         struct Line temp;
         
-        sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, temp.chr, &(temp.pos) ,&mapq, temp.cigar,rnext,pnext, &tlen,seq_string,quality_string);
+        sscanf(line,"%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, temp.chr, &(temp.pos) ,&mapq, temp.cigar,rnext,pnext, &tlen,seq_string,quality_string);
         string str(seq_string);
         temp.seq_string = str;
         
@@ -454,23 +455,23 @@ void readSam_Compute(){
 void setPointer(int pos, char * chr , int lineStart){
     // cout<<"in set pointer ,pos:"<<pos<<"start:"<<lineStart<<endl;
     int i = lineStart;
-    while(i < lines.size() && lines[i].pos <= pos && i < lineStart + READ_SAM_BY && !strcmp(lines[i].chr,chr)){
+    while(i < lines.size() && lines[i].pos <= pos && !strcmp(lines[i].chr,chr)){
         if (lines[i].seq_string.empty()) {
             break;
         }
         secondPointer++;
         i++;
     }
-    if (i - lineStart == READ_SAM_BY && lines[i].pos <= pos && !strcmp(lines[i].chr,chr)) {
+    if (i == lines.size() && lines[i].pos <= pos && !strcmp(lines[i].chr,chr)) {
+        int temp = i;
         readSamFile(samFile);
-        setPointer(pos, chr, lineStart+READ_SAM_BY);
+        setPointer(pos, chr, temp);
         
     }
     if (secondPointer>lines.size()) {
         secondPointer = lines.size();
     }
 }
-
 
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
