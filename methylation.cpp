@@ -223,7 +223,7 @@ void computeMethylation(){
         if(reference[refPos + i] == 'C'){
             //cout<<refPos + i<<"     "<<reference[refPos + i]<<"i:   "<<i<<endl;
            // cout << "rrrr"<<lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<endl;
-            setPointer(i , lines[0].chr, secondPointer);
+            setPointer(i , lines[0].chr);
             cytosines.push_back(Cytosine(i ,lines[0].chr));
             if(debug)
                 cerr<<"scn "<<secondPointer<<endl;
@@ -391,7 +391,7 @@ int readSamFile(FILE * samFile){
         char * cigar2 = new char[500];
         //cout<<line<<endl;
         
-        if(temp.cigar[0] != '*'){
+        if(flag != 4){
             //cerr << "hey11111111  "<<endl;
             cigar2 = convertCigar(temp.cigar);
             
@@ -399,8 +399,10 @@ int readSamFile(FILE * samFile){
             if(debug)
             cerr << "hey  "<<temp.cigar2<<endl;
         }
-        else
+        else{
+            //cerr<<" heyyyyyyy\n"<<endl;
             continue;
+        }
         if(debug)
         cerr<<line<<"line:      2"<<endl;
         
@@ -446,7 +448,7 @@ int readSamFile(FILE * samFile){
 void readSam_Compute(){
     
     int result = readSamFile(samFile);
-    if(debug)
+    //if(debug)
         cerr<<result <<"llll        "<<lines.size()<<endl;
     while (result == 1) {
         computeMethylation();
@@ -456,25 +458,23 @@ void readSam_Compute(){
 }
 
 
-void setPointer(int pos, char * chr , int lineStart){
+void setPointer(int pos, char * chr ){
     // cout<<"in set pointer ,pos:"<<pos<<"start:"<<lineStart<<endl;
-    int i = lineStart;
-    while(i < lines.size() && lines[i].pos <= pos && !strcmp(lines[i].chr,chr)){
-        if (lines[i].seq_string.empty()) {
+    
+    while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
+        if (lines[secondPointer].seq_string.empty()) {
             break;
         }
         secondPointer++;
-        i++;
     }
-    if (i == lines.size() && lines[i].pos <= pos && !strcmp(lines[i].chr,chr)) {
-        int temp = i;
+    if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
+        //int temp = i;
         readSamFile(samFile);
-        setPointer(pos, chr, temp);
+        setPointer(pos, chr);
         
     }
-    if (secondPointer>=lines.size()) {
-        secondPointer = lines.size()-1;
-    }
+    else if(secondPointer == lines.size())
+        secondPointer--;
 }
 
 int ReadGenome(char * genomeFile) {
@@ -527,52 +527,6 @@ int ReadGenome(char * genomeFile) {
 }
 
 
-
-
-long methylated = 0;
-//void computeMethylation(){
-//    int j=0;
-//    int lastchecked ;
-//
-//    while(j < 1000){
-//
-//
-//        int pos = lines[j].pos;
-//        char *chrom = lines[j].chr;
-//        pch=strchr(lines[j].seq_string,'C');
-//        int refPos2 = lines[j].pos + chrom[ChromIndex(lines[j].rname)].chrStart;
-//        int refPos = lines[j].pos + chrom[ChromIndex(lines[j].rname)].chrStart +
-//        pch - lines[j].seq_string + 1;
-//        lastchecked = j;
-//        if(reference[refPos] == 'C' && reference[refPos+1] == 'G'){
-//            methylated ++;
-//        }
-//        else{
-//            outOfcontext++;
-//            pch=strchr(lines[j].seq_string,'C');
-//            if(pch == NULL){
-//                j = lastchecked + 1;
-//                continue;
-//            }
-//
-//        }
-//        while (!strcmp(line[j].chr, chrom) && (pos + READ_LENGHT) >= lines[j].pos && j < 1000) {
-//            char * pch;
-//            pch2=strchr(lines[j].seq_string,'C');               ////////////handle lowercase too
-//            if(pch2 =pch)
-//                methylfolan++;
-//            else
-//                j++;
-//
-//            //            int refPos2 = lines[j].pos + chrom[ChromIndex(lines[j].rname)].chrStart;
-//            //            int loc = pch - lines[j].seq_string+1;
-//
-//
-//        }
-//
-//    }
-//
-//}
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
     
@@ -583,6 +537,7 @@ int main(int argc, char *argv[]) {
     else
     {
         ReadGenome(argv[1]);
+        cerr<<"complete reading genome..."<<endl;
         if(debug)
         for(int k = 0 ; k<200;k++)
             cerr<<reference[k]<<" ";

@@ -15,7 +15,7 @@
 //void convertGenome(Line &line);
 char * convertCigar(char * cigar);
 int readSamFile(FILE * samFile);
-void setPointer(int pos, char * chr , int lineStart);
+void setPointer(int pos, char * chr);
 void removeLine();
 #endif /* defined(__aryana__methylation__) */
 
