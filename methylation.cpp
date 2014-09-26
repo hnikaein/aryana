@@ -214,13 +214,17 @@ void computeMethylation(){
     int refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
     if(debug)
         cerr << "size :"<<lines[0].seq_string<<"   "<< lines[0].chr<<endl;
+    int offset = 1;
+    if (lastchecked == lines[0].pos) {
+        offset = 0;
+    }
 
-    for(int i = lastchecked + 1; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
+    for(int i = lastchecked + offset; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
         if(reference[refPos + i] == 'C'){
             //cout<<refPos + i<<"     "<<reference[refPos + i]<<"i:   "<<i<<endl;
            // cout << "rrrr"<<lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr, secondPointer);
-            cytosines.push_back(Cytosine(i + 1 ,lines[0].chr));
+            cytosines.push_back(Cytosine(i ,lines[0].chr));
             if(debug)
                 cerr<<"scn "<<secondPointer<<endl;
 
@@ -468,8 +472,8 @@ void setPointer(int pos, char * chr , int lineStart){
         setPointer(pos, chr, temp);
         
     }
-    if (secondPointer>lines.size()) {
-        secondPointer = lines.size();
+    if (secondPointer>=lines.size()) {
+        secondPointer = lines.size()-1;
     }
 }
 
