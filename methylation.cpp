@@ -235,8 +235,10 @@ void computeMethylation(){
                 cerr<<"scn "<<secondPointer<<endl;
 
 
-            for(int j=0 ; j<  secondPointer ; j++){
+            for(int j=0 ; j< secondPointer ; j++){
                 //cout<<"seq_string[ i ].pos]  "<<lines[j].seq_string[i - lines[j].pos+1]<<endl;
+                if(!(lines[j].pos < (lines[0].pos+lines[0].seq_string.size())))
+                   break;
                 int relative_pos = lines[j].pos + lines[j].seq_string.size();
                 if(i < relative_pos){
                     if (lines[j].seq_string[i - lines[j].pos+1] == 'C') {
@@ -247,6 +249,8 @@ void computeMethylation(){
                     }
                 }
             }
+            int s = cytosines.size()-1;
+            fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
 //            for(int k=0;k<cytosines.size();k++)
 //                cout <<"cytosin2  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<endl;
 //
@@ -428,13 +432,7 @@ int readSamFile(FILE * samFile){
             temp.strand = '-';
             reverseRead(temp);/////////////////////////////////////////////////////////////////
         }
-        //        if(flag == 16)
-        //            reverseRead(temp);
-        //cout<<line<<"      3"<<endl;
-        count_to++;
-        //1000000_chr21:30778456-30778555
-        //968_>chr2:24442257-24442356
-        
+        count_to++;        
         index++;
         if (count_to==READ_SAM_BY) {
             //computeMethylation(lines[count_to_tousand].start,lines[count_to_tousand].end , lines[count_to_tousand].seq_string);
@@ -459,8 +457,11 @@ void readSam_Compute(){
     while (result == 1) {
         computeMethylation();
         result = readSamFile(samFile);
+        if(result == -1)
+            result = 2;
     }
-    computeMethylation();
+    if(result != 2)
+        computeMethylation();
 }
 
 
