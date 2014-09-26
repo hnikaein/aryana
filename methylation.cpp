@@ -155,15 +155,17 @@ int checkGAorCT2(Line line){
     
    // cerr<<"GA1 "<<ref<<endl;
     //cerr << "cigar2"<<line.cigar2<<endl;
+
     while (i < line.seq_string.size()) {
+        line.seq_string[i]=toupper(line.seq_string[i]);
         if(debug)
         cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
         if(line.seq_string[i] == 'A'){
-            if(reference[ref+i] == 'G')
+            if(toupper(reference[ref+i]) == 'G')
                 GA++;
         }
         if(line.seq_string[i] == 'T'){
-            if(reference[ref+i] == 'C')
+            if(toupper(reference[ref+i]) == 'C')
                 CT++;
         }
         i++;
@@ -209,8 +211,10 @@ void computeMethylation(){
             lastchecked = lines[0].pos;
         }
     }
-    if(debug)
-        cerr << "lastcheck  :"<<lastchecked<<endl;
+    if(!debug)
+        cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
+    if(lastchecked == 341471)
+        cerr <<lines[0].seq_string<<endl;
     int refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
     if(debug)
         cerr << "size :"<<lines[0].seq_string<<"   "<< lines[0].chr<<endl;
@@ -220,10 +224,12 @@ void computeMethylation(){
     }
 
     for(int i = lastchecked + offset; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
-        if(reference[refPos + i] == 'C'){
+        if(toupper(reference[refPos + i]) == 'C'){
             //cout<<refPos + i<<"     "<<reference[refPos + i]<<"i:   "<<i<<endl;
            // cout << "rrrr"<<lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr);
+            if(lastchecked == 341471)
+                cerr<<"scn:"<<secondPointer<<endl;
             cytosines.push_back(Cytosine(i ,lines[0].chr));
             if(debug)
                 cerr<<"scn "<<secondPointer<<endl;
