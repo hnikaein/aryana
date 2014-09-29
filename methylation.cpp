@@ -211,7 +211,7 @@ void computeMethylation(){
             lastchecked = lines[0].pos;
         }
     }
-    if(!debug)
+    if(debug)
         cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
     if(lastchecked == 341471)
         cerr <<lines[0].seq_string<<endl;
@@ -476,7 +476,8 @@ void setPointer(int pos, char * chr ){
     }
     if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
         //int temp = i;
-        readSamFile(samFile);
+        int res = readSamFile(samFile);
+        if(res != -1)
         setPointer(pos, chr);
         
     }
