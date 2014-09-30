@@ -82,5 +82,6 @@ void calculate(char* original, char* computed){
 		if(count % 10 == 0)
 			cerr << ".";
 	}
+	cerr << "\n";
 }
 
