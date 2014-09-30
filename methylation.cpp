@@ -219,7 +219,7 @@ void convertRead(Line &line){
             j++;
         
     }
-    cerr <<"after convert:  "<<line.seq_string<<endl;
+    //cerr <<"after convert:  "<<line.seq_string<<endl;
 }
 
 void reverseRead(Line &line){////
@@ -486,6 +486,8 @@ int main(int argc, char *argv[]) {
         
         for (int i=0; i < cytosines.size(); i++) {
             float methylation_ratio = ((float)cytosines[i].methylated/(cytosines[i].methylated+cytosines[i].unmethylated))*100.0 ;
+            if((cytosines[i].methylated+cytosines[i].unmethylated)==0)
+                methylation_ratio = 0;
             fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[i].chr, cytosines[i].pos, cytosines[i].methylated,methylation_ratio);
         }
     }
