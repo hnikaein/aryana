@@ -25,12 +25,14 @@ float max_diffrence = 0.1;
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
     
-    if ( argc != 3 ){
+    if ( argc < 3 ){
         /* We print argv[0] assuming it is the program name */
-        printf( "usage: %s original_methylation_filename computed_methylation_filename\n", argv[0] );
+        printf( "usage: %s original_methylation_filename computed_methylation_filename difference[optional]\n", argv[0] );
     }
     else
     {
+		if(argc >= 4)
+			max_diffrence = atof(argv[3]);
         calculate(argv[1], argv[2]);
 		cout << "Number of correct ratios: " << corrects << endl;
 		cout << "Number of incorrect ratios: " << incorrects << endl;
@@ -44,7 +46,7 @@ void calculate(char* original, char* computed){
     orig_fp = fopen(original, "r");
 	comp_fp = fopen(computed, "r");
 	char chrom1[20], chrom2[20];
-	long position1, methylated, position2;
+	long position1, methylated, position2, count = 0;
 	float ratio1, ratio2;
 	while (! feof(comp_fp)) {
 		// comp_fp >> chrom1 >> position1 >> methylated >> ratio1;
@@ -76,6 +78,10 @@ void calculate(char* original, char* computed){
 			corrects++;
 		else
 			incorrects++;
+		count++;
+		if(count % 10 == 0)
+			cerr << ".";
 	}
+	cerr << "\n";
 }
 
