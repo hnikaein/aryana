@@ -1,12 +1,11 @@
 //
-//  calcute_acuracy.c
+//  new_accuracy.cpp
+//  aryana
 //
-//
-//  Created by Maryam Rabiee on 8/21/14.
-//
+//  Created by Maryam Rabiee on 9/30/14.
+//  Copyright (c) 2014 Maryam Rabiee. All rights reserved.
 //
 
-#include <stdio.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,12 +13,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+#include <iostream>
+#include <fstream>
+
+using namespace std;
+
 int main(int argc, char *argv[]) {
     
-    int each_wrong[4],i;
-    for (i = 0 ; i<4; i++) {
-        each_wrong[i]=0;
-    }
+    
     if ( argc != 2 ){
         /* We print argv[0] assuming it is the program name */
         printf( "usage: %s filename", argv[0] );
@@ -44,13 +46,14 @@ int main(int argc, char *argv[]) {
         uint64_t pos;
         uint32_t mapq;
         long long int tlen;
-        rname = malloc(100 * sizeof(char));
-        cigar = malloc(200 * sizeof(char));
-        qname = malloc(100 * sizeof(char));
-        rnext = malloc(100 * sizeof(char));
-        pnext = malloc(100 * sizeof(char));
-        seq_string = malloc(1000 * sizeof(char));
-        quality_string = malloc(500 * sizeof(char));
+        
+        rname = new char[100];
+        cigar = new char[200];
+        qname = new char[100];
+        rnext = new char[100];
+        pnext = new char[100];
+        seq_string = new char[1000];
+        quality_string = new char[500];
         
         int stop = 0;
         while (1) {
@@ -67,33 +70,28 @@ int main(int argc, char *argv[]) {
             readNum++;
             
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
+
+            string readname(seq_string);
             //1000000_chr21:30778456-30778555
             //968_>chr2:24442257-24442356_-o
-            //20|chr3:75909157-75909256|+o
             
             char *copy = (char *)malloc(strlen(qname) + 1);
             strcpy(copy, qname);
             
             char* token=strtok(copy, ":");
-            char* chrom = strtok(token, "|");
-            chrom = strtok(NULL, "|");
+            char* chrom = strtok(token, ">");
+            chrom = strtok(NULL, ">");
             
             char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
             //printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
             
-            char *first,*second,*type;
+            char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
-
+            
 			second = strtok(second, "_");
-            second = strtok(second, "|");
             
-            type = strtok(NULL, "|");
-            
-            //fprintf(stdout, "%s   %s\n",second,type);
-            
-
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
@@ -102,14 +100,6 @@ int main(int argc, char *argv[]) {
             //exact aligning
             else if(!strstr(cigar,"*")){
                 badAlignedReads += 1;
-                if (!strcmp(type, "+o"))
-                    each_wrong[0]++;
-                else if (!strcmp(type, "-o"))
-                    each_wrong[1]++;
-                else if (!strcmp(type, "+p"))
-                    each_wrong[2]++;
-                else if (!strcmp(type, "-p"))
-                    each_wrong[3]++;
                 
                 //fprintf(stdout,"%s\n",line);
             }
@@ -123,9 +113,7 @@ int main(int argc, char *argv[]) {
         }
         float accuracy = ((float)badAlignedReads/readNum)*100.0 ;
         float accuracy2 = ((float)notAlignedReads/readNum)*100.0 ;
-        fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n percentage of not aligned reads :%10f \n\n",notAlignedReads, badAlignedReads, readNum , accuracy,accuracy2);
-        
-        fprintf(stdout, "number of wrong alignment in each read type:\n +o : %d\n -o : %d\n +p : %d\n -p : %d \n",each_wrong[0],each_wrong[1],each_wrong[2],each_wrong[3]);
+        fprintf(stdout, "number of not aligned reads: %lld \n number of reads with wrong alignment : %lld \n total reads : %lld \n percentage of bad aligned reads :%10f \n percentage of not aligned reads :%10f \n",notAlignedReads, badAlignedReads, readNum , accuracy,accuracy2);
         fclose(samFile);
     }
 }

@@ -94,66 +94,12 @@ int ChromIndex(char * chr) {
     
 }
 
-int checkGAorCT(Line line){
-    int GA =0;
-    int CT = 0 , i = 0;
-    int refPos , readPos = 0;
-    int ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
-    if(debug)
-        cerr << "cigar2"<<line.cigar2<<endl;
-    while (line.cigar2[i] != '\0') {
-        //cout<<"GA2    "<<GA;
-        
-        
-        if(line.cigar2[i] == 'i'){
-            readPos++;
-            i++;
-            continue;
-        }
-        if(line.cigar2[i] == 'd'){
-            i++;
-            ref++;
-            continue;
-        }
-        if(line.cigar2[i] == 'm'){
-            if(debug)
-                cerr<<"  "<<line.seq_string[readPos]<<i<<reference[ref]<<" ";
-            if(line.seq_string[readPos] == 'A'){
-                if(reference[ref] == 'G')
-                    GA++;
-            }
-            if(line.seq_string[readPos] == 'T'){
-                if(reference[ref] == 'C')
-                    CT++;
-            }
-            i++;
-            ref++;
-            readPos++;
-        }
-    }
-    if(debug){
-    cerr<<"cigar2[i]  :"<<line.cigar2[i]<<" "<<i<<endl;
-    cerr<<"GA  :"<<GA<<endl;
-    cerr<<"CT   :"<<CT<<endl;
-    }
-    
-    
-    if(GA > CT + 5)
-        return 16;
-    if(GA < CT - 5)
-        return 4;
-    else
-        return -1;
-    
-}
-
 int checkGAorCT2(Line line){
     int GA =0;
     int CT = 0 , i = 0;
     int refPos , readPos = 0;
-    int ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
-    
-   // cerr<<"GA1 "<<ref<<endl;
+    //cerr<<"GA5 "<<endl;
+    long ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
     //cerr << "cigar2"<<line.cigar2<<endl;
 
     while (i < line.seq_string.size()) {
@@ -194,9 +140,6 @@ void computeMethylation(){
     if(lines.size() == 0){
         return;
     }
-//    for(int k=0;k<cytosines.size();k++)
-//        cout <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<endl;
-
     int lastchecked = lines[0].pos;
 
     if(cytosines.size()!=0){
@@ -215,7 +158,7 @@ void computeMethylation(){
         cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
     if(lastchecked == 341471)
         cerr <<lines[0].seq_string<<endl;
-    int refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
+    long refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
     if(debug)
         cerr << "size :"<<lines[0].seq_string<<"   "<< lines[0].chr<<endl;
     int offset = 1;
@@ -223,13 +166,11 @@ void computeMethylation(){
         offset = 0;
     }
 
-    for(int i = lastchecked + offset; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
+    for(long i = lastchecked + offset; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
         if(toupper(reference[refPos + i]) == 'C'){
-            //cout<<refPos + i<<"     "<<reference[refPos + i]<<"i:   "<<i<<endl;
-           // cout << "rrrr"<<lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<endl;
+            cout<<refPos + i<<"     ref:"<<reference[refPos + i]<<"i:   "<<i<<endl;
+            cout << "rrrr pos:"<<lines[0].pos <<"    at i:"<<lines[0].seq_string[i - lines[0].pos+1] <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr);
-            if(lastchecked == 341471)
-                cerr<<"scn:"<<secondPointer<<endl;
             cytosines.push_back(Cytosine(i ,lines[0].chr));
             if(debug)
                 cerr<<"scn "<<secondPointer<<endl;
@@ -251,9 +192,7 @@ void computeMethylation(){
             }
             int s = cytosines.size()-1;
             fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
-//            for(int k=0;k<cytosines.size();k++)
-//                cout <<"cytosin2  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<endl;
-//
+
         }
     }
     //cout<<"sizeeeeee:       "<<lines.size()<<endl;
@@ -264,7 +203,7 @@ void computeMethylation(){
 }
 
 void convertRead(Line &line){
-    //cout <<"before :  "<<line.seq_string<<endl;
+    cout <<"before :  "<<line.seq_string<<endl;
     int c=0;
     int j = 0;
     for(int i=0;i< line.seq_string.size();i++){
@@ -280,7 +219,7 @@ void convertRead(Line &line){
             j++;
         
     }
-   // cerr <<"after convert:  "<<line.seq_string<<endl;
+    cerr <<"after convert:  "<<line.seq_string<<endl;
 }
 
 void reverseRead(Line &line){////
@@ -410,16 +349,12 @@ int readSamFile(FILE * samFile){
             cerr << "hey  "<<temp.cigar2<<endl;
         }
         else{
-            //cerr<<" heyyyyyyy\n"<<endl;
             continue;
         }
         if(debug)
-        cerr<<line<<"line:      2"<<endl;
-        
-        
+            cerr<<line<<"line:      2"<<endl;
         convertRead(temp);
-        // cout<<"heyyyyyyyyyy              "<<temp.seq_string<<"    "<<temp.chr<<endl;
-        
+       
         int result = checkGAorCT2(temp);
         if(debug)
         cerr << result<<endl;
@@ -435,13 +370,9 @@ int readSamFile(FILE * samFile){
         count_to++;        
         index++;
         if (count_to==READ_SAM_BY) {
-            //computeMethylation(lines[count_to_tousand].start,lines[count_to_tousand].end , lines[count_to_tousand].seq_string);
             count_to=0;
         }
-        lines.push_back(temp);
-        //cout<<lines[0].pos<<"      3"<<endl;
-        
-        
+        lines.push_back(temp);        
     }//while
     if(stop == -1)
         return -1;
@@ -452,7 +383,7 @@ int readSamFile(FILE * samFile){
 void readSam_Compute(){
     
     int result = readSamFile(samFile);
-    //if(debug)
+    if(debug)
         cerr<<result <<"llll        "<<lines.size()<<endl;
     while (result == 1) {
         computeMethylation();
@@ -465,9 +396,7 @@ void readSam_Compute(){
 }
 
 
-void setPointer(int pos, char * chr ){
-    // cout<<"in set pointer ,pos:"<<pos<<"start:"<<lineStart<<endl;
-    
+void setPointer(int pos, char * chr ){    
     while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
         if (lines[secondPointer].seq_string.empty()) {
             break;
@@ -505,11 +434,9 @@ int ReadGenome(char * genomeFile) {
     //fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
     while (! feof(fp)) {
-        // fprintf(stderr, "Reading genome1...\n");
 		int n = fscanf(fp, "%s\n", fLine);
 		if (n == EOF) break;
 		n = strlen(fLine);
-        // fprintf(stderr, "Reading genome2 :n %d ...\n",n);
 		if (fLine[0] == '>') {
 			//chromPos[chromNum++] = gs;
             chrom[chromNum++].chrStart = gs;
@@ -518,11 +445,9 @@ int ReadGenome(char * genomeFile) {
 			int lenght = strlen(temp);
 			chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
             strcpy(chrom[chromNum-1].chrName, temp);
-            //fprintf(stderr, "Reading genome3...\n");
 			if (chromNum >= 1)
 			    fprintf(stderr, "chrName: %s, chrStart: %ld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
 			fprintf(stderr, "%s\n",fLine);
-			//strcpy(chromName[chromNum - 1], fLine);
 		} else {
             //            ToUpper(fLine);
 			memcpy(reference+gs, fLine, n);
@@ -552,15 +477,6 @@ int main(int argc, char *argv[]) {
         samFile = fopen( argv[2], "r" );
         if ( samFile == 0 )
             printf( "Could not open file\n" );
-        
-        //readSamFile(samFile);
-
-        //        fclose(samFile);
-        //        int i=0;
-        //        while (i<100) {
-        //            cerr << lines[i].pos << "\t"<<lines[i].cigar<<endl;
-        //            i++;
-        //        }
         
         debug = atoi(argv[3]);
         readSam_Compute();
