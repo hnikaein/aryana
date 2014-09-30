@@ -168,8 +168,8 @@ void computeMethylation(){
 
     for(long i = lastchecked + offset; i< (lines[0].seq_string.size()+lines[0].pos) ;i++){
         if(toupper(reference[refPos + i]) == 'C'){
-            cout<<refPos + i<<"     ref:"<<reference[refPos + i]<<"i:   "<<i<<endl;
-            cout << "rrrr pos:"<<lines[0].pos <<"    at i:"<<lines[0].seq_string[i - lines[0].pos+1] <<"   "<<lines[0].chr<<endl;
+            //cout<<refPos + i<<"     ref:"<<reference[refPos + i]<<"i:   "<<i<<endl;
+            //cout << "rrrr pos:"<<lines[0].pos <<"    at i:"<<lines[0].seq_string[i - lines[0].pos+1] <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr);
             cytosines.push_back(Cytosine(i ,lines[0].chr));
             if(debug)
@@ -203,7 +203,7 @@ void computeMethylation(){
 }
 
 void convertRead(Line &line){
-    cout <<"before :  "<<line.seq_string<<endl;
+    //cout <<"before :  "<<line.seq_string<<endl;
     int c=0;
     int j = 0;
     for(int i=0;i< line.seq_string.size();i++){
