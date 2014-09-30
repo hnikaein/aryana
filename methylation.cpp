@@ -191,7 +191,7 @@ void computeMethylation(){
                 }
             }
             int s = cytosines.size()-1;
-            fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
+           // fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
 
         }
     }
@@ -480,9 +480,13 @@ int main(int argc, char *argv[]) {
         
         debug = atoi(argv[3]);
         readSam_Compute();
-        if(debug)
-        for(int k=0;k<cytosines.size();k++)
-            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<" "<<cytosines[k].unmethylated<<endl;
+//        if(debug)
+//        for(int k=0;k<cytosines.size();k++)
+//            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<" "<<cytosines[k].unmethylated<<endl;
+//        ofstream myfile;
+//        myfile.open ("example.txt");
+//        myfile << "Writing this to a file.\n";
+
         
         for (int i=0; i < cytosines.size(); i++) {
             float methylation_ratio = ((float)cytosines[i].methylated/(cytosines[i].methylated+cytosines[i].unmethylated))*100.0 ;
@@ -490,6 +494,7 @@ int main(int argc, char *argv[]) {
                 methylation_ratio = 0;
             fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[i].chr, cytosines[i].pos, cytosines[i].methylated,methylation_ratio);
         }
+               // myfile.close();
     }
     
 }//main
