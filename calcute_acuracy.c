@@ -80,18 +80,20 @@ int main(int argc, char *argv[]) {
             
             char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
-            //printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
+            printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
             
             char *first,*second,*type;
+            char *copy2 = (char *)malloc(strlen(tokens) + 1);
+            strcpy(copy2, tokens);
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
-
 			second = strtok(second, "_");
             second = strtok(second, "|");
             
+            type = strtok(copy2, "|");
             type = strtok(NULL, "|");
             
-            //fprintf(stdout, "%s   %s\n",second,type);
+            fprintf(stdout, "%s   %s   %s\n",first,second,type);
             
 
             uint64_t start, end;
