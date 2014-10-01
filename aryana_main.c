@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
 	}
-	fprintf(stderr,"main:\n");
+	//fprintf(stderr,"main:\n");
 	/*char *reference = (char*)calloc(1000, 1);
 	if(!get_value_string(argc, argv, "-x", reference)){
 		fprintf(stderr, "Reference genome not specified.\n");
