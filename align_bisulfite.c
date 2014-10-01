@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     // printf("heu3");
     
-    char * command = "sort -k 3,3 -k 4,4n ";
+    char * command = "sort -k1 ";
     char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
     strcpy(cmd_pointer, command);
     strcat(cmd_pointer, samNames[0]);
