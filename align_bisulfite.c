@@ -462,14 +462,14 @@ void ReadCpGIslands(char * annotationFile) {
         
     }
     
-    int k=0,m=0;
-    for(k ; k< 100;k++){
-        fprintf(stderr, "number of %s: %d\n",chrIslands[k].chrName,chrIslands[k].islandsNum);
-//        for(m ; m< chrIslands[k].islandsNum;m++)
+//    int k=0,m=0;
+//    for(k ; k< 100;k++){
+//        fprintf(stderr, "number of %s: %d\n",chrIslands[k].chrName,chrIslands[k].islandsNum);
+////        for(m ; m< chrIslands[k].islandsNum;m++)
+////
+////       fprintf(stderr,"starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[k].islandStarts[m],chrIslands[k].islandEnds[m]);
 //
-//       fprintf(stderr,"starts: %" PRIu64 "     ends : %" PRIu64 "", chrIslands[k].islandStarts[m],chrIslands[k].islandEnds[m]);
-
-    }
+//    }
 }
 
 void setPenalties(int p1, int p2, int p3) {

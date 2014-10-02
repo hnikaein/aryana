@@ -106,8 +106,8 @@ int checkGAorCT2(Line line){
 
     while (i < line.seq_string.size()) {
         line.seq_string[i]=toupper(line.seq_string[i]);
-        if(debug)
-        cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
+       // if(debug)
+       // cerr<<"  "<<line.seq_string[i]<<i<<reference[ref+i]<<" ";
         if(line.seq_string[i] == 'A'){
             if(toupper(reference[ref+i]) == 'G')
                 GA++;
@@ -120,7 +120,7 @@ int checkGAorCT2(Line line){
         
     }
     if(debug){
-    cerr<<"cigar2[i]  :"<<line.cigar2[i]<<" "<<i<<endl;
+    //cerr<<"cigar2[i]  :"<<line.cigar2[i]<<" "<<i<<endl;
     cerr<<"GA  :"<<GA<<endl;
     cerr<<"CT   :"<<CT<<endl;
     }
@@ -145,10 +145,10 @@ void computeMethylation(){
     int lastchecked = lines[0].pos;
 
     if(cytosines.size()!=0){
-        if(debug){
-            cerr << "heyyyy888   "<<strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)<<endl;
-            cerr << lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<"  "<<cytosines[cytosines.size()-1].chr<<endl;
-        }
+//        if(debug){
+//            cerr << "heyyyy888   "<<strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)<<endl;
+//            cerr << lines[0].pos <<"    "<<lines[0].seq_string <<"   "<<lines[0].chr<<"  "<<cytosines[cytosines.size()-1].chr<<endl;
+//        }
         lastchecked= cytosines[cytosines.size()-1].pos;
         if (lines[0].pos > lastchecked || strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)) {
             if(debug)
@@ -156,13 +156,11 @@ void computeMethylation(){
             lastchecked = lines[0].pos;
         }
     }
-    if(debug)
-        cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
-    if(lastchecked == 341471)
-        cerr <<lines[0].seq_string<<endl;
+//    if(debug)
+//        cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
     long refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
-    if(debug)
-        cerr << "size :"<<lines[0].seq_string<<"   "<< lines[0].chr<<endl;
+//    if(debug)
+//        cerr << "size :"<<lines[0].seq_string<<"   "<< lines[0].chr<<endl;
     int offset = 1;
     if (lastchecked == lines[0].pos) {
         offset = 0;
@@ -174,8 +172,8 @@ void computeMethylation(){
             //cout << "rrrr pos:"<<lines[0].pos <<"    at i:"<<lines[0].seq_string[i - lines[0].pos+1] <<"   "<<lines[0].chr<<endl;
             setPointer(i , lines[0].chr);
             cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
-            if(debug)
-                cerr<<"scn "<<secondPointer<<endl;
+//            if(debug)
+//                cerr<<"scn "<<secondPointer<<endl;
 
 
             for(int j=0 ; j< secondPointer ; j++){
@@ -193,7 +191,7 @@ void computeMethylation(){
                 }
             }
             int s = cytosines.size()-1;
-           // fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
+            fprintf(stdout, "%s\t%ld\t%d\n",cytosines[s].chr, cytosines[s].pos, cytosines[s].methylated);
 
         }
     }
@@ -301,7 +299,6 @@ char * convertCigar(char * cigar){
 }
 
 int readSamFile(FILE * samFile){
-    int index = 0;
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string,*rname, *cigar;
@@ -371,11 +368,7 @@ int readSamFile(FILE * samFile){
             temp.strand = '-';
             reverseRead(temp);/////////////////////////////////////////////////////////////////
         }
-        count_to++;        
-        index++;
-        if (count_to==READ_SAM_BY) {
-            count_to=0;
-        }
+        count_to++;
         lines.push_back(temp);        
     }//while
     if(stop == -1)

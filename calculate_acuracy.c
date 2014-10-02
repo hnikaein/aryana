@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
         if ( samFile == 0 )
             printf( "Could not open file\n" );
         
-        //    FILE *samFile;
-        //    samFile = fopen(samName, "r");
+        long count = 0;
         long long badAlignedReads = 0;
         long long notAlignedReads = 0;
         long long readNum = 0;
