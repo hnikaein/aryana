@@ -230,10 +230,15 @@ int main(int argc, char *argv[]) {
 			//fprintf(stderr, "AAA %s\n", qname);
             //printf("cigar : %s \n",cigar[i]);
             int flag2 = 0;
-             if((i <=3 && flag[i] == 0) || (flag[i] == 16 && i > 3))
-                 flag2 = 1;
-             if((i > 3 && flag[i] == 0) || (flag[i] == 16 && i <= 3))
-                 flag2 = 0;
+//             if((i <=3 && flag[i] == 0) || (flag[i] == 16 && i > 3))
+//                 flag2 = 1;
+//             if((i > 3 && flag[i] == 0) || (flag[i] == 16 && i <= 3))
+//                 flag2 = 0;
+            if(i <=3)
+                flag2 = 1;
+            if(i > 3)
+                flag2 = 0;
+
             if(flag[i] == 16)
                 reverseRead(seq_string);
 			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i],flag2);
