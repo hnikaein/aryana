@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
         if ( samFile == 0 )
             printf( "Could not open file\n" );
         
-        //    FILE *samFile;
-        //    samFile = fopen(samName, "r");
+        long count = 0;
         long long badAlignedReads = 0;
         long long notAlignedReads = 0;
         long long readNum = 0;
@@ -80,7 +79,7 @@ int main(int argc, char *argv[]) {
             
             char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
-            printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
+           // printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
             
             char *first,*second,*type;
             char *copy2 = (char *)malloc(strlen(tokens) + 1);
@@ -93,7 +92,7 @@ int main(int argc, char *argv[]) {
             type = strtok(copy2, "|");
             type = strtok(NULL, "|");
             
-            fprintf(stdout, "%s   %s   %s\n",first,second,type);
+            //fprintf(stdout, "%s   %s   %s\n",first,second,type);
             
 
             uint64_t start, end;
