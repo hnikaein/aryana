@@ -324,9 +324,9 @@ void reverseRead(char *s){////
 
 int min_penalty(){
     int i = 0,j;
-    if(count++<50)
-        for(j=0;j<4;j++)
-            fprintf(stderr, "Penalties %d : %lld \n",j,readPenalties[j]);
+//    if(count++<50)
+//        for(j=0;j<4;j++)
+//            fprintf(stderr, "Penalties %d : %lld \n",j,readPenalties[j]);
     long min = readPenalties[0];
     if(min > readPenalties[1]){
         min = readPenalties[1];
@@ -384,7 +384,7 @@ char getNuc(uint64_t place,int flag) {
             case 'G':
                 return 'C';
             case 'A':
-                return 'G';
+                return 'T';
                 
             default:
                 break;
@@ -421,9 +421,9 @@ void ReadCpGIslands(char * annotationFile) {
     //       // cerr << "Error: CpG island locations file not found or could not be opened" << endl;
     //        exit(1);
     //    }
-    fprintf(stderr, "salam");
+    //fprintf(stderr, "salam");
     FILE* file = fopen(annotationFile, "r"); /* should check the result */
-    fprintf(stderr, "salam2");
+    //fprintf(stderr, "salam2");
     char fLine[10000], chrom[10], strand[10];
     uint64_t wStart, wEnd, chr;
     int bin;
@@ -527,9 +527,9 @@ int isInIsland(uint64_t ref_i , char *chr) {
         first++;
 
     }
-    if (count < 10000) {
-        fprintf(stderr, "%s ref_i:%" PRIu64 " isinisland: %d\n ",chr,ref_i,isInIsland);
-    }
+//    if (count < 10000) {
+//        fprintf(stderr, "%s ref_i:%" PRIu64 " isinisland: %d\n ",chr,ref_i,isInIsland);
+ //   }
     return isInIsland;
 }
 
@@ -544,8 +544,8 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
     
     
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
-    if(count++<100)
-        fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,getNuc(ref_i+1, flag) ,ref_i,chr);
+//    if(count++<100)
+//        fprintf(stderr,"read : %c    ref : %c  refindex : %" PRIu64 "  %s \n",read,getNuc(ref_i, flag) ,ref_i,chr);
     if(flag2){
         if (read == 'A' || read == 'G') 
             if (getNuc(ref_i, flag) != read)
@@ -583,10 +583,10 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
         if (read == 'C' || read == 'T') 
             if (getNuc(ref_i, flag) != read)
                 readPenalties[readNum] += highPenalty;
-        else { //read = C or T
+        else { //read = G or A
             
             if (read == 'A' && getNuc(ref_i, flag) == 'G') {
-                if (getNuc(ref_i+1, flag) == 'C') { // in the CpG context
+                if (getNuc(ref_i-1, flag) == 'C') { // in the CpG context
                     if (isInIsland(chrPos,chr)) { // in CpG and also island
                         readPenalties[readNum] += medPenalty;
                     } else {
@@ -597,7 +597,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
                     readPenalties[readNum] += lowPenalty;
                 }
             } else if (read == 'G' && getNuc(ref_i, flag) == 'G') {
-                if (getNuc(ref_i+1, flag) == 'C') { // in the CpG context
+                if (getNuc(ref_i-1, flag) == 'C') { // in the CpG context
                     int temp = isInIsland(chrPos,chr);
                     if (temp == 1) { // in CpG and also island
                         readPenalties[readNum] += medPenalty;
@@ -670,6 +670,9 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long readNum,char
         }
         pos++;
     }
-    if(count <20)
-        fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %ld \n",seq_string,cigar,readNum);
+    if (!strcmp(seq_string, "TTTTTTTTTTTAGATTGTAGTTTGGTTTTGTTTTTTTTGGAGTTTTTTTGGATAGGGTAGAAATTTGTGTTTGTGATTTTGTTGTGTTTTTTTTTGAGTT")) {
+        fprintf(stderr, "PENALTY: %d",readPenalties[readNum]);
+    }
+//    if(count <20)
+//        fprintf(stderr, "read : %s \n, cigar : %s \n , penalties : %ld \n",seq_string,cigar,readNum);
 }
