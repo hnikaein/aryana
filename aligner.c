@@ -267,10 +267,10 @@ void aligner(bwt_t *const bwt, int len, const ubyte_t *seq, bwtint_t level, hash
 		bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
 		for (j=down; j<=up && j <= (down + 50); j++){
 			bwtint_t index=bwt_sa(bwt,j);
-            		if (index > len)
-                		index = index - len;
-            		else
-                		index = 0;
+//            		if (index > len)
+//                 		index = index - len;
+//             		else
+//                 		index = 0;
 			bwtint_t score=limit;
 
 			bwtint_t rindex=index- (i - limit+1);
