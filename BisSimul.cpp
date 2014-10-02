@@ -294,6 +294,7 @@ void revcomp(char * a, long long l) {
         default:
             a[l-i-1] = 'N';
         };
+	delete [] b;
 }
 
 void PrintRead(FILE *f, int readNumber, int chr, long long p, char *quals) {
@@ -305,7 +306,10 @@ void PrintRead(FILE *f, int readNumber, int chr, long long p, char *quals) {
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
     for (int i = 0; i < readl; i++) // Bisulfite conversion
-        if ((r[i] == 'c' || r[i] == 'C') && (double) rand() * 255 / RAND_MAX >= meth[i+p]) r[i] = 'T';
+        if (r[i] == 'c' || r[i] == 'C'){
+			if( strand == '+' && (double) rand() * 255 / RAND_MAX >= meth[i+p]) r[i] = 'T';
+			else if( strand == '-' && (double) rand() * 255 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
+		}
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
     for (int i = 0; i < readl; i++)
