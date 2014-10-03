@@ -33,6 +33,7 @@ unsigned long gs;
 char chromName[maxChromosomeNum][100];
 int chromNum;
 int debug=0;
+int EndOfFile=0;
 
 char * reference;
 uint32_t reference_size;
@@ -250,41 +251,54 @@ int checkGAorCT2(Line line,int flag){
 //
 //}
 
+//int lastchecked=0;
 void computeMethylation(){
     
     if(lines.size() == 0){
-        //cerr<<"eeeeeennnnnnndddd"<<endl;
+        cerr<<"eeeeeennnnnnndddd"<<endl;
         return;
     }
     int lastchecked = lines[0].pos;
-    if(cytosines.size()!=0){
-        lastchecked= cytosines[cytosines.size()-1].pos+1;
-        if (lines[0].pos > lastchecked || strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)) {//if chrom has changed or start of the read has passed lastchecked pos
-            lastchecked = lines[0].pos;
-        }
-    }
+//    if(cytosines.size()!=0){
+//        lastchecked= cytosines[cytosines.size()-1].pos+1;
+//        if (lines[0].pos > lastchecked || strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)) {//if chrom has changed or start of the read has passed lastchecked pos
+//            lastchecked = lines[0].pos;
+//        }
+//    }
+    cerr << "lastcheck  :"<<lastchecked<<"  "<<lines[0].pos<<endl;
     long refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
-    
+    float methylation_ratio=0;
     for(long i = lastchecked ; i< (lines[0].seq_string.size()+lines[0].pos ) ;i++){
         if(toupper(reference[refPos + i-1]) == 'C'){
             setPointer(i , lines[0].chr);
-            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            cerr<<"scn "<<secondPointer<<endl;
+            //cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            Cytosine cytosine(i ,lines[0].chr,lines[0].strand);
+            //lastchecked =i;
             for(int j=0 ; j< secondPointer ; j++){
                 if( lines[j].strand == '+'){
                     int relative_pos = lines[j].pos + lines[j].seq_string.size();
                     if(i < relative_pos){
                         if (lines[j].seq_string[i - lines[j].pos] == 'C') {
-                            cytosines[cytosines.size()-1].methylated++;
+                            cytosine.methylated++;
                         }
                         else if(lines[j].seq_string[i - lines[j].pos] == 'T')
-                            cytosines[cytosines.size()-1].unmethylated++;
+                            cytosine.unmethylated++;
                     }
                 }
             }
+            methylation_ratio = ((float)cytosine.methylated/(cytosine.methylated+cytosine.unmethylated))*100.0 ;
+            if((cytosine.methylated+cytosine.unmethylated)==0)
+                methylation_ratio = 0;
+            fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosine.chr, cytosine.pos, cytosine.methylated,methylation_ratio);
+            //delete (&cytosine);
         }
         else if(toupper(reference[refPos + i-1]) == 'G'){
             setPointer(i , lines[0].chr);
-            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            cerr<<"scn "<<secondPointer<<endl;
+            //cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            Cytosine cytosine(i ,lines[0].chr,lines[0].strand);
+            //lastchecked = i;
             for(int j=0 ; j< secondPointer ; j++){
                 if(lines[j].strand == '-'){
                     
@@ -294,29 +308,43 @@ void computeMethylation(){
                     if(i < relative_pos ){
                         
                         if (lines[j].seq_string[i - lines[j].pos] == 'G')
-                            cytosines[cytosines.size()-1].methylated++;
+                            cytosine.methylated++;
                         
                         else if(lines[j].seq_string[i - lines[j].pos] == 'A')
-                            cytosines[cytosines.size()-1].unmethylated++;
+                            cytosine.unmethylated++;
                     }
                 }
             }
+            methylation_ratio = ((float)cytosine.methylated/(cytosine.methylated+cytosine.unmethylated))*100.0 ;
+            if((cytosine.methylated+cytosine.unmethylated)==0)
+                methylation_ratio = 0;
+            fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosine.chr, cytosine.pos, cytosine.methylated,methylation_ratio);
+            //delete (&cytosine);
         }
     }
     cerr<<"sizeeeeee:       "<<lines.size()<<endl;
+    
     lines.erase(lines.begin());
     secondPointer--;
     computeMethylation();
     
 }
 void setPointer(int pos, char * chr){
+    if(EndOfFile)
+        return;
     while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
         secondPointer++;
     }
     if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
         //int temp = i;
         int res = readSamFile(samFile);
-        if(res != -1)
+        if(res == -1){
+            while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
+                secondPointer++;
+            }
+            EndOfFile = 1;
+        }
+        else
             setPointer(pos, chr);
         
     }
@@ -599,17 +627,13 @@ int main(int argc, char *argv[]) {
 //        for(int k=0;k<cytosines.size();k++)
 //            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<" "<<cytosines[k].unmethylated<<endl;
 
-        FILE * pFile ,*pFile2;
-        pFile = fopen ("pos_strand.txt","w");
-        pFile2 = fopen ("neg_strand.txt","w");
-
         
-        for (int i=0; i < cytosines.size(); i++) {
-            float methylation_ratio = ((float)cytosines[i].methylated/(cytosines[i].methylated+cytosines[i].unmethylated))*100.0 ;
-            if((cytosines[i].methylated+cytosines[i].unmethylated)==0)
-                methylation_ratio = 0;
-            fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[i].chr, cytosines[i].pos, cytosines[i].methylated,methylation_ratio);
-        }
+//        for (int i=0; i < cytosines.size(); i++) {
+//            float methylation_ratio = ((float)cytosines[i].methylated/(cytosines[i].methylated+cytosines[i].unmethylated))*100.0 ;
+//            if((cytosines[i].methylated+cytosines[i].unmethylated)==0)
+//                methylation_ratio = 0;
+//            fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[i].chr, cytosines[i].pos, cytosines[i].methylated,methylation_ratio);
+//        }
                // myfile.close();
     }
     
