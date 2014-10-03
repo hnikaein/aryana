@@ -200,6 +200,7 @@ int main(int argc, char *argv[]) {
     pnext = malloc(100 * sizeof(char));
     seq_string = malloc(1000 * sizeof(char));
     quality_string = malloc(500 * sizeof(char));
+    char copy[1000];
     int chosen[numberOfGenomes];
     int j=0;
     for (j; j < numberOfGenomes; j++)
@@ -241,8 +242,10 @@ int main(int argc, char *argv[]) {
                 flag2 = 0;
 
             if(flag[i] == 16){
+                strcpy(copy,seq_string);
                 reverseRead(seq_string);
                 complementRead(seq_string);
+                //fprintf(stderr, "%s\n",seq_string);
             }
 			readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,rname[i],pos[i],flag[i],flag2);
 		}
@@ -250,7 +253,10 @@ int main(int argc, char *argv[]) {
 			break;
 		int min = min_penalty();
 		chosen[min]++;
-		fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
+        if(flag !=16)
+            fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
+        else
+            fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,copy,quality_string, min);
         int j=0;
         for (j; j < numberOfGenomes; j++)
             readPenalties[j]=0;
@@ -331,16 +337,19 @@ void complementRead(char *read){
             case 'T':
             case 't':
                 read[i]='A';
+                break;
             case 'C':
             case 'c':
                 read[i]='G';
+                break;
             case 'G':
             case 'g':
                 read[i]='C';
+                break;
             case 'A':
             case 'a':
                 read[i]='T';
-                
+                break;                
             default:
                 break;
         }
@@ -567,7 +576,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
     read = toupper(read);
     reference[ref_i] = toupper(reference[ref_i]);
     reference[ref_i+1] = toupper(reference[ref_i+1]);
-    reference[ref_i+1] = toupper(reference[ref_i-1]);
+    reference[ref_i-1] = toupper(reference[ref_i-1]);
     
     
 	char atomic[4] = { 'A', 'C', 'G', 'T' };
@@ -601,13 +610,13 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
                 } else // out of CpG context
                     readPenalties[readNum] += highPenalty;
 
-            } else if (read == 'C' && getNuc(ref_i+1) == 'T')
+            } else if (read == 'C' && getNuc(ref_i) == 'T')
                 readPenalties[readNum] += highPenalty;
 
         }
     }
     else{
-        if (read == 'A' || read == 'T') 
+        if (read == 'C' || read == 'T') 
             if (getNuc(ref_i) != read)
                 readPenalties[readNum] += highPenalty;
         else { //read = G or A
@@ -635,7 +644,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum,char *chr,uint64_t ch
                     readPenalties[readNum] += highPenalty;
                 }
                 
-            } else if (read == 'G' && getNuc(ref_i+1) == 'A')
+            } else if (read == 'G' && getNuc(ref_i) == 'A')
                 readPenalties[readNum] += highPenalty;
         }
 
