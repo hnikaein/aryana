@@ -117,3 +117,117 @@ int main(int argc, char *argv[]) {
         fclose(samFile);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void computeMethylation(){
+    
+    if(lines.size() == 0)
+        return;
+    int lastchecked = lines[0].pos;
+    if(cytosines.size()!=0){
+        lastchecked= cytosines[cytosines.size()-1].pos+1;
+        if (lines[0].pos > lastchecked || strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)) {//if chrom has changed or start of the read has passed lastchecked pos
+            lastchecked = lines[0].pos;
+        }
+    }
+    long refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
+    
+    for(long i = lastchecked ; i< (lines[0].seq_string.size()+lines[0].pos ) ;i++){
+        if(toupper(reference[refPos + i-1]) == 'C'){
+            setPointer(i , lines[0].chr);
+            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand)); 
+            for(int j=0 ; j< secondPointer ; j++){
+                if( lines[j].strand == '+'){
+                    int relative_pos = lines[j].pos + lines[j].seq_string.size();
+                    if(i < relative_pos){
+                        if (lines[j].seq_string[i - lines[j].pos] == 'C') {
+                            cytosines[cytosines.size()-1].methylated++;
+                        }
+                        else if(lines[j].seq_string[i - lines[j].pos] == 'T')
+                            cytosines[cytosines.size()-1].unmethylated++;
+                    }
+                }
+            }
+        }
+        else if(toupper(reference[refPos + i-1]) == 'G'){
+            setPointer(i , lines[0].chr);
+            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            for(int j=0 ; j< secondPointer ; j++){
+                if(lines[j].strand == '-'){
+                    
+                    if(!(lines[j].pos < (lines[0].pos+lines[0].seq_string.size())))
+                        break;
+                    int relative_pos = lines[j].pos + lines[j].seq_string.size();
+                    if(i < relative_pos ){
+                        
+                        if (lines[j].seq_string[i - lines[j].pos] == 'G')
+                            cytosines[cytosines.size()-1].methylated++;
+                        
+                        else if(lines[j].seq_string[i - lines[j].pos] == 'A')
+                            cytosines[cytosines.size()-1].unmethylated++;
+                    }
+                }
+            }
+        }     
+    }
+    
+    lines.erase(lines.begin());
+    secondPointer--;
+    computeMethylation();
+    
+}
+void setPointer(int pos, char * chr){
+    while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
+        secondPointer++;
+    }
+    if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
+        //int temp = i;
+        int res = readSamFile(samFile);
+        if(res != -1)
+            setPointer(pos, chr);
+        
+    }
+    else if(secondPointer == lines.size())
+        secondPointer--;
+}
