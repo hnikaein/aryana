@@ -28,7 +28,7 @@ using namespace std;
 #define maxGenomeSize 1e5
 #define maxChromosomeNum 1000
 #define READ_LENGHT 100
-#define READ_SAM_BY 5000
+#define READ_SAM_BY 100002
 unsigned long gs;
 char chromName[maxChromosomeNum][100];
 int chromNum;
@@ -252,8 +252,10 @@ int checkGAorCT2(Line line,int flag){
 
 void computeMethylation(){
     
-    if(lines.size() == 0)
+    if(lines.size() == 0){
+        //cerr<<"eeeeeennnnnnndddd"<<endl;
         return;
+    }
     int lastchecked = lines[0].pos;
     if(cytosines.size()!=0){
         lastchecked= cytosines[cytosines.size()-1].pos+1;
@@ -301,7 +303,7 @@ void computeMethylation(){
             }
         }
     }
-    
+    cerr<<"sizeeeeee:       "<<lines.size()<<endl;
     lines.erase(lines.begin());
     secondPointer--;
     computeMethylation();
@@ -416,6 +418,7 @@ char * convertCigar(char * cigar){
 }
 
 int readSamFile(FILE * samFile){
+    //cout<<"read samfile"<<endl;
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string,*rname, *cigar;
@@ -451,7 +454,7 @@ int readSamFile(FILE * samFile){
             break;
         struct Line temp;
         
-        sscanf(line,"%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, temp.chr, &(temp.pos) ,&mapq, temp.cigar,rnext,pnext, &tlen,seq_string,quality_string);
+        sscanf(line,"%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",temp.rname, &flag, temp.chr, &(temp.pos) ,&mapq, temp.cigar,rnext,pnext, &tlen,seq_string,quality_string);
         string str(seq_string);
         temp.seq_string = str;
         
