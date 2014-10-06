@@ -31,16 +31,13 @@ using namespace std;
 #define READ_SAM_BY 10
 #define BUFFER_SIZE 200
 unsigned long gs;
-char chromName[maxChromosomeNum][100];
 int chromNum;
 int debug=0;
-int EndOfFile=0;
 
 char * reference;
 uint32_t reference_size;
 uint32_t reference_reminder;
 FILE *samFile;
-int firstPointer = 0 , secondPointer=0;
 
 void log(char* s){
 #ifdef DEBUG
@@ -70,26 +67,6 @@ struct Chrom
     long chrNum;
 };
 
-struct Cytosine
-{
-    long pos;
-    char chr[30];
-    int methylated;
-    int unmethylated ;
-    char strand;
-    Cytosine(long p,char * chrom,char s) {
-        methylated=0;
-        unmethylated = 0;
-        pos = p;
-        strcpy(chr, chrom);
-        strand = s;
-	}
-    Cytosine(){
-        
-    }
-    
-};
-std::vector<Cytosine> cytosines;
 struct Chrom chrom[maxChromosomeNum] ;
 
 
@@ -150,7 +127,7 @@ int checkGAorCT2(Line line,int flag){
     
 }
 
-int count_methyl[200][2];
+int count_methyl[BUFFER_SIZE][2];
 long mode[200];
 void ReadMethylation(Line line,bool chr_changed){
     //cerr<<"111"<<endl;
@@ -165,48 +142,53 @@ void ReadMethylation(Line line,bool chr_changed){
         methyl = 'G';
         unmethyl = 'A';
     }
-    
+    cerr<<line.rname<<endl;
     for(int i=0;i < line.seq_string.size() ; i++){
         
         if(toupper(reference[refPos+i]) == methyl){
             //int index = find_position(line.pos + i, line.chr);
             //cerr<<reference[refPos+i]<<"   "<<line.seq_string[i]<<"  ";
+            
             long pos = refPos+i;
             //cerr<<"aa  "<<pos<<endl;
             int index = (pos)%BUFFER_SIZE;
-            
+            cerr << "IND:"<<index<<"  ";
             if(mode[index] == -1){
                 mode[index] = pos + 1 ;
             }
             else if(mode[index] != pos +1){
+                cerr<<"aa  "<<pos<<endl;
                 float methylation_ratio;
                 methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1]))*100.0 ;
                 if((count_methyl[index][0]+count_methyl[index][1])==0)
                     methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, pos+1, count_methyl[index][0] ,methylation_ratio);
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, mode[index], count_methyl[index][0] ,methylation_ratio);
                 count_methyl[index][0] = 0;
                 count_methyl[index][1] = 0;
                 mode[index] = pos +1;
             }
+             //cerr<<"aa  "<<pos<<endl;
             if (toupper(line.seq_string[i]) == methyl)
                 count_methyl[index][0]++;
             else if(toupper(line.seq_string[i]) == unmethyl)
                 count_methyl[index][1]++;
+            //cerr<<"bb  "<<pos<<endl;
         }
     }
 }
 
 char chromosome[30];
 void compute_methylation(){
-
+    cerr << "compute methylaaa222"<<endl;
     int result = readSamFile(samFile);
+    cerr << "compute methylaaa2226"<<endl;
     bool chr_changed = false;
     //char *chr2 = new char[50];
     char chr2[50];
-    //cerr << lines.size();
+    cerr << lines.size();
     strcpy(chr2, lines[lines.size()-1].chr);
-        strcpy(chromosome, lines[lines.size()-1].chr);
-    //cerr << "compute methylaaa"<<endl;
+    strcpy(chromosome, lines[lines.size()-1].chr);
+    cerr << "compute methylaaa333"<<endl;
     for (int i=0; i< lines.size(); i++) {
         if (!strcmp(chr2, lines[i].chr)) {
             strcpy(chr2, lines[i].chr);
@@ -215,8 +197,15 @@ void compute_methylation(){
         ReadMethylation(lines[0],chr_changed);
         lines.erase(lines.begin());
     }
-    if(result!= -1)
-        compute_methylation();
+    while(result != -1){
+        cerr << "compute methylaaa111"<<endl;
+        result = readSamFile(samFile);
+        for (int i=0; i< lines.size(); i++) {
+            //cerr << "compute methylaaa"<<endl;
+            ReadMethylation(lines[0],chr_changed);
+            lines.erase(lines.begin());
+        }
+    }
 }
 
 void convertRead(Line &line){
@@ -309,6 +298,7 @@ char * convertCigar(char * cigar){
 }
 
 int readSamFile(FILE * samFile){
+    //cerr<<"hey"<<endl;
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string,*rname, *cigar;
@@ -324,10 +314,11 @@ int readSamFile(FILE * samFile){
     pnext = new char[100];
     seq_string = new char[1000];
     quality_string = new char[500];
-    
+    //cerr<<"hey"<<endl;
     int count_to=0;
     int stop = 0;
     while (count_to< READ_SAM_BY) {
+        //cerr<<"hey"<<endl;
         if (fgets(line, 1000, samFile) == NULL){
             stop = -1;
             break;
