@@ -209,6 +209,7 @@ int main(int argc, char *argv[]) {
 	int stop = 0;
 
 	while (1 && !stop) {
+		int reversed = 0;
 		for (i = 0; i < numberOfGenomes && !stop; i++) {
 			if (fgets(line, 1000, samFiles[i]) == NULL) {
 				stop = 1;
@@ -222,6 +223,7 @@ int main(int argc, char *argv[]) {
 			}
 			if(stop)
 				break;
+			reversed = 0;
 			sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
 			int index = ChromIndex(rname[i]);
 			//fprintf(stderr, "INDEX %d\n", index);
@@ -242,6 +244,7 @@ int main(int argc, char *argv[]) {
                 flag2 = 0;
 
             if(flag[i] == 16){
+				reversed = 1;
                 strcpy(copy,seq_string);
                 reverseRead(seq_string);
                 complementRead(seq_string);
@@ -253,7 +256,7 @@ int main(int argc, char *argv[]) {
 			break;
 		int min = min_penalty();
 		chosen[min]++;
-        if(flag !=16)
+        if(!reversed)
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         else
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,copy,quality_string, min);
