@@ -195,7 +195,7 @@ void ReadMethylation(Line line,bool chr_changed){
     }
 }
 
-
+char chromosome[30];
 void compute_methylation(){
 
     int result = readSamFile(samFile);
@@ -204,6 +204,7 @@ void compute_methylation(){
     char chr2[50];
     //cerr << lines.size();
     strcpy(chr2, lines[lines.size()-1].chr);
+        strcpy(chromosome, lines[lines.size()-1].chr);
     //cerr << "compute methylaaa"<<endl;
     for (int i=0; i< lines.size(); i++) {
         if (!strcmp(chr2, lines[i].chr)) {
@@ -493,7 +494,7 @@ int main(int argc, char *argv[]) {
                 methylation_ratio = ((float)count_methyl[i][0]/(count_methyl[i][0]+count_methyl[i][1]))*100.0 ;
                 if((count_methyl[i][0]+count_methyl[i][1])==0)
                     methylation_ratio = 0;
-                fprintf(stdout, "%ld\t%d\t%3f\n", mode[i], count_methyl[i][0] ,methylation_ratio);
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n", chromosome,mode[i], count_methyl[i][0] ,methylation_ratio);
                 
                 
             }
