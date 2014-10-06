@@ -151,9 +151,9 @@ int checkGAorCT2(Line line,int flag){
 }
 
 int count_methyl[200][2];
-int mode[200];
+long mode[200];
 void ReadMethylation(Line line,bool chr_changed){
-    cerr<<"111"<<endl;
+    //cerr<<"111"<<endl;
     char methyl , unmethyl;
     long refPos = chrom[ChromIndex(line.chr)].chrStart + line.pos-1;
     
@@ -170,22 +170,23 @@ void ReadMethylation(Line line,bool chr_changed){
         
         if(toupper(reference[refPos+i]) == methyl){
             //int index = find_position(line.pos + i, line.chr);
-            cerr<<reference[refPos+i]<<"   "<<line.seq_string[i]<<"  ";
-            int pos = refPos+i;
-            cerr<<"aa  "<<pos<<endl;
-            int index = (pos)%200;
+            //cerr<<reference[refPos+i]<<"   "<<line.seq_string[i]<<"  ";
+            long pos = refPos+i;
+            //cerr<<"aa  "<<pos<<endl;
+            int index = (pos)%BUFFER_SIZE;
             
             if(mode[index] == -1){
-                mode[index] = pos ;
+                mode[index] = pos + 1 ;
             }
-            else if(mode[index] != refPos + i){
+            else if(mode[index] != pos +1){
                 float methylation_ratio;
                 methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1]))*100.0 ;
                 if((count_methyl[index][0]+count_methyl[index][1])==0)
                     methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, pos, count_methyl[index][0] ,methylation_ratio);
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, pos+1, count_methyl[index][0] ,methylation_ratio);
                 count_methyl[index][0] = 0;
                 count_methyl[index][1] = 0;
+                mode[index] = pos +1;
             }
             if (toupper(line.seq_string[i]) == methyl)
                 count_methyl[index][0]++;
