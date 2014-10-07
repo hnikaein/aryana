@@ -179,6 +179,31 @@ void AssignMethylationRatio(string cpgIslandFile) {
             meth[position] = (unsigned short) (0.5 + m * 255);
         }
         f.close();
+	    if (cpgIslandFile == "") {
+	        cerr << "No CpG island location indicated. Proceeding without CpG island locations." << endl;
+	    } else {
+	        cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
+	        ifstream f(cpgIslandFile.c_str());
+	        if (! f.is_open()) {
+	            cerr << "Error: CpG island locations file not found or could not be opened" << endl;
+	            exit(1);
+	        }
+	        char fLine[10000], chrom[10];
+	        long long wStart, wEnd;
+	        f.getline(fLine, sizeof(fLine)); // First row
+	        while (!f.eof()) {
+	            fLine[0] = 0;
+	            f.getline(fLine, sizeof(fLine));
+	            if (! fLine[0]) continue;
+	            // cerr << fLine << endl;
+	            wStart = 0;
+	            sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
+	            if (! wStart) continue;
+	            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
+	            islands.push_back(window(chromIndex[chrom], wStart, wEnd));
+	        }
+			f.close();
+	    }
         return;
     }
     cerr << "Assignign methylation ratios" << endl;
@@ -225,6 +250,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
                     if (i > 0 && (genome[i-1] == 'c' || genome[i-1] == 'C')) meth[i] = island1;
             }
         }
+		f.close();
     }
     //for (int i = 0; i < gs; i++) cerr << meth[i] << " ";
     if (methOutFile != "") {
