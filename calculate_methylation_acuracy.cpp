@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <iostream>
 #include <fstream>
@@ -21,6 +22,7 @@ using namespace std;
 
 long corrects = 0, incorrects = 0;
 float max_diffrence = 0.1;
+double differences = 0.0;
 
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
@@ -37,6 +39,7 @@ int main(int argc, char *argv[]) {
 		cout << "Number of correct ratios: " << corrects << endl;
 		cout << "Number of incorrect ratios: " << incorrects << endl;
 		cout << "Total: " << corrects+incorrects << endl;
+		cout << "rmsd: " << sqrt(differences) << endl;
     }
     
 }//main
@@ -45,7 +48,7 @@ void calculate(char* original, char* computed){
     FILE *orig_fp, *comp_fp;
     orig_fp = fopen(original, "r");
 	comp_fp = fopen(computed, "r");
-	char chrom1[20], chrom2[20];
+	char chrom1[20], chrom2[20], temp[2];
 	long position1, methylated, position2, count = 0;
 	float ratio1, ratio2;
 	while (! feof(comp_fp)) {
@@ -56,7 +59,7 @@ void calculate(char* original, char* computed){
 		while(! feof(orig_fp)){
 			// orig_fp >> chrom2 >> position2 >> ratio2;
 			long file_pos = ftell(orig_fp);
-			n = fscanf(orig_fp, "%s\t%ld\t%f", chrom2, &position2, &ratio2);
+			n = fscanf(orig_fp, "%s\t%ld\t%f\t%s", chrom2, &position2, &ratio2, temp);
 			if (n == EOF) break;
 			if(strcmp(chrom1, chrom2) == 0 && position1 == position2)
 				break;
@@ -68,12 +71,14 @@ void calculate(char* original, char* computed){
 				
 		}
 		if(no_match){
+			differences += pow(ratio1, 2);
 			if(ratio1 <= max_diffrence)
 				corrects++;
 			else
 				incorrects++;
 			continue;
 		}
+		differences += pow(ratio2 - ratio1, 2);
 		if(ratio1 >= ratio2 - max_diffrence && ratio1 <= ratio2 + max_diffrence)
 			corrects++;
 		else
