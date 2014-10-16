@@ -456,7 +456,7 @@ int ReadGenome(char * genomeFile) {
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
     
-    if ( argc != 4 ){
+    if ( argc < 3 ){
         /* We print argv[0] assuming it is the program name */
         printf( "usage: %s filename", argv[0] );
     }
@@ -471,7 +471,8 @@ int main(int argc, char *argv[]) {
         if ( samFile == 0 )
             printf( "Could not open file\n" );
         //
-        debug = atoi(argv[3]);
+        if(argc == 4)
+            debug = atoi(argv[3]);
         //        readSam_Compute();
         
         memset(mode, -1, sizeof(int)*BUFFER_SIZE);
