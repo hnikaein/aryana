@@ -23,14 +23,22 @@ SUBDIRS=	. bwt_gen
 
 all:$(PROG) aryana
 
+methyl:$(PROG) aryana convert-genomes align-bs methyl-extract
+
 bwa:$(OBJS) main.o
 		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) main.o -o $@ $(LIBS)
 
 aryana:$(OBJS) aryana_main.o
 		$(CC) $(CFLAGS2) $(DFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
 
-bisulfite:
-		$(CXX) $(CXXFLAGS) ConvertCpGIslands.cpp -o bisulfite
+convert-genomes:
+		$(CXX) $(DFLAGS) convert_genomes.cpp -o convert_genomes
+
+align-bs:
+		$(CC) $(CFLAGS2) $(DFLAGS) align_bisulfite.c -o align_bs $(LIBS)
+
+methyl-extract:
+		$(CXX) $(DFLAGS) methylation.cpp -o methyl_extract
 
 QSufSort.o:QSufSort.h
 
