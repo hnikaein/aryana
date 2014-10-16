@@ -29,6 +29,7 @@ using namespace std;
 #define maxChromosomeNum 1000
 #define READ_LENGHT 100
 #define READ_SAM_BY 100002
+#define BUFFER_SIZE 200
 unsigned long gs;
 char chromName[maxChromosomeNum][100];
 int chromNum;
@@ -40,6 +41,12 @@ uint32_t reference_size;
 uint32_t reference_reminder;
 FILE *samFile;
 int firstPointer = 0 , secondPointer=0;
+
+void log(char* s){
+    #ifdef DEBUG
+    cout << s << endl;
+    #endif
+}
 
 struct Line{
     char line[1000];
@@ -102,11 +109,8 @@ int checkGAorCT2(Line line,int flag){
     int GA =0;
     int CT = 0 , i = 0;
     int refPos , readPos = 0;
-    //cerr<<"GA5 "<<endl;
     long ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
-    //cerr << "cigar2"<<line.cigar2<<endl;
     int temp;
-    //cerr<<"flag in GATC: "<<flag<<endl;
     while (i < line.seq_string.size()) {
         if(flag==16)
             temp = line.seq_string.size()-i-2;
@@ -132,8 +136,7 @@ int checkGAorCT2(Line line,int flag){
         
     }
     if(debug){
-    //cerr<<"cigar2[i]  :"<<line.cigar2[i]<<" "<<i<<endl;
-    cerr<<"GA  :"<<GA<<endl;
+      cerr<<"GA  :"<<GA<<endl;
     cerr<<"CT   :"<<CT<<endl;
     }
     
@@ -145,6 +148,105 @@ int checkGAorCT2(Line line,int flag){
     else
         return -1;
     
+}
+
+int find_position(long pos , char * chr){
+    for (int i = cytosines.size()-1; i>0; i--) {
+        if(cytosines[i].pos == pos && !strcmp(chr, cytosines[i].chr))
+            return i;
+    }
+    return -1;
+    
+}
+
+void remove_cytosines(long pos){
+    float methylation_ratio;
+    while(cytosines[0].pos < pos){
+        methylation_ratio = ((float)cytosines[0].methylated/(cytosines[0].methylated+cytosines[0].unmethylated))*100.0 ;
+        if((cytosines[0].methylated+cytosines[0].unmethylated)==0)
+            methylation_ratio = 0;
+        fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[0].chr, cytosines[0].pos, cytosines[0].methylated,methylation_ratio);
+        cytosines.erase(cytosines.begin());
+    }
+}
+
+int count_methyl[200][2];
+int mode[200];
+void ReadMethylation(Line line,bool chr_changed){
+    cerr<<"111"<<endl;
+    char methyl , unmethyl;
+    long refPos = chrom[ChromIndex(line.chr)].chrStart + line.pos-1;
+    
+    if(line.strand == '+'){
+        methyl='C';
+        unmethyl='T';
+    }
+    else{
+        methyl = 'G';
+        unmethyl = 'A';
+    }
+    cerr<<"111"<<endl;
+    for(int i=0;i < line.seq_string.size() ; i++){
+            if(reference[refPos+i] == methyl){
+                //int index = find_position(line.pos + i, line.chr);
+                int pos = refPos+i;
+                int index = (pos)%200;
+
+                if(mode[index] == -1){
+                    mode[index] = pos ;
+                }
+                else if(mode[index] != refPos + i){
+                float methylation_ratio;
+                    methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1]))*100.0 ;
+                    if((count_methyl[index][0]+count_methyl[index][1])==0)
+                        methylation_ratio = 0;
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, pos, count_methyl[index][0] ,methylation_ratio);
+                count_methyl[index][0] = 0;
+                count_methyl[index][1] = 0;
+                }
+                if (line.seq_string[i] == methyl)
+                    count_methyl[index][0]++;
+                else if(line.seq_string[i] == unmethyl)
+                    count_methyl[index][1]++;
+            }
+    }
+}
+
+//                if (index!= -1) {
+//                    if (line.seq_string[i] == methyl)
+//                        cytosines[index].methylated++;
+//                    else if(line.seq_string[i] == unmethyl)
+//                        cytosines[index].unmethylated++;
+//
+//                }
+//                else{
+//                    Cytosine cytosine(i,line.chr,'+');
+//                    if (line.seq_string[i] == methyl)
+//                        cytosine.methylated++;
+//                    else if(line.seq_string[i] == unmethyl)
+//                        cytosine.unmethylated++;
+//                    cytosines.push_back(cytosine);
+//
+//                }
+
+void compute_methylation(){
+    memset(mode, -1, sizeof(int)*BUFFER_SIZE);
+    memset(count_methyl, 0, sizeof(count_methyl[0][0]) * 2 * BUFFER_SIZE);
+    int result = readSamFile(samFile);
+    bool chr_changed = false;
+    //char *chr2 = new char[50];
+    char chr2[50];
+    cerr << lines.size();
+    strcpy(chr2, lines[lines.size()-1].chr);
+    //cerr << "compute methylaaa"<<endl;
+    for (int i=0; i< lines.size(); i++) {
+        if (!strcmp(chr2, lines[i].chr)) {
+            strcpy(chr2, lines[i].chr);
+        }
+        cerr << "compute methylaaa"<<endl;
+        ReadMethylation(lines[lines.size()-1],chr_changed);
+        lines.erase(lines.end());
+    }
 }
 
 //
@@ -336,7 +438,6 @@ void setPointer(int pos, char * chr){
         secondPointer++;
     }
     if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
-        //int temp = i;
         int res = readSamFile(samFile);
         if(res == -1){
             while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
@@ -352,13 +453,13 @@ void setPointer(int pos, char * chr){
         secondPointer--;
 }
 void convertRead(Line &line){
-    //cout <<"before :  "<<line.seq_string<<endl;
+    
     int c=0;
     int j = 0;
     for(int i=0;i< line.seq_string.size();i++){
         if (line.cigar2[i] == 'i') {
             line.seq_string.erase(j,1);
-            //cout <<"after:  "<<line.seq_string<<endl;
+            
         }
         else if (line.cigar2[i] == 'd') {
             line.seq_string.insert(j,"M");
@@ -368,7 +469,7 @@ void convertRead(Line &line){
             j++;
         
     }
-    //cerr <<"after convert:  "<<line.seq_string<<endl;
+    
 }
 
 void reverseRead(Line &line){////
@@ -376,31 +477,28 @@ void reverseRead(Line &line){////
 //        cerr <<"before :  "<<line.seq_string<<endl;
     int i,j=0 ;
     char * copy = new char[line.seq_string.size()];
-    //    strcpy(copy , line.seq_string);
     line.seq_string.copy(copy, line.seq_string.size(),0);
     for (i = line.seq_string.size()-1; i >= 0 ; i--){
-//        if(debug)
-//        cerr << copy[i]<<"c ";
-        if(copy[i] == 'A'){
-            line.seq_string[j]='T';
+        switch (copy[i]) {
+            case 'A':
+                line.seq_string[j]='T';
+                break;
+            case 'T':
+                line.seq_string[j]='A';
+                break;
+            case 'C':
+                line.seq_string[j]='G';
+                break;
+            case 'G':
+                line.seq_string[j]='C';
+                break;
+
+            default:
+                break;
         }
-        else if(copy[i] == 'T'){
-            line.seq_string[j]='A';
-        }
-        else if(copy[i] == 'C'){
-            line.seq_string[j]='G';
-        }
-        else if(copy[i] == 'G'){
-            line.seq_string[j]='C';
-        }
-        else if(copy[i] == 'M')
-            line.seq_string[j] = 'M';
-//        if(debug)
-//            cerr << line.seq_string[j]<<"r  ";
         j++;
     }
-//    if(debug)
-//        cerr <<"after  reverse:  \n"<<line.seq_string<<endl;
+
 }
 
 
@@ -410,7 +508,6 @@ char * convertCigar(char * cigar){
     int value = 0, j , index =0;;
     long read_index = 0;
     char alignType;
-    //cerr << "cigar in convert"<<cigar<<endl;
     while (1) {
 		if (!isdigit(cigar[pos])) {
 			if (value > 0) {
@@ -441,12 +538,11 @@ char * convertCigar(char * cigar){
         }
         pos++;
     }
-    //cerr << "cigar2"<<cigar2<<endl;
     return cigar2;
 }
 
 int readSamFile(FILE * samFile){
-    //cout<<"read samfile"<<endl;
+    cerr<<"hey"<<endl;
     char line[1000];
     int header = 1;
     char *qname, *rnext, *pnext, *seq_string, *quality_string,*rname, *cigar;
@@ -462,10 +558,11 @@ int readSamFile(FILE * samFile){
     pnext = new char[100];
     seq_string = new char[1000];
     quality_string = new char[500];
-    
+    cerr<<"hey"<<endl;
     int count_to=0;
     int stop = 0;
     while (count_to< READ_SAM_BY) {
+        cerr<<"hey"<<endl;
         if (fgets(line, 1000, samFile) == NULL){
             stop = -1;
             break;
@@ -477,7 +574,7 @@ int readSamFile(FILE * samFile){
                 break;
             }
         }
-        //cout<<line<<endl;
+        cout<<line<<endl;
         if(stop)
             break;
         struct Line temp;
@@ -487,12 +584,9 @@ int readSamFile(FILE * samFile){
         temp.seq_string = str;
         
         char * cigar2 = new char[500];
-        //cout<<line<<endl;
-        
+
         if(flag != 4){
-            //cerr << "hey11111111  "<<endl;
             cigar2 = convertCigar(temp.cigar);
-            
             strcpy(temp.cigar2, cigar2);
             if(debug)
             cerr << "hey  "<<temp.cigar2<<endl;
@@ -614,15 +708,16 @@ int main(int argc, char *argv[]) {
     {
         ReadGenome(argv[1]);
         cerr<<"complete reading genome..."<<endl;
-        if(debug)
-        for(int k = 0 ; k<200;k++)
-            cerr<<reference[k]<<" ";
+//        if(debug)
+//        for(int k = 0 ; k<200;k++)
+//            cerr<<reference[k]<<" ";
         samFile = fopen( argv[2], "r" );
         if ( samFile == 0 )
             printf( "Could not open file\n" );
-        
+//
         debug = atoi(argv[3]);
-        readSam_Compute();
+//        readSam_Compute();
+        compute_methylation();
 //        if(debug)
 //        for(int k=0;k<cytosines.size();k++)
 //            cerr <<"cytosin  "<< cytosines[k].pos<<"   "<<cytosines[k].methylated<<"   "<<cytosines[k].chr<<" "<<cytosines[k].unmethylated<<endl;
@@ -635,6 +730,18 @@ int main(int argc, char *argv[]) {
 //            fprintf(stdout, "%s\t%ld\t%d\t%3f\n",cytosines[i].chr, cytosines[i].pos, cytosines[i].methylated,methylation_ratio);
 //        }
                // myfile.close();
+        float methylation_ratio;
+        for(int i=0;i<BUFFER_SIZE ; i++){
+            if(count_methyl[i][0] != 0){
+
+                methylation_ratio = ((float)count_methyl[i][0]/(count_methyl[i][0]+count_methyl[i][1]))*100.0 ;
+                if((count_methyl[i][0]+count_methyl[i][1])==0)
+                    methylation_ratio = 0;
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n", mode[i], count_methyl[i][0] ,methylation_ratio);
+
+                
+            }
+        }
     }
     
 }//main

@@ -23,7 +23,7 @@ using namespace std;
 long corrects = 0, incorrects = 0;
 float max_diffrence = 0.1;
 double differences = 0.0;
-
+long count = 0;
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
     
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 		cout << "Number of correct ratios: " << corrects << endl;
 		cout << "Number of incorrect ratios: " << incorrects << endl;
 		cout << "Total: " << corrects+incorrects << endl;
-		cout << "rmsd: " << sqrt(differences) << endl;
+		cout << "rmsd: " << sqrt(differences/count) << endl;
     }
     
 }//main
