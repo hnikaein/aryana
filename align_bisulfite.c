@@ -92,19 +92,19 @@ int main(int argc, char *argv[]) {
             case 1:
                 break;
             case 'x':
-                referenceName = (char *) malloc(strlen(optarg));
+                referenceName = (char *) malloc(strlen(optarg)+1);
                 strcpy(referenceName, optarg);
                 break;
             case 's':
-                samFileName = (char *) malloc(strlen(optarg));
+                samFileName = (char *) malloc(strlen(optarg)+1);
                 strcpy(samFileName, optarg);
 				for(i=0; i<numberOfGenomes; i++){
-	                samNames[i] = (char *) malloc(strlen(samFileName) + 5);
+	                samNames[i] = (char *) malloc(strlen(samFileName) + 10);
 	                sprintf(samNames[i], "%s-%d", samFileName, i);
 				}
                 break;
             case 'c':
-                annotationFile = (char *) malloc(strlen(optarg));
+                annotationFile = (char *) malloc(strlen(optarg)+1);
                 strcpy(annotationFile, optarg);
                 break;
             case 'p':
