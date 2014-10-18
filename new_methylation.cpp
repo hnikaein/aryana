@@ -128,7 +128,7 @@ int checkGAorCT2(Line line,int flag){
 }
 
 int count_methyl[BUFFER_SIZE][2];
-long mode[200];
+long mode[BUFFER_SIZE];
 void ReadMethylation(Line line,bool chr_changed){
     //cerr<<"111"<<endl;
     char methyl , unmethyl;
@@ -198,7 +198,7 @@ void compute_methylation(){
         lines.erase(lines.begin());
     }
     while(result != -1){
-        cerr << "compute methylaaa111"<<endl;
+        //cerr << "compute methylaaa111"<<endl;
         result = readSamFile(samFile);
         for (int i=0; i< lines.size(); i++) {
             //cerr << "compute methylaaa"<<endl;
@@ -353,7 +353,7 @@ int readSamFile(FILE * samFile){
         if(debug)
             cerr<<line<<"line:      2"<<endl;
         convertRead(temp);
-        cerr<<"flag :"<<flag<<endl;
+        //cerr<<"flag :"<<flag<<endl;
         int result = checkGAorCT2(temp,flag);
         if(debug)
             cerr << result<<endl;
@@ -377,7 +377,7 @@ int readSamFile(FILE * samFile){
             else
                 temp.strand = '+';
         }
-        cerr << "\n"<<temp.strand <<endl<<endl;
+        //cerr << "\n"<<temp.strand <<endl<<endl;
         count_to++;
         
         lines.push_back(temp);
@@ -475,7 +475,10 @@ int main(int argc, char *argv[]) {
             debug = atoi(argv[3]);
         //        readSam_Compute();
         
-        memset(mode, -1, sizeof(int)*BUFFER_SIZE);
+       
+        for(int k = 0 ; k < BUFFER_SIZE ; k++){
+            mode[k] = -1;
+        }
         memset(count_methyl, 0, sizeof(count_methyl[0][0]) * 2 * BUFFER_SIZE);
         
         compute_methylation();
