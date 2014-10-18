@@ -187,7 +187,7 @@ void compute_methylation(){
     char chr2[50];
     //cerr << lines.size();
     strcpy(chr2, lines[lines.size()-1].chr);
-    strcpy(chromosome, lines[lines.size()-1].chr);
+    //strcpy(chromosome, lines[lines.size()-1].chr);
     //cerr << "compute methylaaa333"<<endl;
     for (int i=0; i< lines.size(); i++) {
         if (!strcmp(chr2, lines[i].chr)) {
@@ -206,6 +206,7 @@ void compute_methylation(){
             lines.erase(lines.begin());
         }
     }
+    strcpy(chromosome, lines[lines.size()-1].chr);
 }
 
 void convertRead(Line &line){
