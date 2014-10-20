@@ -156,13 +156,13 @@ void ReadMethylation(Line line,bool chr_changed){
             if(mode[index] == -1){
                 mode[index] = pos + 1 ;
             }
-            else if(mode[index] != pos +1){
+            else if(mode[index] != pos +1 && count_methyl[index][0] + count_methyl[index][1] > 0){
                 //cerr<<"aa  "<<pos<<endl;
-                float methylation_ratio;
-                methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1])) ;
-                if((count_methyl[index][0]+count_methyl[index][1])==0)
-                    methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, mode[index], count_methyl[index][0] ,methylation_ratio);
+                //float methylation_ratio;
+                //methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1])) ;
+                //if((count_methyl[index][0]+count_methyl[index][1])==0)
+                //    methylation_ratio = 0;
+                fprintf(stdout, "%s\t%ld\t%d\t%d\n",line.chr, mode[index], count_methyl[index][0] + count_methyl[index][1], count_methyl[index][0]);
                 count_methyl[index][0] = 0;
                 count_methyl[index][1] = 0;
                 mode[index] = pos +1;
@@ -488,10 +488,10 @@ int main(int argc, char *argv[]) {
         for(int i=0;i<BUFFER_SIZE ; i++){
             if(count_methyl[i][0] != 0 || count_methyl[i][1] !=0){
                 
-                methylation_ratio = ((float)count_methyl[i][0]/(count_methyl[i][0]+count_methyl[i][1])) ;
-                if((count_methyl[i][0]+count_methyl[i][1])==0)
-                    methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n", chromosome,mode[i], count_methyl[i][0] ,methylation_ratio);
+                //methylation_ratio = ((float)count_methyl[i][0]/(count_methyl[i][0]+count_methyl[i][1])) ;
+                //if((count_methyl[i][0]+count_methyl[i][1])==0)
+                  //  methylation_ratio = 0;
+                fprintf(stdout, "%s\t%ld\t%d\t%d\n", chromosome,mode[i], count_methyl[i][0] + count_methyl[i][1], count_methyl[i][0]);
                 
                 
             }
