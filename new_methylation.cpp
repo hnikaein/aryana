@@ -128,6 +128,8 @@ int checkGAorCT2(Line line,int flag){
 }
 
 int count_methyl[BUFFER_SIZE][2];
+char preChrom[50];
+long preChromStart;
 long mode[BUFFER_SIZE];
 void ReadMethylation(Line line,bool chr_changed){
     //cerr<<"111"<<endl;
@@ -142,6 +144,7 @@ void ReadMethylation(Line line,bool chr_changed){
         methyl = 'G';
         unmethyl = 'A';
     }
+    preChromStart = chrom[ChromIndex(preChrom)].chrStart;
     //cerr<<line.rname<<endl;
     for(int i=0;i < line.seq_string.size() ; i++){
         
@@ -162,7 +165,13 @@ void ReadMethylation(Line line,bool chr_changed){
                 methylation_ratio = ((float)count_methyl[index][0]/(count_methyl[index][0]+count_methyl[index][1])) ;
                 if((count_methyl[index][0]+count_methyl[index][1])==0)
                     methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, mode[index], count_methyl[index][0] ,methylation_ratio);
+                long position;
+                if (mode[index] < chrom[ChromIndex(line.chr)].chrStart) {
+                    position = mode[index] - preChromStart;
+                }
+                else
+                    position = mode[index] - chrom[ChromIndex(line.chr)].chrStart;
+                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, position , count_methyl[index][0] ,methylation_ratio);
                 count_methyl[index][0] = 0;
                 count_methyl[index][1] = 0;
                 mode[index] = pos +1;
@@ -179,30 +188,24 @@ void ReadMethylation(Line line,bool chr_changed){
 
 char chromosome[30];
 void compute_methylation(){
-   // cerr << "compute methylaaa222"<<endl;
     int result = readSamFile(samFile);
-    //cerr << "compute methylaaa2226"<<endl;
-    bool chr_changed = false;
-    //char *chr2 = new char[50];
+   // bool chr_changed = false;
+    char preChrom[50];
     char chr2[50];
-    //cerr << lines.size();
-    strcpy(chr2, lines[lines.size()-1].chr);
-    //strcpy(chromosome, lines[lines.size()-1].chr);
-    //cerr << "compute methylaaa333"<<endl;
+    strcpy(chr2, lines[0].chr);
     for (int i=0; i< lines.size(); i++) {
         if (!strcmp(chr2, lines[i].chr)) {
+            strcpy(preChrom,chr2);
             strcpy(chr2, lines[i].chr);
         }
-        //cerr << "compute methylaaa"<<endl;
-        ReadMethylation(lines[0],chr_changed);
+        ReadMethylation(lines[0],preChrom);
         lines.erase(lines.begin());
     }
     while(result != -1){
-        //cerr << "compute methylaaa111"<<endl;
         result = readSamFile(samFile);
         for (int i=0; i< lines.size(); i++) {
             //cerr << "compute methylaaa"<<endl;
-            ReadMethylation(lines[0],chr_changed);
+            ReadMethylation(lines[0],preChrom);
             lines.erase(lines.begin());
         }
     }
