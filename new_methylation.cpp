@@ -171,7 +171,7 @@ void ReadMethylation(Line line,bool chr_changed){
                 }
                 else
                     position = mode[index] - chrom[ChromIndex(line.chr)].chrStart;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n",line.chr, position , count_methyl[index][0] ,methylation_ratio);
+                fprintf(stdout, "%s\t%ld\t%c\t%d\t%3f\n",line.chr, position ,line.strand, count_methyl[index][0] ,methylation_ratio);
                 count_methyl[index][0] = 0;
                 count_methyl[index][1] = 0;
                 mode[index] = pos +1;
@@ -392,25 +392,6 @@ int readSamFile(FILE * samFile){
     
 }
 
-//void readSam_Compute(){
-//    
-//    int result = readSamFile(samFile);
-//    //    for (int l = 0; l<lines.size(); l++) {
-//    //        cout << lines[l].seq_string <<"   "<<lines[l].strand<<endl;
-//    //    }
-//    if(debug)
-//        cerr<<result <<"llll        "<<lines.size()<<endl;
-//    while (result == 1) {
-//        computeMethylation();
-//        result = readSamFile(samFile);
-//        if(result == -1)
-//            result = 2;
-//    }
-//    if(result != 2)
-//        computeMethylation();
-//}
-
-
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
@@ -494,7 +475,8 @@ int main(int argc, char *argv[]) {
                 methylation_ratio = ((float)count_methyl[i][0]/(count_methyl[i][0]+count_methyl[i][1])) ;
                 if((count_methyl[i][0]+count_methyl[i][1])==0)
                     methylation_ratio = 0;
-                fprintf(stdout, "%s\t%ld\t%d\t%3f\n", chromosome,mode[i], count_methyl[i][0] ,methylation_ratio);
+                long pos = mode[i] - chrom[ChromIndex(chromosome)].chrStart;
+                fprintf(stdout, "%s\t%ld\t%c\t%d\t%3f\n", chromosome,pos,'+', count_methyl[i][0] ,methylation_ratio);
                 
                 
             }
