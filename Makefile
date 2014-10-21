@@ -35,7 +35,7 @@ convert-genomes:
 		$(CXX) $(DFLAGS) convert_genomes.cpp -o convert_genomes
 
 align-bs:
-		$(CC) $(CFLAGS2) $(DFLAGS) align_bisulfite.c -o align_bs $(LIBS)
+		$(CXX) $(DFLAGS)  align_bs.cpp -o align_bs 
 
 methyl-extract:
 		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
