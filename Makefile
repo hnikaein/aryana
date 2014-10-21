@@ -38,7 +38,7 @@ align-bs:
 		$(CC) $(CFLAGS2) $(DFLAGS) align_bisulfite.c -o align_bs $(LIBS)
 
 methyl-extract:
-		$(CXX) $(DFLAGS) new_methylation.cpp -o methyl_extract
+		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
 
 QSufSort.o:QSufSort.h
 

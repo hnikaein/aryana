@@ -8,7 +8,7 @@
 #include <math.h>
 #include <limits.h>
 #include <ctype.h>
-
+#include <libgen.h>
 #include "utils.h"
 #include "bwt.h"
 //#include "align_bisulfite.h"
@@ -28,7 +28,7 @@ unsigned long gs;
 char chromName[maxChromosomeNum][100];
 char * genome;
 int chromNum;
-char * genomeFile, *annotationFile, *outputFile;
+char * genomeFile, *annotationFile, *outputFile, *samFilePath;
 uint64_t islandStarts[(long) maxGenomeSize];
 uint64_t islandEnds[(long) maxGenomeSize];
 long islandsNum = 0;
@@ -93,12 +93,13 @@ int main(int argc, char *argv[]) {
                 break;
             case 'x':
                 referenceName = (char *) malloc(strlen(optarg)+1);
-                printf("%s\n",optarg);
+                //printf("%s\n",optarg);
 		strcpy(referenceName, optarg);
                 break;
             case 's':
-                samFileName = (char *) malloc(strlen(optarg)+1);
-                strcpy(samFileName, optarg);
+                samFileName = strdup(optarg);
+		char * tmp = strdup(samFileName);
+		samFilePath = dirname(tmp);
 				for(i=0; i<numberOfGenomes; i++){
 	                samNames[i] = (char *) malloc(strlen(samFileName) + 10);
 	                sprintf(samNames[i], "%s-%d", samFileName, i);
@@ -125,64 +126,13 @@ int main(int argc, char *argv[]) {
     // printf("heu3");
     
     char * command = "sort -k1 ";
-    char cmd_pointer[strlen(samNames[0]) + strlen(command) + 30];
-    strcpy(cmd_pointer, command);
-    strcat(cmd_pointer, samNames[0]);
-    strcat(cmd_pointer, " > samFile1.sam");
-    system(cmd_pointer);
-
-    char cmd_pointer2[strlen(samNames[1]) + strlen(command) + 1];
-    strcpy(cmd_pointer2, command);
-    strcat(cmd_pointer2, samNames[1]);
-    strcat(cmd_pointer2, " > samFile2.sam");
-    system(cmd_pointer2);
-
-    char cmd_pointer3[strlen(samNames[2]) + strlen(command) + 1];
-    strcpy(cmd_pointer3, command);
-    strcat(cmd_pointer3, samNames[2]);
-    strcat(cmd_pointer3, " > samFile3.sam");
-    system(cmd_pointer3);
-    
-    char cmd_pointer4[strlen(samNames[3]) + strlen(command) + 1];
-    strcpy(cmd_pointer4, command);
-    strcat(cmd_pointer4, samNames[3]);
-    strcat(cmd_pointer4, " > samFile4.sam");
-    system(cmd_pointer4);
-    
-    char cmd_pointer5[strlen(samNames[4]) + strlen(command) + 1];
-    strcpy(cmd_pointer5, command);
-    strcat(cmd_pointer5, samNames[4]);
-    strcat(cmd_pointer5, " > samFile5.sam");
-    system(cmd_pointer5);
-    
-    char cmd_pointer6[strlen(samNames[5]) + strlen(command) + 1];
-    strcpy(cmd_pointer6, command);
-    strcat(cmd_pointer6, samNames[5]);
-    strcat(cmd_pointer6, " > samFile6.sam");
-    system(cmd_pointer6);
-    
-    char cmd_pointer7[strlen(samNames[6]) + strlen(command) + 1];
-    strcpy(cmd_pointer7, command);
-    strcat(cmd_pointer7, samNames[6]);
-    strcat(cmd_pointer7, " > samFile7.sam");
-    system(cmd_pointer7);
-    
-
-    samFiles[0] = fopen("samFile1.sam", "r");
-    samFiles[1] = fopen("samFile2.sam", "r");
-    samFiles[2] = fopen("samFile3.sam", "r");
-    samFiles[3] = fopen("samFile4.sam", "r");
-	samFiles[4] = fopen("samFile5.sam", "r");
-	samFiles[5] = fopen("samFile6.sam", "r");
-	samFiles[6] = fopen("samFile7.sam", "r");
-    
-//    samFiles[0] = fopen(samNames[0], "r");
-//    samFiles[1] = fopen(samNames[1], "r");
-//    samFiles[2] = fopen(samNames[2], "r");
-//    samFiles[3] = fopen(samNames[3], "r");
-//    samFiles[4] = fopen(samNames[4], "r");
-//    samFiles[5] = fopen(samNames[5], "r");
-//    samFiles[6] = fopen(samNames[6], "r");
+    char buf[strlen(samNames[0]) + 100];
+    for (i = 0; i < 7; i++) {
+	sprintf(buf, "%s%s > %s/samFile%d.sam", command, samNames[i], samFilePath, i+1);
+	system(buf);
+	sprintf(buf, "%s/samFile%d.sam", samFilePath, i+1);
+	samFiles[i] = fopen(buf, "r");
+    }
     
     char line[1000];
     int header = 1;
