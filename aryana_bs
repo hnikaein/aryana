@@ -1,15 +1,27 @@
 #! /bin/bash
+# The methyl_extract is set here to report only (methylated Cytosines) or (Cytosines followed by a Guanine). 
+# If you need the mehylation ratio for all cytosines covered by the bisulfite sequencing, add "-all" argument to the end of the line started with "$DIR/methyl_extract" below.
 
 if [ "$#" -lt 5 ]; then
     echo "Illegal number of parameters: <reference genome> <reference index folder> <CpG islands file> <fastq file> <output file> <any other arguments to aryana>"
         exit
 fi
 
+Echo () {
+	echo "[aryana_bs "`date +%Y-%m-%d\ %H:%M:%S`"] $1"
+}
 DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
+Echo "Running aryana with extra arguments: ${*:6}"
 "$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" "${*:6}"
+echo "Finding the best alignment for each read..." 
 "$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 >"$4_out/alignment_unsorted.sam"
+echo "Sorting the alignment SAM file..."
 LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
+echo "Computing methylation ratios..." 
 "$DIR/methyl_extract" "$1" "$5.sam" > "$4_out/result.txt" 
+echo "Sorting methylation ratio results..."
 LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
+echo "Removing unnecessary files..."
 rm -rf "$4_out"
+echo "Finished."

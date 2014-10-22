@@ -62,6 +62,6 @@ bwtsw2_main.o:bwtsw2.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align-bs methyl-extract convert-genomes 
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes 
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen
