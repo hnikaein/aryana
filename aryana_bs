@@ -9,6 +9,7 @@ DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
 "$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" "${*:6}"
 "$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 >"$4_out/alignment_unsorted.sam"
-sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
-"$DIR/methyl_extract" "$1" "$5.sam" > "$5.txt" -all
+LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
+"$DIR/methyl_extract" "$1" "$5.sam" > "$4_out/result.txt" 
+LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
 rm -rf "$4_out"
