@@ -3,8 +3,8 @@
 # If you need the mehylation ratio for all cytosines covered by the bisulfite sequencing, add "-all" argument to the end of the line started with "$DIR/methyl_extract" below.
 
 if [ "$#" -lt 5 ]; then
-    echo "Illegal number of parameters: <reference genome> <reference index folder> <CpG islands file> <fastq file> <output file> <any other arguments to aryana>"
-        exit
+    echo 'Usage: aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
+    exit
 fi
 
 Echo () {
@@ -12,16 +12,17 @@ Echo () {
 }
 DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
-Echo "Running aryana with extra arguments: ${*:6}"
-"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" "${*:6}"
-echo "Finding the best alignment for each read..." 
+declare "${*:6}"
+Echo "Aliging reads using aryana with additional arguments: $ar"
+"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" $ar
+Echo "Finding the best alignment for each read..." 
 "$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 >"$4_out/alignment_unsorted.sam"
-echo "Sorting the alignment SAM file..."
+Echo "Sorting the alignment SAM file..."
 LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
-echo "Computing methylation ratios..." 
-"$DIR/methyl_extract" "$1" "$5.sam" > "$4_out/result.txt" 
-echo "Sorting methylation ratio results..."
+Echo "Computing methylation ratios with additional arguments: $me" 
+"$DIR/methyl_extract" "$1" "$5.sam" $me > "$4_out/result.txt" 
+Echo "Sorting methylation ratio results..."
 LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
-echo "Removing unnecessary files..."
+Echo "Removing unnecessary files..."
 rm -rf "$4_out"
-echo "Finished."
+Echo "Finished."
