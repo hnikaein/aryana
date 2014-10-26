@@ -93,7 +93,8 @@ int main(int argc, char *argv[]) {
                 break;
             case 'x':
                 referenceName = (char *) malloc(strlen(optarg)+1);
-                strcpy(referenceName, optarg);
+                printf("%s\n",optarg);
+		strcpy(referenceName, optarg);
                 break;
             case 's':
                 samFileName = (char *) malloc(strlen(optarg)+1);

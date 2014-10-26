@@ -1,7 +1,7 @@
 CC=			gcc
 CXX=		g++
 CFLAGS=		-g -Wall -O2
-CFLAGS2=	-Wall -O2
+CFLAGS2=	-g -Wall -O2
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_NO_SSE2 #-D_FILE_OFFSET_BITS=64
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
@@ -21,7 +21,7 @@ SUBDIRS=	. bwt_gen
 .cc.o:
 		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-all:$(PROG) aryana
+all:$(PROG) aryana convert-genomes align-bs methyl-extract
 
 methyl:$(PROG) aryana convert-genomes align-bs methyl-extract
 
@@ -62,6 +62,6 @@ bwtsw2_main.o:bwtsw2.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align-bs methyl-extract convert-genomes 
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen
