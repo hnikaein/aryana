@@ -35,10 +35,10 @@ convert-genomes:
 		$(CXX) $(DFLAGS) convert_genomes.cpp -o convert_genomes
 
 align-bs:
-		$(CC) $(CFLAGS2) $(DFLAGS) align_bisulfite.c -o align_bs $(LIBS)
+		$(CXX) $(DFLAGS)  align_bs.cpp -o align_bs 
 
 methyl-extract:
-		$(CXX) $(DFLAGS) new_methylation.cpp -o methyl_extract
+		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
 
 QSufSort.o:QSufSort.h
 
@@ -62,6 +62,6 @@ bwtsw2_main.o:bwtsw2.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align-bs methyl-extract convert-genomes 
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes 
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen
