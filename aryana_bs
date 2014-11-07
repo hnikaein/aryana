@@ -10,19 +10,24 @@ fi
 Echo () {
 	echo "[aryana_bs "`date +%Y-%m-%d\ %H:%M:%S`"] $1"
 }
+
+PostAlignment() {
+	Echo "Finding the best alignment for each read..." 
+	"$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 >"$4_out/alignment_unsorted.sam"
+	Echo "Sorting the alignment SAM file..."
+	LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
+	Echo "Computing methylation ratios with additional arguments: $me" 
+	"$DIR/methyl_extract" -r "$1" -s "$5.sam" -m "$5_amb.sam" $me > "$4_out/result.txt" 
+	Echo "Sorting methylation ratio results..."
+	LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
+	Echo "Removing unnecessary files..."
+	rm -rf "$4_out"
+	Echo "Finished."
+}
+
 DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
 declare "${*:6}"
 Echo "Aliging reads using aryana with additional arguments: $ar"
 "$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" $ar
-Echo "Finding the best alignment for each read..." 
-"$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 >"$4_out/alignment_unsorted.sam"
-Echo "Sorting the alignment SAM file..."
-LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" > "$5.sam"
-Echo "Computing methylation ratios with additional arguments: $me" 
-"$DIR/methyl_extract" "$1" "$5.sam" $me > "$4_out/result.txt" 
-Echo "Sorting methylation ratio results..."
-LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
-Echo "Removing unnecessary files..."
-rm -rf "$4_out"
-Echo "Finished."
+PostAlignment "$@" &
