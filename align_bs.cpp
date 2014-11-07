@@ -1,3 +1,4 @@
+#define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
