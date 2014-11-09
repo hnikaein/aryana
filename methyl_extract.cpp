@@ -283,6 +283,11 @@ int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
     FILE *fp;
+    if (stat(genomeFile, &file_info) == -1) {
+		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
+        return -1;
+    }
+
     fp = fopen(genomeFile, "r");
 	if (! fp) {
 		fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
@@ -296,8 +301,8 @@ int ReadGenome(char * genomeFile) {
     chromNum = 0;
     //fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
-    while (! feof(fp)) {
-        int n = fscanf(fp, "%s\n", fLine);
+	while (! feof(fp)) {
+		int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
         if (fLine[0] == '>') {
@@ -307,13 +312,13 @@ int ReadGenome(char * genomeFile) {
             temp++;
             int lenght = strlen(temp);
             chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
-            strcpy(chrom[chromNum-1].chrName, temp);
+            memcpy(chrom[chromNum-1].chrName, temp, lenght);
             if (chromNum >= 1)
                 fprintf(stderr, "chrName: %s, chrStart: %ld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
             fprintf(stderr, "%s\n",fLine);
         } else {
             //            ToUpper(fLine);
-            memcpy(reference+gs, fLine, n);
+			memcpy(reference+gs, fLine, n);
             gs += n;
         }
     }
