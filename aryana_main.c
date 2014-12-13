@@ -131,28 +131,23 @@ int main(int argc, char *argv[])
 			case 1:
 				break;
 			case 'o':
-				output = (char *)malloc(strlen(optarg));
-				strcpy(output, optarg);
+				output = strdup(optarg);
 				break;
 			case 'x':
-				args.reference = (char *)malloc(strlen(optarg));
-				strcpy(args.reference, optarg);
+				args.reference = strdup(optarg);
 				break;
 			case 'U':
-				args.read_file = (char *)malloc(strlen(optarg));
-				strcpy(args.read_file, optarg);
+				args.read_file = strdup(optarg);
 				args.single = 1;
 				args.paired = 0;
 				break;
 			case '1':
 				args.paired = 1;
-				args.read_file1 = (char *)malloc(strlen(optarg));
-				strcpy(args.read_file1, optarg);
+				args.read_file1 = strdup(optarg);
 				break;
 			case '2':
 				args.paired = 1;
-				args.read_file2 = (char *)malloc(strlen(optarg));
-				strcpy(args.read_file2, optarg);
+				args.read_file2 = strdup(optarg);
 				break;
 			case '7':
 				strcpy(args.ori, "fr");
@@ -186,8 +181,7 @@ int main(int argc, char *argv[])
 				args.bisulfite = 1;
 				break;
 			case 'B':
-				inputFolder = (char *)malloc(strlen(optarg));
-				strcpy(inputFolder, optarg);
+				inputFolder = strdup(optarg);
 				refNames[0] = (char*) malloc(strlen(inputFolder)+50);
 				strcpy(refNames[0], inputFolder);
 				strcat(refNames[0], "originalGenome.fa");
