@@ -59,7 +59,6 @@ struct Line{
 };
 //struct line lines[1000];
 std::vector<Line> lines;
-//std::vector<Line> lines_neg;
 struct Chrom
 {
     char * chrName;
