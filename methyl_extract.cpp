@@ -50,7 +50,7 @@ struct SamRecord {
     char line[maxReadLength];
     char chr[maxChrNameLength];
     uint64_t start , pos;
-    char cigar[maxReadLength * 2], cigar2[maxReadLength * 2]; // (Ali) Are these limits correct?
+    char cigar[maxReadLength * 2], cigar2[maxReadLength * 2]; 
     char rname[maxReadNameLength];
     string seq_string;
     char strand;
@@ -116,7 +116,6 @@ void PrintOutput(int index) {
 }
 
 void ProcessMethylation() {
-    //cerr<<"111"<<endl;
     char methyl='C', unmethyl='T';
     int chrNum = ChromIndex(line.chr);
     long long refPos = chrom[chrNum].chrStart + line.pos-1;
@@ -125,13 +124,10 @@ void ProcessMethylation() {
         methyl='G';
         unmethyl='A';
     }
-    //cerr<<line.rname<<endl;
     for(int i=0; i < line.seq_string.size() ; i++)
         if(toupper(reference[refPos+i]) == methyl) { // It's a cytosine either in + or - strands
             long long pos = refPos+i;
-            //cerr<<"aa  "<<pos<<endl;
             int index = (pos)%BUFFER_SIZE;
-            //cerr << "IND:"<<index<<"  ";
             if(queue[index].pos == -1 || queue[index].chr != chrNum || queue[index].pos != pos + 1) { // A different genomic location, the process of which is already finished
                 if (queue[index].pos > -1 && queue[index].count[0] + queue[index].count[1] > 0)
                     PrintOutput(index);
@@ -140,38 +136,30 @@ void ProcessMethylation() {
                 queue[index].pos = pos +1;
                 queue[index].chr = chrNum;
             }
-            //cerr<<"aa  "<<pos<<endl;
             if (toupper(line.seq_string[i]) == methyl)
                 queue[index].count[0]++;
             else if(toupper(line.seq_string[i]) == unmethyl)
                 queue[index].count[1]++;
-            //cerr<<"bb  "<<pos<<endl;
         }
 }
 
+// Handles mismatches and inserts in cigar by converting reads
 void convertRead() {
-
-    int c=0;
     int j = 0;
     for(int i=0; i< line.seq_string.size(); i++) {
-        if (line.cigar2[i] == 'i') {
+        if (line.cigar2[i] == 'i') 
             line.seq_string.erase(j,1);
-
-        }
         else if (line.cigar2[i] == 'd') {
             line.seq_string.insert(j,"M");
             j++;
         }
         else
             j++;
-
     }
-
 }
 
-void reverseRead() { ////
-    //    if(debug)
-    //        cerr <<"before :  "<<line.seq_string<<endl;
+// reverse complement reads
+void reverseRead() {
     int i,j=0 ;
     char * copy = new char[line.seq_string.size()];
     line.seq_string.copy(copy, line.seq_string.size(),0);
@@ -198,31 +186,17 @@ void reverseRead() { ////
 
 }
 
-
+// Generates an array from Cigar sequence for ease of computation
 void convertCigar(char * cigar, char * cigar2) {
     int pos = 0;
     int value = 0, j , index =0;;
-    long long read_index = 0;
-    char alignType;
     while (1) {
         if (!isdigit(cigar[pos])) {
-            if (value > 0) {
-                if (cigar[pos] == 'm')
-                    for (j = 0; j < value; j++) {
-                        cigar2[index] = 'm';
-                        index++;
-                    }
-                else if (cigar[pos] == 'd')
-                    for (j = 0; j < value; j++) {
-                        cigar2[index] = 'd';
-                        index++;
-                    }
-                else if (cigar[pos] == 'i')
-                    for (j = 0; j < value; j++) {
-                        cigar2[index] = 'i';
-                        index++;
-                    }
-            }
+            if (value > 0)
+                for (j = 0; j < value; j++) {
+                    cigar2[index] = cigar[pos];
+                    index++;
+                }
             if (cigar[pos] == 0)
                 break;
             value = 0;
@@ -233,16 +207,14 @@ void convertCigar(char * cigar, char * cigar2) {
     }
 }
 
+// read chunks from samfile and does computation on them
+
 int ProcessSamFile(FILE * samFile, FILE * ambFile) {
-    //cerr<<"hey"<<endl;
     char buffer[maxSamFileLineLength];
-    int header = 1;
-    char rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength],rname[100]; //(Ali) I kept most of the limitations, but better to update them based on defined constants
-    int flag, i;
-    uint64_t pos;
+    char rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength]; //(Ali) I kept most of the limitations, but better to update them based on defined constants
+    int flag;
     uint32_t mapq;
     long long int tlen;
-
     bool stop = false;
     buffer[0] = 0;
     while (! stop) {
@@ -250,22 +222,19 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
             if(fgets(buffer, maxSamFileLineLength, samFile) == NULL) stop = true;
             else if (buffer[0] != '@');
         } while (! stop && buffer[0] == '@'); // End of file, header lines
-        if(stop) return -1;
+        if(stop)
+            return -1;
         sscanf(buffer, "%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", line.rname, &flag, line.chr, &(line.pos) ,&mapq, line.cigar,rnext,pnext, &tlen,seq_string,quality_string);
         if (flag & 4) continue; // Unmapped read
         line.seq_string = seq_string;
-
         convertCigar(line.cigar, line.cigar2);
         if(debug)
             cerr << "cigar2:  "<<line.cigar2<< endl;
         convertRead();
-        //cerr<<"flag :"<<flag<<endl;
-        //int result = checkGAorCT2(flag);
         if (flag & 16) reverseRead();
         int result = checkGAorCT();
         if(debug)
             cerr << result<<endl;
-
         if (result == -1) {
             amb++;
 			if (ambFile) fprintf(ambFile, "%s\n", buffer);
@@ -279,6 +248,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
 }
 
 
+// Reads genome file and save chromosomes' start positions
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
@@ -299,14 +269,12 @@ int ReadGenome(char * genomeFile) {
     memset(reference, 0, reference_size * sizeof(char));
     gs = 0;
     chromNum = 0;
-    //fprintf(stderr, "Reading genome...\n");
+    fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
 	while (! feof(fp)) {
 		int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
-        n = strlen(fLine);
         if (fLine[0] == '>') {
-            //chromPos[chromNum++] = gs;
             chrom[chromNum++].chrStart = gs;
             char * temp = fLine;
             temp++;
@@ -317,13 +285,10 @@ int ReadGenome(char * genomeFile) {
                 fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
             fprintf(stderr, "%s\n",fLine);
         } else {
-            //            ToUpper(fLine);
 			memcpy(reference+gs, fLine, n);
             gs += n;
         }
     }
-    //chromPos[chromNum] = gs;
-    // fprintf(stderr, "Lenght: %ld\n",chromPos[chromNum] - chromPos[chromNum - 1]);
     fclose(fp);
 }
 
