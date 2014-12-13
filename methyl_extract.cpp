@@ -92,47 +92,47 @@ int checkGAorCT() {
     return (GA > CT) ? 1 : ((GA < CT) ? 0 : -1);
 }
 
-int checkGAorCT2(int flag) {
-    int GA =0;
-    int CT = 0 , i = 0;
-    int refPos , readPos = 0;
-    long long ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
-    int temp;
-    while (i < line.seq_string.size()) {
-        if(flag==16)
-            temp = line.seq_string.size()-i-2;
-        else
-            temp = i -1;
-        line.seq_string[i]=toupper(line.seq_string[i]);
-
-        if(line.seq_string[i] == 'A') {
-            if(toupper(reference[ref+temp]) == 'G' && flag ==0 )
-                GA++;
-            else if(toupper(reference[ref+temp]) == 'C' && flag ==16 )
-                GA++;
-        }
-        if(line.seq_string[i] == 'T') {
-            if(toupper(reference[ref+temp]) == 'C'  && flag ==0)
-                CT++;
-            else if(toupper(reference[ref+temp]) == 'G' && flag ==16 )
-                CT++;
-        }
-        i++;
-
-    }
-//    if(debug) {
-    cerr<<"GA  :"<<GA<<endl;
-    cerr<<"CT   :"<<CT<<endl;
-//   }
-
-
-    if(GA > CT) return 1;
-    else if(GA < CT)
-        return 0;
-    else
-        return -1;
-
-}
+//int checkGAorCT2(int flag) {
+//    int GA =0;
+//    int CT = 0 , i = 0;
+//    int refPos , readPos = 0;
+//    long long ref = chrom[ChromIndex(line.chr)].chrStart +line.pos;
+//    int temp;
+//    while (i < line.seq_string.size()) {
+//        if(flag==16)
+//            temp = line.seq_string.size()-i-2;
+//        else
+//            temp = i -1;
+//        line.seq_string[i]=toupper(line.seq_string[i]);
+//
+//        if(line.seq_string[i] == 'A') {
+//            if(toupper(reference[ref+temp]) == 'G' && flag ==0 )
+//                GA++;
+//            else if(toupper(reference[ref+temp]) == 'C' && flag ==16 )
+//                GA++;
+//        }
+//        if(line.seq_string[i] == 'T') {
+//            if(toupper(reference[ref+temp]) == 'C'  && flag ==0)
+//                CT++;
+//            else if(toupper(reference[ref+temp]) == 'G' && flag ==16 )
+//                CT++;
+//        }
+//        i++;
+//
+//    }
+////    if(debug) {
+//    cerr<<"GA  :"<<GA<<endl;
+//    cerr<<"CT   :"<<CT<<endl;
+////   }
+//
+//
+//    if(GA > CT) return 1;
+//    else if(GA < CT)
+//        return 0;
+//    else
+//        return -1;
+//
+//}
 
 // Prints the information of one base stored in the queue[index].
 
@@ -352,7 +352,7 @@ int ReadGenome(char * genomeFile) {
             chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
             strcpy(chrom[chromNum-1].chrName, temp);
             if (chromNum >= 1)
-                fprintf(stderr, "chrName: %s, chrStart: %ld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
+                fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
             fprintf(stderr, "%s\n",fLine);
         } else {
             //            ToUpper(fLine);
@@ -383,8 +383,6 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[3], "-all") == 0) allCytosines = true;
 
     for(int k = 0 ; k < BUFFER_SIZE ; k++) queue[k].pos = -1;
-
-
     // Main process starts here
     ProcessSamFile(samFile);
     // Flushing out the remaining information in the queue
