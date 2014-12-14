@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
 
     ReadCpGIslands(annotationFile);
-    char command[] = "LC_ALL=C sort -k 3,3 -k 4,4n ";
+    char command[] = "LC_ALL=C sort -k 1 ";
     char buf[strlen(samNames[0]) + 100];
     for (i = 0; i < 7; i++) {
     sprintf(buf, "%s%s > %s/samFile%d.sam", command, samNames[i], samFilePath, i+1);
