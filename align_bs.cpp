@@ -390,6 +390,16 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     
     ReadCpGIslands(annotationFile);
+    
+    // Printing header of original samfile to standard output
+    fgets(line, 10000, samFiles[0]);
+    while (line[0] == '@'){
+        header += line;
+        fgets(line, 10000, samFiles[0]);
+    }
+    fprintf(stdout,"%s",header.c_str());
+    
+    
     char command[] = "LC_ALL=C sort -k 1 ";
     char buf[strlen(samNames[0]) + 100];
     for (i = 0; i < 7; i++) {
@@ -399,15 +409,6 @@ int main(int argc, char *argv[]) {
         samFiles[i] = fopen(buf, "r");
 
     }
-    
-    
-    // Printing header of original samfile to standard output
-    fgets(line, 10000, samFiles[0]);
-    while (line[0] == '@'){
-        header += line;
-        fgets(line, 10000, samFiles[0]);
-    }
-    fprintf(stdout,"%s",header.c_str());
     
     char *rname[numberOfGenomes], *cigar[numberOfGenomes];
     int flag[numberOfGenomes];
