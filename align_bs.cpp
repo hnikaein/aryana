@@ -180,7 +180,7 @@ inline void ToLower(char * s) {
 
 
 int ChromIndex(char * chr) {
-    for(int i; i < maxChromosomeNum; i++) {
+    for(int i=0; i < maxChromosomeNum; i++) {
         if(chrom[i].chrName == NULL)
             break;
         if(strcmp(chrom[i].chrName, chr) == 0)
@@ -392,12 +392,14 @@ int main(int argc, char *argv[]) {
     ReadCpGIslands(annotationFile);
     
     // Printing header of original samfile to standard output
-    fgets(line, 10000, samFiles[0]);
+    FILE *samFile = fopen(samNames[0], "r");
+    fgets(line, 10000, samFile);
     while (line[0] == '@'){
         header += line;
-        fgets(line, 10000, samFiles[0]);
+        fgets(line, 10000, samFile);
     }
     fprintf(stdout,"%s",header.c_str());
+    fclose(samFile);
     
     
     char command[] = "LC_ALL=C sort -k 1 ";
