@@ -66,7 +66,7 @@ struct Chrom
 struct Chrom chrom[maxChromosomeNum] ;
 
 struct QItem {
-    int count[2]; 		// Number of reads covering the base in [0] methylated, and [1] unmethylated form.
+    int count[2]={0,0}; 		// Number of reads covering the base in [0] methylated, and [1] unmethylated form.
     long long pos; 		// The genomic position of one Cytosine in either + or - strand (starting from 1)
     int chr; 			// Chromosome number of each cytosine in the circular queue
 } queue[BUFFER_SIZE];
@@ -344,7 +344,8 @@ int main(int argc, char *argv[]) {
     ProcessSamFile(samFile, ambFile);
     // Flushing out the remaining information in the queue
     for(int i=0; i<BUFFER_SIZE ; i++)
-        PrintOutput(i);
+        if (queue[i].pos > -1 && queue[i].count[0] + queue[i].count[1] > 0)
+            PrintOutput(i);
 	if (samFile) fclose(samFile);
 	if (ambFile) fclose(ambFile);
     fprintf(stderr, "There were %lld ambiguous reads, with equal C->T and G->A conversions.\n", amb);
