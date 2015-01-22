@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 	args.seed_length = -1;
 	args.best_factor = -1;
 	args.bisulfite = 0;
-	char *refNames[7];
+	char *refNames[5];
 	if(argc < 3){
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
@@ -188,21 +188,21 @@ int main(int argc, char *argv[])
 				refNames[1] = (char*)malloc(strlen(inputFolder)+50);
 				strcpy(refNames[1], inputFolder);
 				strcat(refNames[1], "BisulfiteGenomeIslandConsideredCT.fa");
+				// refNames[2] = (char*)malloc(strlen(inputFolder)+50);
+				// strcpy(refNames[2], inputFolder);
+				// strcat(refNames[2], "BisulfiteGenomeContextConsideredCT.fa");
 				refNames[2] = (char*)malloc(strlen(inputFolder)+50);
 				strcpy(refNames[2], inputFolder);
-				strcat(refNames[2], "BisulfiteGenomeContextConsideredCT.fa");
+				strcat(refNames[2], "BisulfiteGenomeCompleteCT.fa");
 				refNames[3] = (char*)malloc(strlen(inputFolder)+50);
 				strcpy(refNames[3], inputFolder);
-				strcat(refNames[3], "BisulfiteGenomeCompleteCT.fa");
+				strcat(refNames[3], "BisulfiteGenomeIslandConsideredGA.fa");
+				// refNames[5] = (char*)malloc(strlen(inputFolder)+50);
+				// strcpy(refNames[5], inputFolder);
+				// strcat(refNames[5], "BisulfiteGenomeContextConsideredGA.fa");
 				refNames[4] = (char*)malloc(strlen(inputFolder)+50);
 				strcpy(refNames[4], inputFolder);
-				strcat(refNames[4], "BisulfiteGenomeIslandConsideredGA.fa");
-				refNames[5] = (char*)malloc(strlen(inputFolder)+50);
-				strcpy(refNames[5], inputFolder);
-				strcat(refNames[5], "BisulfiteGenomeContextConsideredGA.fa");
-				refNames[6] = (char*)malloc(strlen(inputFolder)+50);
-				strcpy(refNames[6], inputFolder);
-				strcat(refNames[6], "BisulfiteGenomeCompleteGA.fa");
+				strcat(refNames[4], "BisulfiteGenomeCompleteGA.fa");
 				break;
 		}
 	}
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 		}
 		char *output_temp = malloc(strlen(output)+5);
 		int i;
-		for(i=0; i<7; i++){
+		for(i=0; i<5; i++){
 			sprintf(output_temp, "%s-%d", output, i);
 			FILE *sam = fopen(output_temp, "w");
 			stdout = sam;

@@ -259,18 +259,18 @@ int main(int argc, char * argv[]) {
 						CToutputFileIslandConsidered = (char*)malloc(strlen(outputFolder)+50);
 						strcpy(CToutputFileIslandConsidered, outputFolder);
 						strcat(CToutputFileIslandConsidered, "BisulfiteGenomeIslandConsideredCT.fa");
-						CToutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
-						strcpy(CToutputFileContextConsidered, outputFolder);
-						strcat(CToutputFileContextConsidered, "BisulfiteGenomeContextConsideredCT.fa");
+						// CToutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
+						// strcpy(CToutputFileContextConsidered, outputFolder);
+						// strcat(CToutputFileContextConsidered, "BisulfiteGenomeContextConsideredCT.fa");
 						CToutputFileComplete = (char*)malloc(strlen(outputFolder)+50);
 						strcpy(CToutputFileComplete, outputFolder);
 						strcat(CToutputFileComplete, "BisulfiteGenomeCompleteCT.fa");
 						GAoutputFileIslandConsidered = (char*)malloc(strlen(outputFolder)+50);
 						strcpy(GAoutputFileIslandConsidered, outputFolder);
 						strcat(GAoutputFileIslandConsidered, "BisulfiteGenomeIslandConsideredGA.fa");
-						GAoutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
-						strcpy(GAoutputFileContextConsidered, outputFolder);
-						strcat(GAoutputFileContextConsidered, "BisulfiteGenomeContextConsideredGA.fa");
+						// GAoutputFileContextConsidered = (char*)malloc(strlen(outputFolder)+50);
+						// strcpy(GAoutputFileContextConsidered, outputFolder);
+						// strcat(GAoutputFileContextConsidered, "BisulfiteGenomeContextConsideredGA.fa");
 						GAoutputFileComplete = (char*)malloc(strlen(outputFolder)+50);
 						strcpy(GAoutputFileComplete, outputFolder);
 						strcat(GAoutputFileComplete, "BisulfiteGenomeCompleteGA.fa");
@@ -284,7 +284,7 @@ int main(int argc, char * argv[]) {
     ReadGenome(genomeFile);
 	WriteGenome(originalGenome);
 	ConvertWholeGenome(1);
-	WriteGenome(CToutputFileContextConsidered);
+	// WriteGenome(CToutputFileContextConsidered);
    	ProcessCpGIslands(annotationFile, 1);
 	WriteGenome(CToutputFileIslandConsidered);
 	ConvertAll(1);
@@ -294,7 +294,7 @@ int main(int argc, char * argv[]) {
 //Convert G to A
 	ReadGenome(genomeFile);
 	ConvertWholeGenome(0);
-	WriteGenome(GAoutputFileContextConsidered);
+	// WriteGenome(GAoutputFileContextConsidered);
 	ProcessCpGIslands(annotationFile, 0);
 	WriteGenome(GAoutputFileIslandConsidered);
 	ConvertAll(0);

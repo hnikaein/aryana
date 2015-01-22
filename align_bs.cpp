@@ -19,7 +19,7 @@
 using namespace std;
 
 #define maxChromosomeNum 1000
-#define numberOfGenomes 7
+#define numberOfGenomes 5
 #define maxReadLength 2000
 #define maxChrNameLength 100
 #define maxSamFileLineLength 10000
@@ -159,7 +159,7 @@ void complementRead(char *read) {
 int min_penalty() {
     int j = 0;
     long min = readPenalties[0];
-    for (int i = 1; i< 7 ; i++)
+    for (int i = 1; i< numberOfGenomes ; i++)
         if(min > readPenalties[i]) {
             min = readPenalties[i];
             j = i;
@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
     
     char command[] = "LC_ALL=C sort -k 1 ";
     char buf[strlen(samNames[0]) + 100];
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < numberOfGenomes; i++) {
         sprintf(buf, "%s%s > %s/samFile%d.sam", command, samNames[i], samFilePath, i+1);
         system(buf);
         sprintf(buf, "%s/samFile%d.sam", samFilePath, i+1);
