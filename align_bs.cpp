@@ -92,6 +92,7 @@ int ReadGenome(char * genomeFile) {
     while (! feof(fp)) {
         int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
+        n = strlen(fLine);
         if (fLine[0] == '>') {
             chrom[chromNum++].chrStart = gs;
             char * temp = fLine;
@@ -225,9 +226,10 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
     reference[ref_i-1] = toupper(reference[ref_i-1]);
     
     if(flag2) {
-        if (read == 'A' || read == 'G')
+        if (read == 'A' || read == 'G'){
             if (getNuc(ref_i) != read)
                 readPenalties[readNum] += highPenalty;
+        }
             else { //read = C or T
                 
                 if (read == 'T' && getNuc(ref_i) == 'C') {
@@ -258,9 +260,10 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
             }
     }
     else {
-        if (read == 'C' || read == 'T')
+        if (read == 'C' || read == 'T'){
             if (getNuc(ref_i) != read)
                 readPenalties[readNum] += highPenalty;
+        }
             else { //read = G or A
                 
                 if (read == 'A' && getNuc(ref_i) == 'G') {
@@ -462,6 +465,7 @@ int main(int argc, char *argv[]) {
         }
         if(stop)
             break;
+
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
         if(!reversed)

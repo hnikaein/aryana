@@ -43,13 +43,13 @@ int main(int argc, char *argv[]) {
         uint64_t pos;
         uint32_t mapq;
         long long int tlen;
-        rname = malloc(100 * sizeof(char));
-        cigar = malloc(200 * sizeof(char));
-        qname = malloc(100 * sizeof(char));
-        rnext = malloc(100 * sizeof(char));
-        pnext = malloc(100 * sizeof(char));
-        seq_string = malloc(1000 * sizeof(char));
-        quality_string = malloc(500 * sizeof(char));
+        rname = (char*)malloc(100 * sizeof(char));
+        cigar = (char*)malloc(200 * sizeof(char));
+        qname = (char*)malloc(100 * sizeof(char));
+        rnext = (char*)malloc(100 * sizeof(char));
+        pnext = (char*)malloc(100 * sizeof(char));
+        seq_string = (char*)malloc(1000 * sizeof(char));
+        quality_string = (char*)malloc(500 * sizeof(char));
         
         int stop = 0;
         while (1) {
