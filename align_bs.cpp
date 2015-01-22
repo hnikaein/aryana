@@ -448,9 +448,9 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             int flag2 = 0;
-            if(i <=3) // if read has been aligned to first four genomes
+            if(i <=2) // if read has been aligned to first four genomes
                 flag2 = 1;
-            if(i > 3) // if read has been aligned to last three genome
+            if(i > 2) // if read has been aligned to last three genome
                 flag2 = 0;
             if(flag[i] == 16){
                 reversed = 1;
