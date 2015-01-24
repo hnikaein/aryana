@@ -235,7 +235,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
                 if (read == 'T' && getNuc(ref_i) == 'C') {
                     if (getNuc(ref_i+1) == 'G') { // in the CpG context
                         if (isInIsland(chr,chrPos)) // in CpG and also island
-                            readPenalties[readNum] += medPenalty;
+                            readPenalties[readNum] += 0;
                         else
                             readPenalties[readNum] += highPenalty;
                         
@@ -247,7 +247,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
                     if (getNuc(ref_i+1) == 'G') { // in the CpG context
                         int temp = isInIsland(chr , chrPos);
                         if (temp == 1)  // in CpG and also island
-                            readPenalties[readNum] += medPenalty;
+                            readPenalties[readNum] += highPenalty;
                         else            // in CpG and out of island
                             readPenalties[readNum] += lowPenalty;
                         
@@ -269,7 +269,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
                 if (read == 'A' && getNuc(ref_i) == 'G') {
                     if (getNuc(ref_i-1) == 'C') { // in the CpG context
                         if (isInIsland(chr , chrPos)) { // in CpG and also island
-                            readPenalties[readNum] += medPenalty;
+                            readPenalties[readNum] += 0;
                         } else {
                             readPenalties[readNum] += highPenalty;
                         }
@@ -281,7 +281,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
                     if (getNuc(ref_i-1) == 'C') { // in the CpG context
                         int temp = isInIsland(chr , chrPos);
                         if (temp == 1) { // in CpG and also island
-                            readPenalties[readNum] += medPenalty;
+                            readPenalties[readNum] += highPenalty;
                         } else {
                             readPenalties[readNum] += lowPenalty;
                         }
