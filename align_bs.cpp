@@ -460,20 +460,20 @@ int main(int argc, char *argv[]) {
             if(flag[i] == 16){
                 //reversed = 1;
                 strcpy(copy,seq_string); // copy read for printing it later
-                reverseRead(seq_string);
-                complementRead(seq_string);
+                reverseRead(copy);
+                complementRead(copy);
+                readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, copy, i ,index,pos[i],flag[i],flag2);
+
             }
-            readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
+            else
+                readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
         }
         if(stop)
             break;
 
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
-        if(!flag[min])
-            fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
-        else
-            fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,copy,quality_string, min);
+        fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
         for (j; j < numberOfGenomes; j++)
             readPenalties[j]=0;
