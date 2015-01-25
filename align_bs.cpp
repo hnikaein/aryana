@@ -470,7 +470,7 @@ int main(int argc, char *argv[]) {
 
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
-        if(!flag[i])
+        if(!flag[min])
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         else
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,copy,quality_string, min);
