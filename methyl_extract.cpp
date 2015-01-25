@@ -274,6 +274,7 @@ int ReadGenome(char * genomeFile) {
 	while (! feof(fp)) {
 		int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
+        n = strlen(fLine);
         if (fLine[0] == '>') {
             chrom[chromNum++].chrStart = gs;
             char * temp = fLine;

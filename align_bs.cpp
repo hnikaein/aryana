@@ -160,11 +160,13 @@ void complementRead(char *read) {
 int min_penalty() {
     int j = 0;
     long min = readPenalties[0];
-    for (int i = 1; i< numberOfGenomes ; i++)
+    for (int i = 1; i< numberOfGenomes ; i++){
+       // cerr<<readPenalties[i]<<endl;
         if(min > readPenalties[i]) {
             min = readPenalties[i];
             j = i;
         }
+    }
     return j;
 }
 
@@ -433,7 +435,7 @@ int main(int argc, char *argv[]) {
     int stop = 0;
     
     while (1 && !stop) {
-        int reversed = 0;
+        //int reversed = 0;///////////////////////////bugesh dorost she
         for (i = 0; i < numberOfGenomes && !stop; i++) {
             do{
                 if(fgets(line, 10000, samFiles[i]) == NULL){
@@ -443,7 +445,7 @@ int main(int argc, char *argv[]) {
             } while (line[0] == '@');
             if(stop)
                 break;
-            reversed = 0;
+            //reversed = 0;
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
             if(index == -1){
@@ -456,7 +458,7 @@ int main(int argc, char *argv[]) {
             if(i > 2) // if read has been aligned to last three genome
                 flag2 = 0;
             if(flag[i] == 16){
-                reversed = 1;
+                //reversed = 1;
                 strcpy(copy,seq_string); // copy read for printing it later
                 reverseRead(seq_string);
                 complementRead(seq_string);
@@ -468,7 +470,7 @@ int main(int argc, char *argv[]) {
 
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
-        if(!reversed)
+        if(!flag[min])
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         else
             fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,copy,quality_string, min);
