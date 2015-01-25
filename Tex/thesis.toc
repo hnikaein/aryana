@@ -1,0 +1,33 @@
+\contentsline {chapter}{\numberline {1}مقدمه}{10}{chapter.1}
+\contentsline {section}{\numberline {1‏-‏1}تعریف مسئله}{11}{section.1.1}
+\contentsline {section}{\numberline {1‏-‏2}اهمیت موضوع}{11}{section.1.2}
+\contentsline {section}{\numberline {1‏-‏3}اهداف تحقیق}{12}{section.1.3}
+\contentsline {section}{\numberline {1‏-‏4}ساختار پایان‌نامه}{12}{section.1.4}
+\contentsline {chapter}{\numberline {2}مفاهیم اولیه}{13}{chapter.2}
+\contentsline {section}{\numberline {2‏-‏1}رشته‌ی DNA}{13}{section.2.1}
+\contentsline {section}{\numberline {2‏-‏2}همانندسازی DNA}{14}{section.2.2}
+\contentsline {section}{\numberline {2‏-‏3}ژنوم}{14}{section.2.3}
+\contentsline {section}{\numberline {2‏-‏4}خوانده}{15}{section.2.4}
+\contentsline {section}{\numberline {2‏-‏5}متیلاسیون DNA}{16}{section.2.5}
+\contentsline {section}{\numberline {2‏-‏6}خوانده‌های بایسولفیت‌شده}{16}{section.2.6}
+\contentsline {section}{\numberline {2‏-‏7}Sam File}{17}{section.2.7}
+\contentsline {section}{\numberline {2‏-‏8}رشته‌ی CIGAR}{17}{section.2.8}
+\contentsline {section}{\numberline {2‏-‏9}توالی‌یابی نسل بعد}{17}{section.2.9}
+\contentsline {section}{\numberline {2‏-‏10}Sequence Alignment}{17}{section.2.10}
+\contentsline {section}{\numberline {2‏-‏11}DNA Sequencing}{18}{section.2.11}
+\contentsline {section}{\numberline {2‏-‏12}آریانا}{18}{section.2.12}
+\contentsline {chapter}{\numberline {3}کارهای پیشین}{19}{chapter.3}
+\contentsline {section}{\numberline {3‏-‏1}الگوریتم های ابتدایی}{19}{section.3.1}
+\contentsline {section}{\numberline {3‏-‏2}ابزار بیسمارک}{20}{section.3.2}
+\contentsline {section}{\numberline {3‏-‏3}ابزار BSmap}{20}{section.3.3}
+\contentsline {section}{\numberline {3‏-‏4}کاستی‌های روش‌های پیشین}{21}{section.3.4}
+\contentsline {chapter}{\numberline {4}راه حل}{22}{chapter.4}
+\contentsline {section}{\numberline {4‏-‏1}الگوریتم}{22}{section.4.1}
+\contentsline {section}{\numberline {4‏-‏2}انتخاب بهترین هم‌ردیفی}{25}{section.4.2}
+\contentsline {section}{\numberline {4‏-‏3}شبیه‌ساز}{26}{section.4.3}
+\contentsline {section}{\numberline {4‏-‏4}محاسبه درصد متیلاسیون}{27}{section.4.4}
+\contentsline {chapter}{\numberline {5}پیاده‌سازی}{29}{chapter.5}
+\contentsline {section}{\numberline {5‏-‏1}تابع پنالتی}{30}{section.5.1}
+\contentsline {section}{\numberline {5‏-‏2}محاسبه درصد متیلاسیون}{31}{section.5.2}
+\contentsline {chapter}{\numberline {6}نتیجه‌گیری}{32}{chapter.6}
+\contentsline {chapter}{\numberline {آ‍}مطالب تکمیلی}{33}{appendix.Alph1}
