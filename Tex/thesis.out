@@ -1,0 +1,33 @@
+\BOOKMARK [0][-]{chapter.1}{مقدمه}{}% 1
+\BOOKMARK [1][-]{section.1.1}{تعریف مسئله}{chapter.1}% 2
+\BOOKMARK [1][-]{section.1.2}{اهمیت موضوع}{chapter.1}% 3
+\BOOKMARK [1][-]{section.1.3}{اهداف تحقیق}{chapter.1}% 4
+\BOOKMARK [1][-]{section.1.4}{ساختار پایان‌نامه}{chapter.1}% 5
+\BOOKMARK [0][-]{chapter.2}{مفاهیم اولیه}{}% 6
+\BOOKMARK [1][-]{section.2.1}{رشته‌ی DNA}{chapter.2}% 7
+\BOOKMARK [1][-]{section.2.2}{همانندسازی DNA}{chapter.2}% 8
+\BOOKMARK [1][-]{section.2.3}{ژنوم}{chapter.2}% 9
+\BOOKMARK [1][-]{section.2.4}{خوانده}{chapter.2}% 10
+\BOOKMARK [1][-]{section.2.5}{متیلاسیون DNA}{chapter.2}% 11
+\BOOKMARK [1][-]{section.2.6}{خوانده‌های بایسولفیت‌شده}{chapter.2}% 12
+\BOOKMARK [1][-]{section.2.7}{Sam\040File}{chapter.2}% 13
+\BOOKMARK [1][-]{section.2.8}{رشته‌ی CIGAR}{chapter.2}% 14
+\BOOKMARK [1][-]{section.2.9}{توالی‌یابی نسل بعد}{chapter.2}% 15
+\BOOKMARK [1][-]{section.2.10}{Sequence\040Alignment}{chapter.2}% 16
+\BOOKMARK [1][-]{section.2.11}{DNA\040Sequencing}{chapter.2}% 17
+\BOOKMARK [1][-]{section.2.12}{آریانا}{chapter.2}% 18
+\BOOKMARK [0][-]{chapter.3}{کارهای پیشین}{}% 19
+\BOOKMARK [1][-]{section.3.1}{الگوریتم های ابتدایی}{chapter.3}% 20
+\BOOKMARK [1][-]{section.3.2}{ابزار بیسمارک}{chapter.3}% 21
+\BOOKMARK [1][-]{section.3.3}{ابزار BSmap}{chapter.3}% 22
+\BOOKMARK [1][-]{section.3.4}{کاستی‌های روش‌های پیشین}{chapter.3}% 23
+\BOOKMARK [0][-]{chapter.4}{راه حل}{}% 24
+\BOOKMARK [1][-]{section.4.1}{الگوریتم}{chapter.4}% 25
+\BOOKMARK [1][-]{section.4.2}{انتخاب بهترین هم‌ردیفی}{chapter.4}% 26
+\BOOKMARK [1][-]{section.4.3}{شبیه‌ساز}{chapter.4}% 27
+\BOOKMARK [1][-]{section.4.4}{محاسبه درصد متیلاسیون}{chapter.4}% 28
+\BOOKMARK [0][-]{chapter.5}{پیاده‌سازی}{}% 29
+\BOOKMARK [1][-]{section.5.1}{تابع پنالتی}{chapter.5}% 30
+\BOOKMARK [1][-]{section.5.2}{محاسبه درصد متیلاسیون}{chapter.5}% 31
+\BOOKMARK [0][-]{chapter.6}{نتیجه‌گیری}{}% 32
+\BOOKMARK [0][-]{appendix.Alph1}{مطالب تکمیلی}{}% 33
