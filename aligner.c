@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
+#include <ctype.h>
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
@@ -75,31 +76,11 @@ void show(int len, const ubyte_t *seq){
 	printf(" ");
 }
 
-void swap(ubyte_t *x, ubyte_t *y){
-	ubyte_t tmp;
-	tmp = *x;
-	*x = *y;
-	*y = tmp;
-}
-void swap64(uint64_t *x, uint64_t *y){
-	uint64_t tmp;
-	tmp = *x;
-	*x = *y;
-	*y = tmp;
-}
-void swapint(int *x, int *y){
-	int tmp;
-	tmp = *x;
-	*x = *y;
-	*y = tmp;
-}
-
-
 int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar )
 {
 	int *valid=(int *)malloc(best->parts*(sizeof (int)));
 	bwtint_t lastvalid=best->parts-1;
-	bwtint_t i=0,j=0;
+	long long i=0,j=0;
 	for (i=best->parts-1; i>=0; i--)
 	{
 		valid[i]=1;
@@ -209,14 +190,15 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
 	return total_errors;//best->index;
 }
 
-void aligner(bwt_t *const bwt, int len, const ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
+void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
 {
 
 	//showerr(len,seq);
 	//initialize
 //	fprintf(stderr,"paired :: %d\n", options.paired);
 	bwtint_t down, up;
-	bwtint_t limit, i = 0, j = 0;
+	bwtint_t limit;
+	long long i = 0, j = 0;
 	
 	/*best->index = best->value = best->place = best->level = 0;
 	best->parts = 0;
@@ -251,7 +233,7 @@ void aligner(bwt_t *const bwt, int len, const ubyte_t *seq, bwtint_t level, hash
 	j = len-1;
 	i=0;
 	for (; i<j && j >= 0 && i < len; (i++,j--)){
-		swap(&seq[i],&seq[j]);
+		ubyte_t tmp = seq[i]; seq[i] = seq[j]; seq[j] = tmp;
 		//if (seq[i]>3 || seq[j]>3)
 		//	return;
 	}

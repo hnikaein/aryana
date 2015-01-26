@@ -211,12 +211,14 @@ void AssignMethylationRatio(string cpgIslandFile) {
         for (long long j = chromPos[i]; j < chromPos[i+1]; j++)
         {
             //cerr << i << "\t" << j << "\t" << genome[j] << "\t" << genome[j+1] << endl;
-            if (genome[j] == 'c' || genome[j] == 'C')
+            if (genome[j] == 'c' || genome[j] == 'C') {
                 if ((j+1 < chromPos[i+1]) && (genome[j+1] == 'g' || genome[j+1] == 'G')) meth[j] = cpg1;
                 else meth[j] = noncpg1;
-            if (genome[j] == 'g' || genome[j] == 'G')
+		}
+            if (genome[j] == 'g' || genome[j] == 'G') {
                 if ((j > chromPos[i]) && (genome[j-1] == 'c' || genome[j-1] == 'C')) meth[j] = cpg1;
                 else meth[j] = noncpg1;
+		}
         }
 
 

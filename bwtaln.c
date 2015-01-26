@@ -15,6 +15,7 @@
 //#include "aligner.h"
 #include "bwa2.h"
 #include "kseq.h"
+#include "bwtinline.h"
 KSEQ_INIT(gzFile, gzread)
 
 #define NumberOfThreads 4

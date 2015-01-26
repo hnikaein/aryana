@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
 #include "aryana_args.h"
 #include "utils.h"
-
+#include "bwa2.h"
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.6.0-r85"
 #endif

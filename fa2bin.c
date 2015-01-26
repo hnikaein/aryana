@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "fa2bin.h"
 
 int fa2bin(int argc, char *argv[]){

@@ -1,5 +1,6 @@
 #include <stdint.h>
-
+#ifndef __aryana_args
+#define __aryana_args
 typedef struct{
 	int paired;
 	uint64_t min_dis,max_dis;
@@ -16,4 +17,4 @@ typedef struct{
 	int best_factor;
 	int bisulfite;
 } aryana_args;
-
+#endif

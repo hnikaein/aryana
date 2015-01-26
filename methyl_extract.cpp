@@ -73,7 +73,7 @@ struct QItem {
 
 int ChromIndex(char * chr) {
     int i = 0;
-    for(i; i < maxChromosomeNum; i++) {
+    for(; i < maxChromosomeNum; i++) {
         if(chrom[i].chrName == NULL)
             break;
         if(strcmp(chrom[i].chrName, chr) == 0)
@@ -106,7 +106,7 @@ void PrintOutput(int index) {
     else if (base == 'G') next = (pos > 1) ? toupper(reference[pos - 2]) : '$';
     else fprintf(stderr, "Bug: The base at genomic locationd %lld is not either C or G\n", pos);
     char strand = (base == 'C') ? '+' : '-';
-    bool cpg = base == 'C' && next == 'G' || base == 'G' && next == 'C';
+    bool cpg = (base == 'C' && next == 'G') || (base == 'G' && next == 'C');
     char context[] = "CG";
     if (! cpg) context[1] = 'H';
     int total = queue[index].count[0] + queue[index].count[1];
@@ -220,7 +220,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
     while (! stop) {
         do {
             if(fgets(buffer, maxSamFileLineLength, samFile) == NULL) stop = true;
-            else if (buffer[0] != '@');
+            //else if (buffer[0] != '@');
         } while (! stop && buffer[0] == '@'); // End of file, header lines
         if(stop)
             return -1;
@@ -245,6 +245,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
         line.strand = (result) ? '-' : '+';
         ProcessMethylation();
     }//while
+	return 0;
 }
 
 
@@ -291,6 +292,7 @@ int ReadGenome(char * genomeFile) {
         }
     }
     fclose(fp);
+	return 0;
 }
 
 
