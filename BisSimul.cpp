@@ -244,7 +244,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
             chr = chromIndex[chrom];
             islands.push_back(window(chr, wStart, wEnd));
             for (long long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
-                if (genome[i] == 'c' || genome[i] == 'C')
+                if (gensome[i] == 'c' || genome[i] == 'C')
                     if (i + 1 < gs && (genome[i+1] == 'g' || genome[i+1] == 'G')) meth[i] = island1;
                 if (genome[i] == 'g' || genome[i] == 'G')
                     if (i > 0 && (genome[i-1] == 'c' || genome[i-1] == 'C')) meth[i] = island1;
@@ -379,7 +379,7 @@ void SimulateReads(string outputFile) {
         int is;
         do {
             is = lrand() % islands.size();
-            if (islands[is].wEnd - islands[is].wStart + 1 < readl) continue;
+            if ((islands[is].wEnd - islands[is].wStart + 1 < readl) || islands[is].wEnd >= chromPos[islands[is].chr+1]) continue;
             p = rand() % (islands[is].wEnd - islands[is].wStart - readl + 2) + islands[is].wStart + chromPos[islands[is].chr];
             if (memchr(genome + p, 'N', readl)) continue;
             if (repeatMask && Repeat(genome + p, readl)) continue;

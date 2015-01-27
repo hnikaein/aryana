@@ -9,24 +9,27 @@
 \BOOKMARK [1][-]{section.2.4}{خوانده}{chapter.2}% 9
 \BOOKMARK [1][-]{section.2.5}{متیلاسیون DNA}{chapter.2}% 10
 \BOOKMARK [1][-]{section.2.6}{خوانده‌های بایسولفیت‌شده}{chapter.2}% 11
-\BOOKMARK [1][-]{section.2.7}{Sam\040File}{chapter.2}% 12
-\BOOKMARK [1][-]{section.2.8}{رشته‌ی CIGAR}{chapter.2}% 13
-\BOOKMARK [1][-]{section.2.9}{توالی‌یابی نسل بعد}{chapter.2}% 14
-\BOOKMARK [1][-]{section.2.10}{Sequence\040Alignment}{chapter.2}% 15
-\BOOKMARK [1][-]{section.2.11}{DNA\040Sequencing}{chapter.2}% 16
-\BOOKMARK [1][-]{section.2.12}{آریانا}{chapter.2}% 17
-\BOOKMARK [0][-]{chapter.3}{کارهای پیشین}{}% 18
-\BOOKMARK [1][-]{section.3.1}{الگوریتم های ابتدایی}{chapter.3}% 19
-\BOOKMARK [1][-]{section.3.2}{ابزار بیسمارک}{chapter.3}% 20
-\BOOKMARK [1][-]{section.3.3}{ابزار BSmap}{chapter.3}% 21
-\BOOKMARK [1][-]{section.3.4}{کاستی‌های روش‌های پیشین}{chapter.3}% 22
-\BOOKMARK [0][-]{chapter.4}{راه حل}{}% 23
-\BOOKMARK [1][-]{section.4.1}{الگوریتم}{chapter.4}% 24
-\BOOKMARK [1][-]{section.4.2}{انتخاب بهترین هم‌ردیفی}{chapter.4}% 25
-\BOOKMARK [1][-]{section.4.3}{شبیه‌ساز}{chapter.4}% 26
-\BOOKMARK [1][-]{section.4.4}{محاسبه درصد متیلاسیون}{chapter.4}% 27
-\BOOKMARK [0][-]{chapter.5}{پیاده‌سازی}{}% 28
-\BOOKMARK [1][-]{section.5.1}{تابع پنالتی}{chapter.5}% 29
-\BOOKMARK [1][-]{section.5.2}{محاسبه درصد متیلاسیون}{chapter.5}% 30
-\BOOKMARK [0][-]{chapter.6}{نتیجه‌گیری}{}% 31
-\BOOKMARK [0][-]{appendix.Alph1}{مطالب تکمیلی}{}% 32
+\BOOKMARK [1][-]{section.2.7}{فایل Sam}{chapter.2}% 12
+\BOOKMARK [1][-]{section.2.8}{رشته‌ی سیگار}{chapter.2}% 13
+\BOOKMARK [1][-]{section.2.9}{هم‌ردیف‌سازی توالی}{chapter.2}% 14
+\BOOKMARK [1][-]{section.2.10}{آریانا}{chapter.2}% 15
+\BOOKMARK [0][-]{chapter.3}{کارهای پیشین}{}% 16
+\BOOKMARK [1][-]{section.3.1}{الگوریتم های ابتدایی}{chapter.3}% 17
+\BOOKMARK [1][-]{section.3.2}{ابزار Bismark}{chapter.3}% 18
+\BOOKMARK [1][-]{section.3.3}{ابزار BSmap}{chapter.3}% 19
+\BOOKMARK [1][-]{section.3.4}{ابزار BS-Seeker2}{chapter.3}% 20
+\BOOKMARK [1][-]{section.3.5}{کاستی‌های روش‌های پیشین}{chapter.3}% 21
+\BOOKMARK [0][-]{chapter.4}{راه حل}{}% 22
+\BOOKMARK [1][-]{section.4.1}{الگوریتم}{chapter.4}% 23
+\BOOKMARK [1][-]{section.4.2}{انتخاب بهترین هم‌ردیفی}{chapter.4}% 24
+\BOOKMARK [1][-]{section.4.3}{شبیه‌ساز}{chapter.4}% 25
+\BOOKMARK [1][-]{section.4.4}{محاسبه درصد متیلاسیون}{chapter.4}% 26
+\BOOKMARK [0][-]{chapter.5}{پیاده‌سازی}{}% 27
+\BOOKMARK [1][-]{section.5.1}{تابع جریمه}{chapter.5}% 28
+\BOOKMARK [1][-]{section.5.2}{محاسبه درصد متیلاسیون}{chapter.5}% 29
+\BOOKMARK [0][-]{chapter.6}{نتایج}{}% 30
+\BOOKMARK [1][-]{section.6.1}{مقایسهٔ زمان اجرا}{chapter.6}% 31
+\BOOKMARK [1][-]{section.6.2}{مقایسهٔ توانایی هم‌ردیف‌سازی و دقت}{chapter.6}% 32
+\BOOKMARK [1][-]{section.6.3}{مقایسهٔ توانایی هم ردیف‌سازی خوانده‌های PCR}{chapter.6}% 33
+\BOOKMARK [1][-]{section.6.4}{بررسی دقت محاسبهٔ درصد متیلاسیون}{chapter.6}% 34
+\BOOKMARK [1][-]{section.6.5}{کارهای آینده}{chapter.6}% 35
