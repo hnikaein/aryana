@@ -111,6 +111,7 @@ int ReadGenome(char * genomeFile) {
     chromPos[chromNum] = gs;
     fprintf(stderr, "Lenght: %lld\n",chromPos[chromNum] - chromPos[chromNum - 1]);
     fclose(fp);
+	return 0;
 }
 
 
@@ -429,7 +430,7 @@ int main(int argc, char *argv[]) {
     char qname[100], rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength], copy[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
     int chosen[numberOfGenomes];
     int j=0;
-    for (j; j < numberOfGenomes; j++)
+    for (; j < numberOfGenomes; j++)
         chosen[j] = 0;
     
     int stop = 0;
@@ -475,7 +476,7 @@ int main(int argc, char *argv[]) {
         chosen[min]++; // shows how many times a genome has been selected
         fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
-        for (j; j < numberOfGenomes; j++)
+        for (; j < numberOfGenomes; j++)
             readPenalties[j]=0;
     }
     

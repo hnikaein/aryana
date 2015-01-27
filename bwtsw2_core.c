@@ -7,7 +7,8 @@
 #include "bwtsw2.h"
 #include "bwt.h"
 #include "kvec.h"
-
+#include "bwtinline.h"
+#include "bwt_liteinline.h"
 typedef struct {
 	bwtint_t k, l;
 } qintv_t;

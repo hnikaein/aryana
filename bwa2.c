@@ -445,11 +445,11 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 	buffer[0]='\0';
 	int flag = 4;
 	int ind = 0;
-	bwtint_t pnext = 0;
-	long long tlen = 0;
+	//bwtint_t pnext = 0;
+	//long long tlen = 0;
 	int best_size=options->potents;
-	char ** ttt = &buffer;
-	char ** ttt2 = ttt;
+//	char ** ttt = &buffer;
+//	char ** ttt2 = ttt;
 	int best[100];
 	int ii=0;
 	for (ii=0; ii<best_size; ii++)
@@ -515,8 +515,8 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 
 	seq->index -= offset[ind];
 
-	pnext = 0;
-	tlen = 0;
+	//pnext = 0;
+	//tlen = 0;
 
 	buffer[0]='\0';
 //	if (seq->mapQ!=3)
@@ -785,7 +785,7 @@ void bwa_aln_core2(aryana_args *args)
 	}
 	fscanf(ann, "%d %s", &i, name[0]);
 	while(fgets(line, sizeof line, ann) != NULL){
-		fscanf(ann, "%lu", &offset[offInd++]);
+		fscanf(ann, "%llu", (unsigned long long *) &offset[offInd++]);
 		if(fgets(line, sizeof line, ann) == NULL){
 			fprintf(stderr, "Error: Empty file\n");
 			bwt_destroy(bwt);

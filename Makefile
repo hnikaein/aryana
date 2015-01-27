@@ -1,7 +1,7 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-g -Wall -O2
-CFLAGS2=	-g -Wall -O2
+CFLAGS=		-g -Wall -Wno-unused-function -O2
+CFLAGS2=	-g -Wall -Wno-unused-function -O2
 CXXFLAGS=	$(CFLAGS)
 DFLAGS=		-DHAVE_PTHREAD #-D_NO_SSE2 #-D_FILE_OFFSET_BITS=64
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
@@ -9,7 +9,7 @@ OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwa2.o bwtgap.o sam.o
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
 			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
 			bwtsw2_chain.o bamlite.o fastmap.o bwtsw2_pair.o
-PROG=		bwa
+PROG=		aryana
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	. bwt_gen
@@ -21,9 +21,9 @@ SUBDIRS=	. bwt_gen
 .cc.o:
 		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-all:$(PROG) aryana convert-genomes align-bs methyl-extract
+all:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul
 
-methyl:$(PROG) aryana convert-genomes align-bs methyl-extract
+methyl:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul
 
 bwa:$(OBJS) main.o
 		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) main.o -o $@ $(LIBS)
@@ -39,6 +39,9 @@ align-bs:
 
 methyl-extract:
 		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
+
+BisSimul:	
+		$(CXX) $(DFLAGS) BisSimul.cpp -o BisSimul
 
 QSufSort.o:QSufSort.h
 
@@ -62,6 +65,6 @@ bwtsw2_main.o:bwtsw2.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes 
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes BisSimul 
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen

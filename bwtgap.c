@@ -3,7 +3,7 @@
 #include <string.h>
 #include "bwtgap.h"
 #include "bwtaln.h"
-
+#include "bwtinline.h"
 #define STATE_M 0
 #define STATE_I 1
 #define STATE_D 2

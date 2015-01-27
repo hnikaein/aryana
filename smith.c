@@ -1,8 +1,9 @@
 #include <inttypes.h>
-#include  "stdio.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "smith.h"
 #include <math.h>
-
+#include "bwa2.h"
 
 int max(int q , int p)
 {
@@ -37,7 +38,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 //	off=200;
 
 		
-	uint64_t i=0,j=0;
+	long long i=0,j=0;
 	for (i=off/2; i<off; i++)
 	{
 		if (match_start==0 || match_start==len)
