@@ -11,6 +11,14 @@ Download Aryana from github and run "make"
 Running Aryana
 ==============
 
+Create genome index and bin file from the genome
+
+<code>
+./aryana index <reference genome.fasta>
+
+./aryana fa2bin <reference genome.fasta>
+</code>
+
 Alignment of single end reads
 
 <code>
@@ -49,12 +57,16 @@ Installation
 Running Aryana_BS
 =================
 
+Creating the converted reference genomes and the index files
+
 <code>
-
 	./prepare_genomes.sh <reference genome> <position of CpG islands file> <output folder>
+</code>
 
+Running an script for alignment of the reads to different converted reference genomes, selecting the best alignment, and computing the methylation ratios for each cytosine
+
+<code>
 	./aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]
-
 </code>
 
 ** It is not needed to run "prepare_genomes.sh" for every alignment. You just need to run it once on your reference to be able to run "aryana_bs".
