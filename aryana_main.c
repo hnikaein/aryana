@@ -5,7 +5,6 @@
 #include "aryana_args.h"
 #include "utils.h"
 #include "bwa2.h"
-#include "main.h"
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.6.0-r85"
 #endif
@@ -63,8 +62,6 @@ int main(int argc, char *argv[])
 	args.best_factor = -1;
 	args.bisulfite = 0;
 	char *refNames[5];
-	if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
-	if (strcmp(argv[1], "fa2bin") == 0) return fa2bin(argc-1, argv+1);
 	if(argc < 3){
 		fprintf(stderr, "Need more inputs\n");
 		return -1;
