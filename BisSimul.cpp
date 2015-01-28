@@ -246,7 +246,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
             chr = chromIndex[chrom];
             islands.push_back(window(chr, wStart, wEnd));
             for (long long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
-                if (gensome[i] == 'c' || genome[i] == 'C')
+                if (genome[i] == 'c' || genome[i] == 'C')
                     if (i + 1 < gs && (genome[i+1] == 'g' || genome[i+1] == 'G')) meth[i] = island1;
                 if (genome[i] == 'g' || genome[i] == 'G')
                     if (i > 0 && (genome[i-1] == 'c' || genome[i-1] == 'C')) meth[i] = island1;
