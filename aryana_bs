@@ -22,7 +22,7 @@ PostAlignment() {
 	Echo "Sorting methylation ratio results..."
 	LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
 	Echo "Removing unnecessary files..."
-#	rm -rf "$4_out"
+	rm -rf "$4_out"
 	Echo "Finished."
 }
 

@@ -252,7 +252,9 @@ int main(int argc, char * argv[]) {
                     annotationFile = argv[++i];
 				else 
 					if (strcmp(argv[i], "-o") == 0){
-						char * outputFolder = argv[++i];
+						char * outputFolder = (char*) malloc(strlen(argv[i+1])+50);
+						strcpy(outputFolder, argv[++i]);
+						strcat(outputFolder, "/");
 						originalGenome = (char*) malloc(strlen(outputFolder)+50);
 						strcpy(originalGenome, outputFolder);
 						strcat(originalGenome, "originalGenome.fa");
