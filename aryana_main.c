@@ -185,7 +185,9 @@ int main(int argc, char *argv[])
 				args.bisulfite = 1;
 				break;
 			case 'B':
-				inputFolder = strdup(optarg);
+				inputFolder = (char *) malloc(strlen(optarg)+50);
+				strcpy(inputFolder, optarg);
+				strcat(inputFolder, "/");
 				refNames[0] = (char*) malloc(strlen(inputFolder)+50);
 				strcpy(refNames[0], inputFolder);
 				strcat(refNames[0], "originalGenome.fa");

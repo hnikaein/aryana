@@ -66,7 +66,7 @@ Creating the converted reference genomes and the index files
 Running an script for alignment of the reads to different converted reference genomes, selecting the best alignment, and computing the methylation ratios for each cytosine
 
 <code>
-	./aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]
+	./aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file, without extensions> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]
 </code>
 
 ** It is not needed to run "prepare_genomes.sh" for every alignment. You just need to run it once on your reference to be able to run "aryana_bs".
@@ -77,6 +77,6 @@ Example:
 
 	./prepare_genomes hg19.fa cpg_island_hg19.txt BS_Genomes/
 
-	./aryana_bs hg19.fa BS_Genomes/ cpg_islands_hg19.txt reads.fastq Result/ ar="-p 10"
+	./aryana_bs hg19.fa BS_Genomes/ cpg_islands_hg19.txt reads.fastq result ar="-p 10"
 
 </code>

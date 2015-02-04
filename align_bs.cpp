@@ -31,7 +31,8 @@ unsigned long long gs;
 char chromName[maxChromosomeNum][maxChrNameLength];
 char * genome;
 int chromNum;
-char * genomeFile, *annotationFile, *outputFile, *samFilePath, *referenceName;
+char * genomeFile, *annotationFile, *samFilePath, *referenceName;
+FILE * outputFile = NULL, * headerFile = NULL;
 
 struct Island {
     int chr;
@@ -345,19 +346,22 @@ int main(int argc, char *argv[]) {
     string header="";
     char line[maxSamFileLineLength];
     if (argc < 6) {
-        fprintf(stderr, "Need more inputs\n");
+        fprintf(stderr, "Usage: align_bs -x <reference genome> -s <input sam files> -c <CpG-island map> -p <penalties> [-o <output SAM file>] [-h <SAM header file>]\n");
         return -1;
     }
     static struct option long_options[] = {
         { "samfiles", required_argument, 0, 's' },
         { "reference", required_argument, 0, 'x' },
         { "CpG-islands", required_argument, 0, 'c' },
-        { "penalties", required_argument, 0, 'p' }
+        { "penalties", required_argument, 0, 'p' },
+		{ "output", required_argument, 0, 'o' }, 
+		{ "header", required_argument, 0, 'h' }
     };
     int option_index = 0;
     char* samFileName = 0, *tmp;
     int c, i;
-    while ((c = getopt_long(argc, argv, "x:s:c:p:", long_options, &option_index))
+	outputFile = stdout;
+    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:", long_options, &option_index))
            >= 0) {
         switch (c) {
             case 0:
@@ -387,8 +391,16 @@ int main(int argc, char *argv[]) {
                 highPenalty = atoi(argv[optind + 1]);
                 optind = optind + 2;
                 break;
+			case 'o': 
+				outputFile = fopen(optarg, "w");
+				break;
+			case 'h': 
+				headerFile = fopen(optarg, "w");
+				break;
         }
     }
+	if (! headerFile) headerFile = outputFile;
+
     if (! samFileName) {
         cerr << "Error: input SAM file name not found." << endl;
         return 1;
@@ -404,9 +416,9 @@ int main(int argc, char *argv[]) {
         header += line;
         fgets(line, 10000, samFile);
     }
-    fprintf(stderr,"%s",header.c_str());
+    fprintf(headerFile,"%s",header.c_str());
     fclose(samFile);
-    
+    if (headerFile != outputFile) fclose(headerFile);
     
     char command[] = "LC_ALL=C sort -k 1 ";
     char buf[strlen(samNames[0]) + 100];
@@ -474,7 +486,7 @@ int main(int argc, char *argv[]) {
 
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
-        fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
+        fprintf(outputFile, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\t%d\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string, min);
         int j=0;
         for (; j < numberOfGenomes; j++)
             readPenalties[j]=0;
@@ -482,6 +494,7 @@ int main(int argc, char *argv[]) {
     
     for (j=0; j < numberOfGenomes; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
-    
+
+	if (outputFile != stdout) fclose(outputFile);    
 }
 

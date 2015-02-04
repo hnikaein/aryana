@@ -198,11 +198,12 @@ void AssignMethylationRatio(string cpgIslandFile) {
 	            // cerr << fLine << endl;
 	            wStart = 0;
 	            sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
-	            if (! wStart) continue;
+	            if (! wStart || wStart >= wEnd) continue;
 	            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
 	            islands.push_back(window(chromIndex[chrom], wStart, wEnd));
 	        }
 			f.close();
+			cerr << "Read " << islands.size() << " CpG islands." << endl;
 	    }
         return;
     }
@@ -357,7 +358,10 @@ void SimulateReads(string outputFile) {
     memset(quals, 'I', readl);
     quals[readl] = 0;
     unsigned long long p;
-
+	if (! gs) {
+		cerr << "Error: the length of genome is zero." << endl;
+		exit -1;
+	}
     for (int i = 0; i < n; i++) {
         bool found;
         int j;
@@ -375,7 +379,10 @@ void SimulateReads(string outputFile) {
         j--;
         PrintRead(f, i, j, p, quals);
     }
-
+	if (ni > 0 && islands.size() == 0) {
+		cerr << "Error: There are no CpG islands read, while there should be reads produced from CpG islands." << endl;
+		exit -1;
+	}
     for (int i = 0; i < ni; i++) {
         bool found;
         int is;
@@ -394,7 +401,11 @@ void SimulateReads(string outputFile) {
 
 
 void ProcessSNPs(void) {
-    for (int i = 0; i < snp; i++) {
+    if (! gs) {
+        cerr << "Error: the length of genome is zero." << endl;
+        exit -1;
+    }    
+	for (int i = 0; i < snp; i++) {
         unsigned long long j = lrand() % gs;
         genome[j] = Mutate(genome[j]);
     }
