@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
         header += line;
         fgets(line, 10000, samFile);
     }
-    fprintf(stdout,"%s",header.c_str());
+    fprintf(stderr,"%s",header.c_str());
     fclose(samFile);
     
     
