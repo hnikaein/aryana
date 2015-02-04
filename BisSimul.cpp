@@ -360,7 +360,7 @@ void SimulateReads(string outputFile) {
     unsigned long long p;
 	if (! gs) {
 		cerr << "Error: the length of genome is zero." << endl;
-		exit -1;
+		exit(-1);
 	}
     for (int i = 0; i < n; i++) {
         bool found;
@@ -381,7 +381,7 @@ void SimulateReads(string outputFile) {
     }
 	if (ni > 0 && islands.size() == 0) {
 		cerr << "Error: There are no CpG islands read, while there should be reads produced from CpG islands." << endl;
-		exit -1;
+		exit(-1);
 	}
     for (int i = 0; i < ni; i++) {
         bool found;
@@ -403,7 +403,7 @@ void SimulateReads(string outputFile) {
 void ProcessSNPs(void) {
     if (! gs) {
         cerr << "Error: the length of genome is zero." << endl;
-        exit -1;
+        exit(-1);
     }    
 	for (int i = 0; i < snp; i++) {
         unsigned long long j = lrand() % gs;
