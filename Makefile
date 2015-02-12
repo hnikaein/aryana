@@ -12,7 +12,7 @@ OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtio.o bwtaln.o bwa2.o bwtgap.o sam.o
 PROG=		aryana
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
-SUBDIRS=	. bwt_gen
+SUBDIRS=	. 
 
 .SUFFIXES:.c .o .cc
 
@@ -22,11 +22,6 @@ SUBDIRS=	. bwt_gen
 		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
 all:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul
-
-methyl:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul
-
-bwa:$(OBJS) main.o
-		$(CC) $(CFLAGS) $(DFLAGS) $(OBJS) main.o -o $@ $(LIBS)
 
 aryana:$(OBJS) aryana_main.o
 		$(CC) $(CFLAGS2) $(DFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)

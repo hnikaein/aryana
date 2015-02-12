@@ -18,7 +18,8 @@ map <int, string> chromName;
 char * genome;
 unsigned short * meth;
 int chromNum = 0;
-string genomeFile, annotationFile, outputFile, methInFile, methOutFile;
+string genomeFile, annotationFile, methInFile, methOutFile;
+FILE * outputFile = stdout;
 struct window {
     int chr;
     long long wStart, wEnd;
@@ -30,8 +31,8 @@ struct window {
 };
 
 vector <window> islands;
-unsigned long long int n = 0, ni = 0, snp = 0, readl = 0;
-double island = 0, cpg = 0, noncpg = 0, err = 0;
+unsigned long long int n = 1000, ni = 0, snp = 0, readl = 100;
+double island = 0.1, cpg = 0.9, noncpg = 0.01, err = 0;
 bool repeatMask = false, neg = false, pcr = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads
 
 void ReadGenome(string genomeFile) {
@@ -352,8 +353,7 @@ bool Repeat(const char *g, int length) {
     return false;
 }
 
-void SimulateReads(string outputFile) {
-    FILE * f = fopen(outputFile.c_str(), "w");
+void SimulateReads(FILE * outputFile) {
     char quals[maxReadSize];
     memset(quals, 'I', readl);
     quals[readl] = 0;
@@ -377,7 +377,7 @@ void SimulateReads(string outputFile) {
             else if (repeatMask && Repeat(genome + p, readl)) found = false;
         } while (!found);
         j--;
-        PrintRead(f, i, j, p, quals);
+        PrintRead(outputFile, i, j, p, quals);
     }
 	if (ni > 0 && islands.size() == 0) {
 		cerr << "Error: There are no CpG islands read, while there should be reads produced from CpG islands." << endl;
@@ -394,9 +394,9 @@ void SimulateReads(string outputFile) {
             if (repeatMask && Repeat(genome + p, readl)) continue;
             break;
         } while (true);
-        PrintRead(f, n+i, islands[is].chr, p, quals);
+        PrintRead(outputFile, n+i, islands[is].chr, p, quals);
     }
-    fclose(f);
+    if (outputFile != stdout) fclose(outputFile);
 }
 
 
@@ -415,21 +415,22 @@ void ProcessSNPs(void) {
 
 int main(int argc, char * argv[]) {
 // Parsing Arugments
-    if (argc < 6) {
-        cerr << "Usage is -g <reference genome> -n <number of simulated reads from whole genome>  -ni <number of simulated reads from CpG-Islands>" << endl <<
-             "-l <length of each read> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -ch <methylation ratio of CH dinucleotides>" << endl <<
-             "-cg <methylation ratio of CG dinucleotides> -i <methylation ratio of CG dinucleotides in CpG-Islands> -e <sequencing errors ratio> -s <number of SNPs>"<<endl <<
-             " -a <genomic map of CpG-Islands> -neg (generate reads from negative strand) -p (generate pcr amplified reads) -o <fastq output file>" << endl;
-        exit(1);
-    }
-    for (int i = 1; i < argc; i++)
-        if (i + 1 != argc) {
+    for (int i = 1; i < argc; i++) {
+		// The single arguments
+        if (strcmp(argv[i], "-m") == 0) {
+            repeatMask = true; continue; }
+        if (strcmp(argv[i], "-neg") ==0) {
+            neg = true; continue; }
+        if (strcmp(argv[i], "-p") == 0) {
+            pcr = true; continue; }
+		
+		if (i < argc - 1) { // The paired arguments
             if (strcmp(argv[i], "-g") == 0)
                 genomeFile = argv[++i];
             else if (strcmp(argv[i], "-a") == 0)
                 annotationFile = argv[++i];
             else if (strcmp(argv[i], "-o") == 0)
-                outputFile = argv[++i];
+                outputFile = fopen(argv[++i], "w");
             else if (strcmp(argv[i], "-n") == 0)
                 n = atoi(argv[++i]);
             else if (strcmp(argv[i], "-ni") ==0)
@@ -446,25 +447,27 @@ int main(int argc, char * argv[]) {
                 snp = atoi(argv[++i]);
             else if (strcmp(argv[i], "-l") == 0)
                 readl = atoi(argv[++i]);
-            else if (strcmp(argv[i], "-m") == 0)
-                repeatMask = true;
-            else if (strcmp(argv[i], "-neg") ==0)
-                neg = true;
-            else if (strcmp(argv[i], "-p") == 0)
-                pcr = true;
             else if (strcmp(argv[i], "-mi") == 0)
                 methInFile = argv[++i];
             else if (strcmp(argv[i], "-mo") == 0)
                 methOutFile = argv[++i];
-            else {
-                cerr << "Not enough or invalid arguments."<< endl;
+			else {
+                cerr << "Unrecognized argument: "<< argv[i] << endl;
                 exit(1);
             }
-        }
-    if (outputFile == "") {
-        cerr << "No output file indicated. Casting output to BisSimul.fastq" << endl;
-        outputFile = "BisSimul.fastq";
+			continue;
+		}
+		cerr << "This argument should be followed by an input: "<< argv[i] << endl;
+        exit(1);
     }
+	if (genomeFile == "") {
+        cerr << "Arguments: -g <reference genome, mandatory> -n <number of simulated reads from whole genome, default=1000>  -ni <number of simulated reads from CpG-Islands, default=0>" << endl <<
+             "-l <length of each read, default=100> -o <fastq output file, default=stdout> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file>" << endl <<
+             "-ch <methylation ratio of CH dinucleotides, default=0.01> -cg <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
+             "-i <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1> -e <sequencing errors ratio, default=0> -s <number of SNPs, default=0>"<<endl <<
+             " -a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -neg (simulate reads from negative strand) -p (simulate PCR amplified reads)" << endl;
+        exit(1);
+    } 
 // Reading input
     ReadGenome(genomeFile);
     ProcessSNPs();
