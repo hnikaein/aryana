@@ -18,7 +18,7 @@ PostAlignment() {
 	Echo "Sorting the alignment SAM file..."
 	LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" >> "$5.sam"
 	Echo "Computing methylation ratios with additional arguments: $me" 
-	"$DIR/methyl_extract" -r "$1" -s "$5.sam" -m "$5_amb.sam" $me > "$4_out/result.txt" 
+	"$DIR/methyl_extract" -r "$1" -s "$5.sam" -m "$5_amb.sam" "$me" > "$4_out/result.txt" 
 	Echo "Sorting methylation ratio results..."
 	LC_ALL=C sort -k 1,1 -k 2,2n "$4_out/result.txt" > "$5.txt"
 	Echo "Removing unnecessary files..."
@@ -28,7 +28,9 @@ PostAlignment() {
 
 DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
-declare "${*:6}"
+if [ "$#" -gt 5 ]; then
+	declare "${*:6}"
+fi
 Echo "Aliging reads using aryana with additional arguments: $ar"
-"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" $ar
+"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" "$ar"
 PostAlignment "$@" &
