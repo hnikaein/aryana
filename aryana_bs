@@ -3,7 +3,7 @@
 # If you need the mehylation ratio for all cytosines covered by the bisulfite sequencing, add "-all" argument to the end of the line started with "$DIR/methyl_extract" below.
 
 if [ "$#" -lt 5 ]; then
-    echo 'Usage: aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file, without extensions> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
+    echo 'Usage: aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file, without extensions> <number of threads to run aryana> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
     exit
 fi
 
@@ -28,9 +28,10 @@ PostAlignment() {
 
 DIR=$(dirname $(readlink -f $0));
 mkdir "$4_out"
-if [ "$#" -gt 5 ]; then
-	declare "${*:6}"
+if [ "$#" -gt 6 ]; then
+	declare "${*:7}"
 fi
-Echo "Aliging reads using aryana with additional arguments: $ar"
-"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" "$ar"
+
+Echo "Aliging reads using aryana with $6 threads (additional arguments: $ar)"
+"$DIR/aryana" -b -B "$2" -U "$4" -o "$4_out/temp.sam" -O -p $6 "$ar"
 PostAlignment "$@" &

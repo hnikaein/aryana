@@ -15,7 +15,8 @@ struct __bwa_seqio_t {
 	int is_bam, which; // 1st bit: read1, 2nd bit: read2, 3rd: SE
 	bamFile fp;
 	// for fastq input
-	kseq_t *ks; //Afsoon: what is the type kseq_t?
+	kseq_t *ks; 
+	unsigned long long read_num; // The number of reads already read from the io
 };
 
 
@@ -29,6 +30,7 @@ bwa_seqio_t *bwa_bam_open(const char *fn, int which)
 	bs->fp = bam_open(fn, "r");
 	h = bam_header_read(bs->fp);
 	bam_header_destroy(h);
+	bs->read_num = 1;
 	return bs;
 }
 
@@ -39,6 +41,7 @@ bwa_seqio_t *bwa_seq_open(const char *fn)
 	bs = (bwa_seqio_t*)calloc(1, sizeof(bwa_seqio_t));
 	fp = xzopen(fn, "r");
 	bs->ks = kseq_init(fp);
+	bs->read_num = 1;
 	return bs;
 }
 
@@ -127,6 +130,7 @@ static bwa_seq_t *bwa_read_bam(bwa_seqio_t *bs, int n_needed, int *n, int is_com
 		seq_reverse(p->len, p->seq, 0); // *IMPORTANT*: will be reversed back in bwa_refine_gapped()
 		seq_reverse(p->len, p->rseq, is_comp);
 		p->name = strdup((const char*)bam1_qname(b));
+		p->read_num = bs->read_num++;
 		if (n_seqs == n_needed) break;
 	}
 	*n = n_seqs;
@@ -203,6 +207,7 @@ bwa_seq_t *bwa_read_seq2(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tr
 			int t = strlen(p->name);
 			if (t > 2 && p->name[t-2] == '/' && (p->name[t-1] == '1' || p->name[t-1] == '2')) p->name[t-2] = '\0';
 		}
+		p->read_num = bs->read_num++;
 		if (n_seqs == n_needed) break;
 	}
 	*n = n_seqs;
@@ -278,6 +283,7 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
 			int t = strlen(p->name);
 			if (t > 2 && p->name[t-2] == '/' && (p->name[t-1] == '1' || p->name[t-1] == '2')) p->name[t-2] = '\0';
 		}
+		p->read_num = bs->read_num++;
 		if (n_seqs == n_needed) break;
 	}
 	*n = n_seqs;

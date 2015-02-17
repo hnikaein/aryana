@@ -62,7 +62,9 @@ int main(int argc, char *argv[])
 	args.seed_length = -1;
 	args.best_factor = -1;
 	args.bisulfite = 0;
+	args.order = 0;
 	char *refNames[5];
+	bzero(refNames, sizeof(refNames));
 	if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
 	if (strcmp(argv[1], "fa2bin") == 0) return fa2bin(argc-1, argv+1);
 	if(argc < 3){
@@ -120,14 +122,15 @@ int main(int argc, char *argv[])
 		{"factor", required_argument, 0, 'F'},
 		{"bisulfite", no_argument, 0, 'b'},
 		{"bisulfit-refs", required_argument, 0, 'B'},
-		{"output", required_argument, 0, 'o'}
+		{"output", required_argument, 0, 'o'},
+		{"order", no_argument, 0, 'O'},
 	//	{0, 0, 0, 0}
 	};
 	char* output = NULL;
 	char* inputFolder;
 	int option_index = 0;
 	int c;
-	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:o:", long_options, &option_index)) >= 0){
+	while((c = getopt_long(argc, argv, "x:1:2:U:S:qfrcs:u:5:3:N:L:k:I:X:tp:hP:R:bB:o:O", long_options, &option_index)) >= 0){
 		switch(c){
 			case 0:
 				args.discordant=0;
@@ -209,6 +212,9 @@ int main(int argc, char *argv[])
 				refNames[4] = (char*)malloc(strlen(inputFolder)+50);
 				strcpy(refNames[4], inputFolder);
 				strcat(refNames[4], "BisulfiteGenomeCompleteGA.fa");
+				break;
+			case 'O': 
+				args.order = 1;
 				break;
 		}
 	}

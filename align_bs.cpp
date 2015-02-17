@@ -419,7 +419,7 @@ int main(int argc, char *argv[]) {
     fprintf(headerFile,"%s",header.c_str());
     fclose(samFile);
     if (headerFile != outputFile) fclose(headerFile);
-    
+ /* Sorting SAM files is no longer needed since they are sorted by aryana using -O argument   
     char command[] = "LC_ALL=C sort -k 1 ";
     char buf[strlen(samNames[0]) + 100];
     for (i = 0; i < numberOfGenomes; i++) {
@@ -429,7 +429,9 @@ int main(int argc, char *argv[]) {
         samFiles[i] = fopen(buf, "r");
 
     }
+*/
     
+	for (i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
     char *rname[numberOfGenomes], *cigar[numberOfGenomes];
     int flag[numberOfGenomes];
     uint64_t pos[numberOfGenomes];

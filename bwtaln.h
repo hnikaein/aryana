@@ -85,6 +85,8 @@ typedef struct {
 	// NM and MD tags
 	uint32_t full_len:20, nm:12;
 	char *md;
+	//Ali
+	uint64_t read_num; // number of the read seq in the given fastq file
 } bwa_seq_t;
 
 #define BWA_MODE_GAPE       0x01

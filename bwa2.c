@@ -28,14 +28,14 @@
 //#define num_of_threads 6
 //#define read_size 0x44000
 #define read_size 600000
-#define each_read_size 5000
+#define seq_num_per_read 10 // xxx 5000
 #define max_sam_line 3*MAX_READ_SIZE+1000
 #define MAX_CIGAR_SIZE 6000
 #define output_buffer (1 << 9)
 #define sleep_time (1)
 #define true 1
 #define false 0
-
+#define sleep_time (1)
 int counter = 0;
 double base=10.0;
 double scmax=100.0;
@@ -61,6 +61,16 @@ uint32_t  reference_size;
 uint32_t  reference_reminder;
 uint64_t * ref;
 uint32_t refSize;
+// The Data structure used for preserving the initial order of the reads
+typedef struct {
+	char * str;
+	unsigned long long read_num;
+} outBuf_t;
+outBuf_t * outBuf;
+int running_threads_num;
+unsigned long long outBufIndex, outBufLen;
+int collision_error_reported = 0;
+
 
 int offsearch(int bot, int top, uint64_t * a, uint64_t key){
 	if(bot > top)
@@ -352,8 +362,8 @@ void paired_multiAligner(const gap_opt_t *opt, aryana_args *options){
 	table2=(hash_element *)malloc(TABLESIZE*(sizeof (hash_element)));
 	reset_hash(table1);
 	reset_hash(table2);
-	seqs1 = (bwa_seq_t*)calloc(each_read_size, sizeof(bwa_seq_t));
-	seqs2 = (bwa_seq_t*)calloc(each_read_size, sizeof(bwa_seq_t));
+	seqs1 = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
+	seqs2 = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
 	char buffer[10*max_sam_line];
 	char *cigar1[100];
 	for (j=0; j<options->potents; j++)
@@ -375,21 +385,36 @@ void paired_multiAligner(const gap_opt_t *opt, aryana_args *options){
 
 	while(true){
 		pthread_mutex_lock(&input);
-		if((seqs1 = bwa_read_seq(ks1, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
+		if((seqs1 = bwa_read_seq(ks1, seq_num_per_read, &n_seqs, opt->mode, opt->trim_qual)) == 0){
 			pthread_mutex_unlock(&input);
-			return;
+			break;
 		}
-		seqs2 = bwa_read_seq(ks2, each_read_size, &n_seqs, opt->mode, opt->trim_qual);
+		seqs2 = bwa_read_seq(ks2, seq_num_per_read, &n_seqs, opt->mode, opt->trim_qual);
 		pthread_mutex_unlock(&input);
 		lasttmpsize = 0;
 		for(j=0;j<n_seqs;j++)
 		{
 			lasttmpsize+=align_paired_read(buffer+lasttmpsize, cigar1, cigar2, &seqs1[j], &seqs2[j], table1, table2, total_seqs + j + 1, options, d, arr, tmp_cigar);
-			if(j % 5 == 0 || j == n_seqs - 1){
-				pthread_mutex_lock(&output);
-				fputs(buffer, stdout);
+			if (options->order) { // Preserving order of reads
+				unsigned long long read_num = seqs1[j].read_num;
+				int pos = read_num % outBufLen;
+				while (outBuf[pos].read_num != 0) {
+					if (! collision_error_reported) {
+						fprintf(stderr, "A collision in output hash table occured. Maybe you need longer table (modify outBufLen value), or don't use -O argument.\n");
+						collision_error_reported = 1;
+					}
+					usleep(1);
+				}
+               	outBuf[pos].str = strdup(buffer);
+			   	outBuf[pos].read_num = read_num; // Should be strictly after previous command of outBuf[pos].str assignment, for synchronization purposes.
 				lasttmpsize = 0;
-				pthread_mutex_unlock(&output);
+			} else { 
+				if(j % 5 == 0 || j == n_seqs - 1){
+					pthread_mutex_lock(&output);
+					fputs(buffer, stdout);
+					lasttmpsize = 0;
+					pthread_mutex_unlock(&output);
+				}
 			}
 		}
 		total_seqs += n_seqs;
@@ -560,7 +585,7 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 */	}
 //	fprintf(stderr,"reset hashed\n");
 	//fprintf(stderr,"khodafez\n");
-	seqs = (bwa_seq_t*)calloc(each_read_size, sizeof(bwa_seq_t));
+	seqs = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
 //	fprintf(stderr,"seqs created\n");
 	char *buffer=(char *)malloc(100*max_sam_line*(sizeof (char)));
 	buffer[0] = '\0';
@@ -568,26 +593,44 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 	char *cigar[100];
 	for (j=0; j<100; j++)
 		cigar[j]=(char *)malloc(MAX_CIGAR_SIZE*(sizeof (char)));
-	fprintf(stderr, "thread %d starting...\n", tid);
+	fprintf(stderr, "Thread %d starting...\n", tid);
 	while(true){
 		pthread_mutex_lock(&input);
-		if((seqs = bwa_read_seq(ks, each_read_size, &n_seqs, opt->mode, opt->trim_qual)) == 0){
+		if((seqs = bwa_read_seq(ks, seq_num_per_read, &n_seqs, opt->mode, opt->trim_qual)) == 0){
 			//finish = true;
 			pthread_mutex_unlock(&input);
 			//fprintf(stderr, "thread %d ending...\n", tid);
-			return;
+			break;
 		}
 		pthread_mutex_unlock(&input);
 
-
+/*		fprintf(stderr, "Thread %d reads ", tid);
+		for (j = 0; j < n_seqs; j++) fprintf(stderr, "%llu ", (unsigned long long) seqs[j].read_num);
+		fprintf(stderr, "\n");
+*/
 		lasttmpsize = 0;
 		for(j=0;j<n_seqs;j++){
 			lasttmpsize+=align_read(buffer+lasttmpsize, cigar, &seqs[j], table, total_seqs + j + 1, options,d,arr,tmp_cigar);
-			if(j % 100 == 0 || j == n_seqs - 1){
-				pthread_mutex_lock(&output);
-				fputs(buffer, stdout);
-				pthread_mutex_unlock(&output);
-				lasttmpsize = 0;
+            if (options->order) { // Preserving order of reads
+                unsigned long long read_num = seqs[j].read_num;
+                int pos = read_num % outBufLen;
+                while (outBuf[pos].read_num != 0) {
+                    if (! collision_error_reported) {
+                        fprintf(stderr, "A collision in output hash table occured. Maybe you need longer table (modify outBufLen value), or don't use -O argument.\n");
+                        collision_error_reported = 1;
+                    }
+                    usleep(1);
+                }
+                outBuf[pos].str = strdup(buffer);
+                outBuf[pos].read_num = read_num; // Should be strictly after previous command of outBuf[pos].str assignment, for synchronization purposes.
+                lasttmpsize = 0;
+            } else {
+				if(j % 100 == 0 || j == n_seqs - 1){
+					pthread_mutex_lock(&output);
+					fputs(buffer, stdout);
+					pthread_mutex_unlock(&output);
+					lasttmpsize = 0;
+				}
 			}
 		}
 		total_seqs += n_seqs;
@@ -604,6 +647,7 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options){
 	free(table);
 	free(tmp_cigar);
 	free(buffer);
+	fprintf(stderr, "Thread %d finished.\n", tid);
 }
 
 typedef struct {
@@ -622,6 +666,9 @@ void *worker2(void *data){
 	else
 		paired_multiAligner(d->opt, d->options);
 	//	fprintf(stderr,"calling done\n");
+    pthread_mutex_lock(&output);
+	running_threads_num--;
+    pthread_mutex_unlock(&output);
 	return 0;
 }
 
@@ -830,6 +877,14 @@ void bwa_aln_core2(aryana_args *args)
 		data[j].opt = opt;
 		data[j].options = args;
 	}
+	
+	running_threads_num = args->threads;
+	if (args->order) {
+		outBufLen = 10 * args->threads * seq_num_per_read;
+		outBuf = malloc(sizeof(outBuf_t) * outBufLen);
+		bzero(outBuf, sizeof(outBuf_t) * outBufLen);
+		outBufIndex = 1;
+	}
 	/*	if (options->paired==0)
 		singleAligner(opt,options);
 		else
@@ -839,11 +894,27 @@ void bwa_aln_core2(aryana_args *args)
 	//----------------------------------------------------------------------Multi thread
 	for (j = 0; j < args->threads; j++)
 		pthread_create(&threads[j], NULL, worker2, data + j);
-
-	for (j = 0; j < args->threads; ++j)
-		pthread_join(threads[j], 0);
-
+	if (! args->order) // Each threads writes own results in the SAM file
+		for (j = 0; j < args->threads; ++j)
+			pthread_join(threads[j], 0);
+	else { // This thread is now writing results in the SAM file
+		unsigned long long o = outBufIndex;
+		while (running_threads_num > 0 || outBuf[o].read_num > 0) {
+			if (!outBuf[o].read_num) usleep(sleep_time); // {usleep(1000); fprintf(stderr, "%d %llu\n", running_threads_num, outBufIndex);} 
+			else {
+				if (outBuf[o].read_num != outBufIndex) 
+					fprintf(stderr, "Error in output buffer, expected read number %llu, seen %llu.\n", outBufIndex, outBuf[o].read_num);
+				fputs(outBuf[o].str, stdout);
+				free(outBuf[o].str);
+				outBuf[o].read_num = 0;
+				outBufIndex++;
+				o = outBufIndex % outBufLen;
+			}
+		}
+	}
+	fprintf(stderr, "Alignment finished.\n");
 	// destroy
+	if (args->order) free(outBuf);
 	free(data);
 	free(threads);
 	bwt_destroy(bwt);

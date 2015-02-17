@@ -16,5 +16,6 @@ typedef struct{
 	int seed_length;
 	int best_factor;
 	int bisulfite;
+	int order;
 } aryana_args;
 #endif
