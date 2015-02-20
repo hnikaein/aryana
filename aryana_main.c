@@ -6,9 +6,12 @@
 #include "utils.h"
 #include "bwa2.h"
 #include "main.h"
-#ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.6.0-r85"
-#endif
+#define aryana_version "1.0.0"
+
+void bwa_print_sam_PG()
+{
+	        printf("@PG\tID:bwa\tPN:bwa\tVN:%s\n", aryana_version);
+}
 
 int get_value_string(int argc, const char **argv, char * arg, char * value){
 	int i = 1;
@@ -21,40 +24,27 @@ int get_value_string(int argc, const char **argv, char * arg, char * value){
 	return 0;
 }
 
-static int usage()
-{
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Program: bwa (alignment via Burrows-Wheeler transformation)\n");
-	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
-	fprintf(stderr, "Contact: Heng Li <lh3@sanger.ac.uk>\n\n");
-	fprintf(stderr, "Usage:   bwa <command> [options]\n\n");
-	fprintf(stderr, "Command: index         index sequences in the FASTA format\n");
-	fprintf(stderr, "         aln           gapped/ungapped alignment\n");
-	fprintf(stderr, "         aln2           gapped/ungapped alignment with new algorithm\n");
-	fprintf(stderr, "         samse         generate alignment (single ended)\n");
-	fprintf(stderr, "         sampe         generate alignment (paired ended)\n");
-	fprintf(stderr, "         bwasw         BWA-SW for long queries\n");
-	fprintf(stderr, "         fastmap       identify super-maximal exact matches\n");
-	fprintf(stderr, "         fa2bin       construcs binary compressed file of fasta\n");
-	fprintf(stderr, "\n");
-	fprintf(stderr, "         fa2pac        convert FASTA to PAC format\n");
-	fprintf(stderr, "         pac2bwt       generate BWT from PAC\n");
-	fprintf(stderr, "         pac2bwtgen    alternative algorithm for generating BWT\n");
-	fprintf(stderr, "         bwtupdate     update .bwt to the new format\n");
-	fprintf(stderr, "         bwt2sa        generate SA from BWT and Occ\n");
-	fprintf(stderr, "         pac2cspac     convert PAC to color-space PAC\n");
-	fprintf(stderr, "         stdsw         standard SW/NW alignment\n");
-	fprintf(stderr, "\n");
-	return 1;
-}
 
-void bwa_print_sam_PG()
-{
-	printf("@PG\tID:bwa\tPN:bwa\tVN:%s\n", PACKAGE_VERSION);
+void Usage() {
+	fprintf(stderr, "Program: aryana\n");
+	fprintf(stderr, "Version: %s\n", aryana_version);
+	fprintf(stderr, "Usage:\n\n");
+	fprintf(stderr, "Creating index from reference genome:\n");
+	fprintf(stderr, "aryana index [reference genome (fasta)]\n");
+	fprintf(stderr, "aryana fa2bin [reference genome (fasta)]\n\n");
+	fprintf(stderr, "Alignment of single end reads:\n");
+	fprintf(stderr, "aryana [-x Index] [-U input (fastq)]\n");
+	fprintf(stderr, "Optional arguments: [-p INT (threads number)] [-P INT (potential candidates)] [--seed INT (seed length)]\n\n");
+	fprintf(stderr, "Alignment of paired end reads:\n");
+	fprintf(stderr, "aryana [-x Index] [-1 input1 (fastq)] [-2 input2 (fastq)]\n");
+	fprintf(stderr, "Optional arguments: --{fr, ff, rf (orientation of paired ends)} [-I INT (min distance)] [-X INT (max distance)]\n");
+	fprintf(stderr, "See README.md for more details.\n");
+	exit(1);
 }
 
 int main(int argc, char *argv[])
 {
+	if (argc < 3) Usage();
 	aryana_args args;
 	args.discordant=1;
 	args.threads=1;
@@ -67,10 +57,6 @@ int main(int argc, char *argv[])
 	bzero(refNames, sizeof(refNames));
 	if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
 	if (strcmp(argv[1], "fa2bin") == 0) return fa2bin(argc-1, argv+1);
-	if(argc < 3){
-		fprintf(stderr, "Need more inputs\n");
-		return -1;
-	}
 	//fprintf(stderr,"main:\n");
 	/*char *reference = (char*)calloc(1000, 1);
 	if(!get_value_string(argc, argv, "-x", reference)){
@@ -218,6 +204,8 @@ int main(int argc, char *argv[])
 				break;
 		}
 	}
+	if (args.threads < 1) args.threads = 1;
+
 	if(args.bisulfite){
 		if(!output){
 			fprintf(stderr, "The ouptut name should be specified\n");

@@ -14,15 +14,17 @@ Running Aryana
 Create genome index and bin file from the genome
 
 <code>
-./aryana index <reference genome.fasta>
+./aryana index [reference genome (fasta)]
 
-./aryana fa2bin <reference genome.fasta>
+./aryana fa2bin [reference genome (fasta)]
 </code>
 
 Alignment of single end reads
 
 <code>
-./aryana [-x human_g1k_v37.fasta] [-U reads.fastq]
+./aryana [-x Index] [-U input (fastq)]
+
+Optional arguments:
 
 	-p INT	Number of threads
 
@@ -34,13 +36,15 @@ Alignment of single end reads
 Alignment of paired end reads
 
 <code>
-./aryana [-x human_g1k_v37.fasta] [-1 pair1.fastq] [-2 pair2.fastq] --{fr, ff, rf} -I min -X max
+./aryana [-x Index] [-1 input1 (fastq)] [-2 input2 (fastq)] 
+
+Optional arguments:
 
 	--fr/--ff/--rf	Refers to orientation of the pairs. /forward-reverse/forward-forward/reverse-forward
 
-	-I INT	Minimum insert size
+	-I INT	Minimum distance between reads pair
 
-	-X INT	Maximum insert size
+	-X INT	Maximum distance between reads pair
 </code>
 
 Aryana Bisulfite Sequencing
