@@ -11,6 +11,7 @@ using namespace std;
 const long maxGenomeSize = 4e9;
 const int maxChromosomeNum = 1000;
 const int maxReadSize = 10000;
+const int maxTries = 10000; // Maximum number of tries to find a suitable location for each read
 long chromPos[maxChromosomeNum];
 unsigned long gs;
 map <string, int> chromIndex;
@@ -18,8 +19,8 @@ map <int, string> chromName;
 char * genome;
 unsigned short * meth;
 int chromNum = 0;
-string genomeFile, annotationFile, methInFile, methOutFile;
-FILE * outputFile = stdout;
+string genomeFile, annotationFile, methInFile, methOutFile, outputFileName;
+FILE * outputFile = stdout, * outputFile2 = stdout;
 struct window {
     int chr;
     long long wStart, wEnd;
@@ -33,7 +34,8 @@ struct window {
 vector <window> islands;
 unsigned long long int n = 1000, ni = 0, snp = 0, readl = 100;
 double island = 0.1, cpg = 0.9, noncpg = 0.01, err = 0;
-bool repeatMask = false, neg = false, pcr = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads
+bool repeatMask = false, neg = false, pcr = false, paired=false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
+int pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance between paired end reads
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
@@ -201,7 +203,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
 	            sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
 	            if (! wStart || wStart >= wEnd) continue;
 	            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-	            islands.push_back(window(chromIndex[chrom], wStart, wEnd));
+	            islands.push_back(window(chromIndex[chrom], wStart - 1, wEnd - 1));
 	        }
 			f.close();
 			cerr << "Read " << islands.size() << " CpG islands." << endl;
@@ -353,50 +355,84 @@ bool Repeat(const char *g, int length) {
     return false;
 }
 
-void SimulateReads(FILE * outputFile) {
+// Returns the chromosome number (zero based) if the given genome-wide location is completely inside a chromosome, or -1 otherwise
+
+int InsideChromosome(unsigned long long start, unsigned long long end) {
+	for (int j = 1; j <= chromNum; j++) // Checking the read to be inside a chromosome
+    if (start < chromPos[j]) {
+		if (end < chromPos[j]) return j - 1; else return -1; // Both start and end within the same chromosome
+	}
+	return -1; // Bigger than all chromosome locations
+}
+
+// Returns the chromosome number if the given location is a good posotion for generating a read, or -1 othersise
+
+int CheckPosition(unsigned long long p, int pairDis) {
+	int chr = -1;
+	if ((chr = InsideChromosome(p, p + readl - 1)) == -1) return -1;
+    if (memchr(genome + p, 'N', readl)) return -1;
+    if (repeatMask && Repeat(genome + p, readl)) return -1;
+    if (paired) {
+    	if (InsideChromosome(p, p + 2 * readl + pairDis - 1) != chr) return -1;
+        if (memchr(genome + p + readl + pairDis, 'N', readl)) return -1;
+        if (repeatMask && Repeat(genome + p + readl + pairDis, readl)) return -1;
+    }
+	return chr;
+}
+
+
+void SimulateReads(FILE * outputFile, FILE * outputFile2) {
     char quals[maxReadSize];
     memset(quals, 'I', readl);
     quals[readl] = 0;
     unsigned long long p;
+	int pairDis = 0, chr;
 	if (! gs) {
 		cerr << "Error: the length of genome is zero." << endl;
 		exit(-1);
 	}
+
+// Simulating normal reads
     for (int i = 0; i < n; i++) {
-        bool found;
-        int j;
+        int tries = 0;
         do {
-            found = true;
+			if (tries++ > maxTries) {
+				cerr << "Error: Could not find any suitable location for reads after " << maxTries << " tries." << endl;
+				exit(-1);
+			} 
             p = lrand() % gs;
-            for (j = 0; j <= chromNum; j++) // Checking the read to be inside a chromosome
-                if (p < chromPos[j]) {
-                    if (p+readl-1 >= chromPos[j]) found = false;
-                    break;
-                }
-            if (found && memchr(genome + p, 'N', readl)) found = false;
-            else if (repeatMask && Repeat(genome + p, readl)) found = false;
-        } while (!found);
-        j--;
-        PrintRead(outputFile, i, j, p, quals);
+			pairDis = lrand() % (pairMaxDis - pairMinDis + 1) + pairMinDis;
+			if ((chr = CheckPosition(p, pairDis)) != -1) break;
+		} while (true);
+        PrintRead(outputFile, i, chr, p, quals);
+		if (paired) PrintRead(outputFile2, i, chr, p + readl + pairDis, quals);
     }
+
+// Simulating CpG-island reads
+
 	if (ni > 0 && islands.size() == 0) {
 		cerr << "Error: There are no CpG islands read, while there should be reads produced from CpG islands." << endl;
 		exit(-1);
 	}
     for (int i = 0; i < ni; i++) {
-        bool found;
+        int tries = 0;
         int is;
         do {
+            if (tries++ > maxTries) {
+                cerr << "Error: Could not find any suitable location for CpG-island reads after " << maxTries << " tries." << endl;
+                exit(-1);
+            }
             is = lrand() % islands.size();
-            if ((islands[is].wEnd - islands[is].wStart + 1 < readl) || islands[is].wEnd >= chromPos[islands[is].chr+1]) continue;
-            p = rand() % (islands[is].wEnd - islands[is].wStart - readl + 2) + islands[is].wStart + chromPos[islands[is].chr];
-            if (memchr(genome + p, 'N', readl)) continue;
-            if (repeatMask && Repeat(genome + p, readl)) continue;
-            break;
-        } while (true);
-        PrintRead(outputFile, n+i, islands[is].chr, p, quals);
+			p = rand() % (islands[is].wEnd - (islands[is].wStart - readl + 1) + 1) + islands[is].wStart - readl + 1; // To have at least 1bp overlap between read and CpG-island
+            if ((chr = CheckPosition(p, pairDis)) != -1) break;
+		} while (true);
+        PrintRead(outputFile, n+i, chr, p, quals);
+        if (paired) PrintRead(outputFile2, n+i, chr, p + readl + pairDis, quals);
     }
+
+// Closing output
     if (outputFile != stdout) fclose(outputFile);
+	if (paired && outputFile2 != stdout) fclose(outputFile2);
 }
 
 
@@ -423,6 +459,10 @@ int main(int argc, char * argv[]) {
             neg = true; continue; }
         if (strcmp(argv[i], "-p") == 0) {
             pcr = true; continue; }
+		if (strcmp(argv[i], "-P") == 0) {
+			paired = true;	
+			continue;
+		}
 		
 		if (i < argc - 1) { // The paired arguments
             if (strcmp(argv[i], "-g") == 0)
@@ -430,7 +470,7 @@ int main(int argc, char * argv[]) {
             else if (strcmp(argv[i], "-a") == 0)
                 annotationFile = argv[++i];
             else if (strcmp(argv[i], "-o") == 0)
-                outputFile = fopen(argv[++i], "w");
+                outputFileName = argv[++i];
             else if (strcmp(argv[i], "-n") == 0)
                 n = atoi(argv[++i]);
             else if (strcmp(argv[i], "-ni") ==0)
@@ -451,6 +491,10 @@ int main(int argc, char * argv[]) {
                 methInFile = argv[++i];
             else if (strcmp(argv[i], "-mo") == 0)
                 methOutFile = argv[++i];
+			else if (strcmp(argv[i], "-pMin") == 0)
+				pairMinDis = atoi(argv[++i]);
+			else if (strcmp(argv[i], "-pMax") == 0)
+				pairMaxDis = atoi(argv[++i]);
 			else {
                 cerr << "Unrecognized argument: "<< argv[i] << endl;
                 exit(1);
@@ -462,16 +506,28 @@ int main(int argc, char * argv[]) {
     }
 	if (genomeFile == "") {
         cerr << "Arguments: -g <reference genome, mandatory> -n <number of simulated reads from whole genome, default=1000>  -ni <number of simulated reads from CpG-Islands, default=0>" << endl <<
-             "-l <length of each read, default=100> -o <fastq output file, default=stdout> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file>" << endl <<
+             "-l <length of each read, default=100> -o <fastq output file without extension, default=stdout> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file>" << endl <<
              "-ch <methylation ratio of CH dinucleotides, default=0.01> -cg <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
              "-i <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1> -e <sequencing errors ratio, default=0> -s <number of SNPs, default=0>"<<endl <<
-             " -a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -neg (simulate reads from negative strand) -p (simulate PCR amplified reads)" << endl;
+             "-a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -neg (simulate reads from negative strand) -p (simulate PCR amplified reads)" << endl <<
+			 "-P (produce paired-end reads), -pMin (min distance between a pair of reads), -pMax (max distance between a pair of reads)" << endl;
         exit(1);
     } 
+
+	if (pairMinDis > pairMaxDis || pairMinDis < 0) {
+		cerr << "Min distance between pair of reads should be a non-negative integer, smaller than max distance between them" << endl;
+		exit(1);
+	}
 // Reading input
     ReadGenome(genomeFile);
     ProcessSNPs();
     AssignMethylationRatio(annotationFile);
-    SimulateReads(outputFile);
+	if (outputFileName != "") {
+		if (paired) {	
+			outputFile = fopen((outputFileName + "_1.fastq").c_str(), "w");
+			outputFile2 = fopen((outputFileName + "_2.fastq").c_str(), "w");
+		} else outputFile = fopen((outputFileName + ".fastq").c_str(), "w");
+	}
+    SimulateReads(outputFile, outputFile2);
     delete [] genome;
 }
