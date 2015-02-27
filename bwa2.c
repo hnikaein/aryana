@@ -325,11 +325,11 @@ int align_paired_read(char * buffer, char *cigar1[20], char *cigar2[20], bwa_seq
 		if(mate1_matched)
 		{
 			head=sam_generator(buffer, seqs1->name, flag1, name[ind1], seqs1->index+1, seqs1->mapQ, cigar1[best_found1], "*", (uint64_t)(0), (long long)(0), seqs1->seq, seqs1->qual, seqs1->len);
-			head+=sam_generator(buffer+head, seqs2->name, flag2, "*", (uint64_t)(0), (uint32_t)(0), "*", name[ind1], seqs1->index, 0, seqs2->seq, seqs2->qual, seqs2->len);
+			head+=sam_generator(buffer+head, seqs2->name, flag2, name[ind1], seqs1->index+1, (uint32_t)(0), "*", name[ind1], seqs1->index, 0, seqs2->seq, seqs2->qual, seqs2->len);
 		}
 		else 
 		{
-			head=sam_generator(buffer, seqs1->name, flag1, "*", (uint64_t)(0), (uint32_t)(0), "*", name[ind2], seqs2->index, 0, seqs1->seq, seqs1->qual, seqs1->len);
+			head=sam_generator(buffer, seqs1->name, flag1, name[ind2], seqs2->index+1, (uint32_t)(0), "*", name[ind2], seqs2->index, 0, seqs1->seq, seqs1->qual, seqs1->len);
 			head+=sam_generator(buffer+head, seqs2->name, flag2, name[ind2], seqs2->index+1, seqs1->mapQ, cigar2[best_found2], "*", (uint64_t)(0), (long long)(0), seqs2->seq, seqs2->qual, seqs2->len);
 		}
 	}
