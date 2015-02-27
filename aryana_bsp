@@ -14,7 +14,7 @@ Echo () {
 
 PostAlignment() {
 	Echo "Finding the best alignment for each read..." 
-	"$DIR/align_bs" -U -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 -o "$4_out/alignment_unsorted.sam" -h "$6.sam"
+	"$DIR/align_bs" -P -x "$1" -c "$3" -s "$4_out/temp.sam" -p 10 100 1000 -o "$4_out/alignment_unsorted.sam" -h "$6.sam"
 	Echo "Sorting the alignment SAM file..."
 	LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" >> "$6.sam"
 	Echo "Computing methylation ratios with additional arguments: $me" 
