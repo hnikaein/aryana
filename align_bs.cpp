@@ -348,6 +348,7 @@ int main(int argc, char *argv[]) {
     char line[maxSamFileLineLength];
     if (argc < 6) {
         fprintf(stderr, "Usage: align_bs -x <reference genome> -s <input sam files> -c <CpG-island map> -p <penalties> [-o <output SAM file>] [-h <SAM header file>]\n");
+        fprintf(stderr, "Use -P (upper case) for paired end reads.\n");
         return -1;
     }
     static struct option long_options[] = {
@@ -363,7 +364,7 @@ int main(int argc, char *argv[]) {
     char* samFileName = 0, *tmp;
     int c, i;
 	outputFile = stdout;
-    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:U:", long_options, &option_index))
+    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:P:", long_options, &option_index))
            >= 0) {
         switch (c) {
             case 0:
@@ -399,7 +400,7 @@ int main(int argc, char *argv[]) {
 			case 'h': 
 				headerFile = fopen(optarg, "w");
 				break;
-            case 'U':
+            case 'P':
                 paired = true;
                 break;
         }
