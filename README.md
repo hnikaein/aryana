@@ -73,6 +73,12 @@ Running an script for alignment of the reads to different converted reference ge
 	./aryana_bs <reference genome> <reference index folder> <CpG islands file> <input fastq file> <output file, without extensions> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]
 </code>
 
+Or the following script for the paired-end reads
+
+<code>
+    ./aryana_bsp <reference genome> <reference index folder> <CpG islands file> <input fastq file 1>  <input fastq file 2> <output file, without extensions> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]
+</code>
+
 ** It is not needed to run "prepare_genomes.sh" for every alignment. You just need to run it once on your reference to be able to run "aryana_bs".
 
 Example:
