@@ -33,6 +33,7 @@ char * genome;
 int chromNum;
 char * genomeFile, *annotationFile, *samFilePath, *referenceName;
 FILE * outputFile = NULL, * headerFile = NULL;
+bool paired = false;
 
 struct Island {
     int chr;
@@ -327,7 +328,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
                 }
             }
             else if(cigar[pos]=='*') {
-                readPenalties[readNum] += LONG_MAX;     // maximum penalty for not aligned reads
+                readPenalties[readNum] = LONG_MAX;     // maximum penalty for not aligned reads
                 break;
             }
             if (cigar[pos] == 0)
@@ -355,13 +356,14 @@ int main(int argc, char *argv[]) {
         { "CpG-islands", required_argument, 0, 'c' },
         { "penalties", required_argument, 0, 'p' },
 		{ "output", required_argument, 0, 'o' }, 
-		{ "header", required_argument, 0, 'h' }
+		{ "header", required_argument, 0, 'h' },
+        { "paired-end", no_argument, 0, 'U' }
     };
     int option_index = 0;
     char* samFileName = 0, *tmp;
     int c, i;
 	outputFile = stdout;
-    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:", long_options, &option_index))
+    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:U:", long_options, &option_index))
            >= 0) {
         switch (c) {
             case 0:
@@ -397,6 +399,9 @@ int main(int argc, char *argv[]) {
 			case 'h': 
 				headerFile = fopen(optarg, "w");
 				break;
+            case 'U':
+                paired = true;
+                break;
         }
     }
 	if (! headerFile) headerFile = outputFile;
@@ -432,16 +437,19 @@ int main(int argc, char *argv[]) {
 */
     
 	for (i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
-    char *rname[numberOfGenomes], *cigar[numberOfGenomes];
-    int flag[numberOfGenomes];
-    uint64_t pos[numberOfGenomes];
-    uint32_t mapq[numberOfGenomes];
-    long long int tlen;
+    char *rname[numberOfGenomes], *cigar[numberOfGenomes],*rname2[numberOfGenomes], *cigar2[numberOfGenomes];
+    int flag[numberOfGenomes],flagTwo[numberOfGenomes];
+    uint64_t pos[numberOfGenomes],pos2[numberOfGenomes];
+    uint32_t mapq[numberOfGenomes],mapq2[numberOfGenomes];
+    long long int tlen,tlen2;
     for (i = 0; i < numberOfGenomes; i++) {
         rname[i] = new char[maxChrNameLength];
         cigar[i] = new char[maxReadLength * 2];
+        rname2[i] = new char[maxChrNameLength];
+        cigar2[i] = new char[maxReadLength * 2];
     }
     char qname[100], rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength], copy[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
+    char qname2[100], rnext2[100], pnext2[100], seq_string2[maxReadLength], quality_string2[maxReadLength], copy2[maxReadLength];
     int chosen[numberOfGenomes];
     int j=0;
     for (; j < numberOfGenomes; j++)
@@ -482,6 +490,30 @@ int main(int argc, char *argv[]) {
             }
             else
                 readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
+            
+            if (paired) {
+                sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, &flag2[i], rname2[i], &pos2[i],&mapq2[i], cigar2[i],rnext2,pnext2, &tlen2,seq_string2,quality_string2);
+                index = ChromIndex(rname2[i]);
+                if(index == -1){
+                    readPenalties[i] = LONG_MAX;
+                    continue;
+                }
+                flag2 = 0;
+                if(i <=2) // if read has been aligned to first four genomes
+                    flag2 = 1;
+                if(i > 2) // if read has been aligned to last three genome
+                    flag2 = 0;
+                if(flagTwo[i] == 16){
+                    //reversed = 1;
+                    strcpy(copy2,seq_string2); // copy read for printing it later
+                    reverseRead(copy2);
+                    complementRead(copy2);
+                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, copy2, i ,index,pos2[i],flagTwo[i],flag2);
+                    
+                }
+                else
+                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
+            }
         }
         if(stop)
             break;
@@ -489,6 +521,9 @@ int main(int argc, char *argv[]) {
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
         fprintf(outputFile, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, flag[min], rname[min], pos[min],mapq[min], cigar[min],rnext,pnext, tlen,seq_string,quality_string);
+        if (paired) {
+            fprintf(outputFile, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, flagTwo[min], rname2[min], pos2[min],mapq2[min], cigar2[min],rnext2,pnext2, tlen2,seq_string2,quality_string2);
+        }
         int j=0;
         for (; j < numberOfGenomes; j++)
             readPenalties[j]=0;
