@@ -8,18 +8,18 @@
 #include <string>
 using namespace std;
 
-const long maxGenomeSize = 4e9;
 const int maxChromosomeNum = 1000;
 const int maxReadSize = 10000;
 const int maxTries = 10000; // Maximum number of tries to find a suitable location for each read
-long chromPos[maxChromosomeNum];
-unsigned long gs;
+long long chromPos[maxChromosomeNum], chromLen[maxChromosomeNum];
+long long gs;
 map <string, int> chromIndex;
 map <int, string> chromName;
 char * genome;
-unsigned short * meth;
+unsigned short * meth = 0;
+unsigned int * totalCount = 0, *methylCount = 0;
 int chromNum = 0;
-string genomeFile, annotationFile, methInFile, methOutFile, outputFileName;
+string genomeFile, cpgIslandFile, methInFile, methOutFile, outputFileName, countOutFile;
 FILE * outputFile = stdout, * outputFile2 = stdout;
 struct window {
     int chr;
@@ -32,15 +32,27 @@ struct window {
 };
 
 vector <window> islands;
-unsigned long long int n = 1000, ni = 0, snp = 0, readl = 100;
+long long int n = 1000, ni = 0, snp = 0, readl = 100;
 double island = 0.1, cpg = 0.9, noncpg = 0.01, err = 0;
 bool repeatMask = false, neg = false, pcr = false, paired=false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
 int pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance between paired end reads
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
-    genome = new char[maxGenomeSize];
-    meth = new unsigned short[maxGenomeSize];
+	ifstream ifile(genomeFile.c_str());
+	ifile.seekg(0, std::ios_base::end);	//seek to end
+	//now get current position as length of file
+	long long size = ifile.tellg();
+	ifile.close();
+    genome = new char[size];
+    meth = new unsigned short[size];
+	bzero(meth, size * sizeof(unsigned short));
+	if (countOutFile != "") {
+		totalCount = new unsigned int[size];
+		methylCount = new unsigned int[size];
+		bzero(totalCount, size * sizeof(unsigned int));
+		bzero(methylCount, size * sizeof(unsigned int));
+	}
     gs = 0;
     chromNum = 0;
     cerr << "Reading genome..." << endl;
@@ -51,163 +63,99 @@ void ReadGenome(string genomeFile) {
         exit(1);
     }
     while (! feof(f)) {
+		fLine[0] = 0;
         int n = fscanf(f, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
+		if (n == 0) break;
         if (fLine[0] == '>') {
-            chromPos[chromNum++] = gs;
-            if (chromNum > 1) cerr << " Length: " << chromPos[chromNum - 1] - chromPos[chromNum - 2] <<  endl;
-            cerr << fLine;
+            chromPos[chromNum] = gs;
+            if (chromNum > 0) {
+				chromLen[chromNum - 1] = chromPos[chromNum] - chromPos[chromNum - 1];
+				cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
+			}
+
             string name = fLine;
-            name = name.substr(1, name.find("|")-1);
-            chromIndex[name] = chromNum - 1;
-            chromName[chromNum - 1] = name;
+			if (name.find("|") != string::npos) name = name.substr(1, name.find("|")-1); else name = name.substr(1, name.size() - 1);
+			cerr << name;
+            chromIndex[name] = chromNum;
+            chromName[chromNum] = name;
+			chromNum++;
         } else {
-//            ToUpper(fLine);
             memcpy(genome+gs, fLine, n);
             gs += n;
         }
     }
     chromPos[chromNum] = gs;
+    chromLen[chromNum - 1] = chromPos[chromNum] - chromPos[chromNum - 1];	
+//	for (int i = 0; i < chromNum; i++)
+//		cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
     cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
     fclose(f);
 }
 
-// Returns true if the sequence is in valid position and containing no NAs
-bool GetSequence(long chr, bool strand, long wStart, long wEnd, char * seq) {
-    //pos--; // Converting 1 base position to 0 base
-    bool result = true;
-    memset(seq, 'N', wEnd - wStart + 1);
-    seq[wEnd - wStart + 1] = 0;
-    long ps, pt, ws;
-    ps = wStart - 1;
-    pt = wEnd - 1;
-    ws = 0;
-    if (ps < 0) {
-        ws -= ps;
-        ps -= ps; // = 0
-        result = false;
-    }
-    if (pt + chromPos[chr] >= chromPos[chr + 1]) {
-        pt = chromPos[chr + 1] - chromPos[chr] - 1;
-        result = false;
-    }
+// Returns the chromosome number (zero based) if the given genome-wide location is completely inside a chromosome, or -1 otherwise
 
-    memcpy(seq + ws, genome + ps + chromPos[chr], pt - ps + 1);
-    if (! strand) {
-        char tmp[20000];
-        memcpy(tmp, seq, wEnd - wStart + 2);
-        long j = 0;
-        for (long i = wEnd - wStart; i >= 0; i--)
-            switch(tmp[i]) {
-            case 'A':
-            case 'a':
-                seq[j++] = 'T';
-                break;
-            case 'C':
-            case 'c':
-                seq[j++] = 'G';
-                break;
-            case 'G':
-            case 'g':
-                seq[j++] = 'C';
-                break;
-            case 'T':
-            case 't':
-                seq[j++] = 'A';
-                break;
-            default:
-                seq[j++] = 'N';
-                break;
+int InsideChromosome(long long start, long long end) {
+    if (start < 0 || start > end) return -1;
+    for (int j = 1; j <= chromNum; j++) // Checking the read to be inside a chromosome
+    if (start < chromPos[j]) {
+        if (end < chromPos[j]) return j - 1; else return -1; // Both start and end within the same chromosome
+    }
+    return -1; // Bigger than all chromosome locations
+}
+
+// Reads the CpG islands, checks their position to be inside chromosomes, and adds them to the islands vector
+
+void ReadCpGIslands() {
+        if (cpgIslandFile == "") {
+            cerr << "No CpG island location indicated. Proceeding without CpG island locations." << endl;
+			return;
+        } 
+            cerr << "Processing CpG island locations from file: " <<  cpgIslandFile << endl;
+            ifstream f(cpgIslandFile.c_str());
+            if (! f.is_open()) {
+                cerr << "Error: CpG island locations file not found or could not be opened" << endl;
+                exit(1);
             }
-    }
-    for (long long i = 0; i < strlen(seq); i++)
-        if (seq[i] == 'N' || seq[i] == 'n') {
-            result = false;
-            break;
-        }
-    return result;
-}
-
-bool ConvertPosition(int chr, long long wStart, long long wEnd, long long &start, long long &end)
-{
-    if (wStart < 1 || wStart + chromPos[chr] - 1 >= chromPos[chr + 1]) return false;
-
-    start = wStart + chromPos[chr] - 1;
-    end = wEnd + chromPos[chr] - 1;
-    return true;
-}
-
-bool ConvertSequence(long chr, long long wStart, long long wEnd, double noncpg, double cpg) {
-    //pos--; // Converting 1 base position to 0 base
-    if (wStart < 1 || wStart + chromPos[chr] - 1 >= chromPos[chr + 1]) return false;
-
-    //cout << chr << "\t" << wStart << "\t" << wEnd << endl;
-    for (long long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
-        //cout << genome[i];
-        if (genome[i] == 'c' || genome[i] == 'C') {
-            if (genome[i+1] == 'g' || genome[i+1] == 'G') { // A CpG
-                if ((double) rand () / RAND_MAX > cpg) // Non-methylated
-                    genome[i] = 'T';
-            } else {
-                if ((double) rand() / RAND_MAX > noncpg)
-                    genome[i] = 'T'; // Simulating bisulfite treatment for non-CpG cytosines
+            char fLine[10000], chrom[10];
+            long long wStart, wEnd;
+            while (f.good()) {
+                fLine[0] = 0;
+                f.getline(fLine, sizeof(fLine));
+                if (! fLine[0]) continue;
+                // cerr << fLine << endl;
+                wStart = 0;
+                sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
+                if (! wStart || wStart >= wEnd || wEnd > chromLen[chromIndex[chrom]]) 
+                	cerr << "Omitting incorrect CpG island: " << chrom << ':' << wStart << '-' << wEnd << endl;
+             	else  
+					islands.push_back(window(chromIndex[chrom], wStart - 1, wEnd - 1));
             }
-        }
-    }
-    //cout << endl;
-    return true;
-}
-
-void ConvertWholeGenome() {
-    for (int i = 0; i < chromNum; i++)
-        ConvertSequence(i, chromPos[i] + 1, chromPos[i+1], noncpg, cpg);
+            f.close();
+            cerr << "Read " << islands.size() << " CpG islands." << endl;
 }
 
 void AssignMethylationRatio(string cpgIslandFile) {
-    unsigned short cpg1 = (unsigned short) (0.5 + cpg * 255), noncpg1 = (unsigned short) (0.5 + noncpg * 255), island1 = (unsigned short) (0.5 + island * 255);
+    unsigned short cpg1 = (unsigned short) (cpg * 100), noncpg1 = (unsigned short) (noncpg * 100), island1 = (unsigned short) (island * 100);
+	char chr[1000];
+	long long position;
+	double m;
     if (methInFile != "") {
         cerr << "Assigning methylation ratios based on file: " << methInFile << endl;
-        ifstream f(methInFile.c_str());
-        if (f.fail()) {
+        FILE * f = fopen(methInFile.c_str(), "r");
+        if (!f) {
             cerr << "Error opening " << methInFile << endl;
             exit(1);
         }
-        while (f.is_open() && ! f.eof()) {
-            string chr;
-            long long position;
-            double m;
-            f >> chr >> position >> m;
+        while (! feof(f)) {
+			position=0;
+            fscanf(f, "%s\t%lld\t%lf\n", chr, &position, &m);
+			if (position <= 0) continue;
             position += chromPos[chromIndex[chr]] - 1;
-            meth[position] = (unsigned short) (0.5 + m * 255);
+            meth[position] = (unsigned short) (m * 100);
         }
-        f.close();
-	    if (cpgIslandFile == "") {
-	        cerr << "No CpG island location indicated. Proceeding without CpG island locations." << endl;
-	    } else {
-	        cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
-	        ifstream f(cpgIslandFile.c_str());
-	        if (! f.is_open()) {
-	            cerr << "Error: CpG island locations file not found or could not be opened" << endl;
-	            exit(1);
-	        }
-	        char fLine[10000], chrom[10];
-	        long long wStart, wEnd;
-	        f.getline(fLine, sizeof(fLine)); // First row
-	        while (!f.eof()) {
-	            fLine[0] = 0;
-	            f.getline(fLine, sizeof(fLine));
-	            if (! fLine[0]) continue;
-	            // cerr << fLine << endl;
-	            wStart = 0;
-	            sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
-	            if (! wStart || wStart >= wEnd) continue;
-	            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-	            islands.push_back(window(chromIndex[chrom], wStart - 1, wEnd - 1));
-	        }
-			f.close();
-			cerr << "Read " << islands.size() << " CpG islands." << endl;
-	    }
+        fclose(f);
         return;
     }
     cerr << "Assignign methylation ratios" << endl;
@@ -218,79 +166,24 @@ void AssignMethylationRatio(string cpgIslandFile) {
             if (genome[j] == 'c' || genome[j] == 'C') {
                 if ((j+1 < chromPos[i+1]) && (genome[j+1] == 'g' || genome[j+1] == 'G')) meth[j] = cpg1;
                 else meth[j] = noncpg1;
-		}
+			}
             if (genome[j] == 'g' || genome[j] == 'G') {
                 if ((j > chromPos[i]) && (genome[j-1] == 'c' || genome[j-1] == 'C')) meth[j] = cpg1;
                 else meth[j] = noncpg1;
-		}
+			}
         }
 
-
-    if (cpgIslandFile == "") {
-        cerr << "No CpG island location indicated. Proceeding without CpG island locations." << endl;
-    } else {
-        cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
-        ifstream f(cpgIslandFile.c_str());
-        if (! f.is_open()) {
-            cerr << "Error: CpG island locations file not found or could not be opened" << endl;
-            exit(1);
-        }
-        char fLine[10000], chrom[10], strand[10];
-        long long wStart, wEnd, chr;
-        f.getline(fLine, sizeof(fLine)); // First row
-        while (!f.eof()) {
-            fLine[0] = 0;
-            f.getline(fLine, sizeof(fLine));
-            if (! fLine[0]) continue;
-            // cerr << fLine << endl;
-            wStart = 0;
-            sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
-            if (! wStart) continue;
-            // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-            chr = chromIndex[chrom];
-            islands.push_back(window(chr, wStart, wEnd));
-            for (long long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
+	for (unsigned int j = 0; j < islands.size(); j++) {
+        for (long long i = islands[j].wStart + chromPos[islands[j].chr]; i <= islands[j].wEnd + chromPos[islands[j].chr]; i++) {
                 if (genome[i] == 'c' || genome[i] == 'C')
                     if (i + 1 < gs && (genome[i+1] == 'g' || genome[i+1] == 'G')) meth[i] = island1;
                 if (genome[i] == 'g' || genome[i] == 'G')
                     if (i > 0 && (genome[i-1] == 'c' || genome[i-1] == 'C')) meth[i] = island1;
             }
         }
-		f.close();
-    }
-    //for (int i = 0; i < gs; i++) cerr << meth[i] << " ";
-    if (methOutFile != "") {
-        cerr << "Writing methylation ratio of the nucleotides in: " << methOutFile << endl;
-        ofstream f(methOutFile.c_str());
-        for (int i = 0; i < chromNum; i++)
-            for (long long j = chromPos[i]; j < chromPos[i+1]; j++)
-                if (meth[j] > 0) f << chromName[i] << "\t" << j+1-chromPos[i] << "\t" << setprecision(2) << (double)meth[j] / 255 << endl;
-        f.close();
-    }
 }
 
-void WriteGenome(string outputFile)
-{
-    FILE * f = fopen(outputFile.c_str(), "w");
-    char s[100], tmp;
-    for (int i = 0; i < chromNum; i++) {
-        fprintf(f, "%s\n", chromName[i].c_str());
-        unsigned long j;
-        for (j = chromPos[i]; j + 50 < chromPos[i + 1]; j+= 50) {
-            tmp = genome[j + 50];
-            genome[j + 50] = 0;
-            fprintf(f, "%s\n", genome + j);
-            genome[j + 50] = tmp;
-        }
-        tmp = genome[chromPos[i + 1]];
-        genome[chromPos[i+1]] = 0;
-        fprintf(f, "%s\n", genome + j);
-        genome[chromPos[i+1]] = tmp;
-    }
-    fclose(f);
-}
-
-unsigned long long lrand() {
+long long lrand() {
     return RAND_MAX * rand() + rand();
 }
 
@@ -329,19 +222,25 @@ void revcomp(char * a, long long l) {
 	delete [] b;
 }
 
-void PrintRead(FILE *f, int readNumber, int chr, long long p, char *quals) {
-    char strand = '+', original='o';
-    if (neg && (double) rand() / RAND_MAX < 0.5) strand='-';
-    if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
-    fprintf(f, "@%d|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), p - chromPos[chr]+1, p-chromPos[chr] + readl, strand, original);
+// Just generates a single read, without header line but with quality line
+
+void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char original) {
     char r[maxReadSize];
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
     for (int i = 0; i < readl; i++) // Bisulfite conversion
         if (r[i] == 'c' || r[i] == 'C'){
-			if( strand == '+' && (double) rand() * 255 / RAND_MAX >= meth[i+p]) r[i] = 'T';
-			else if( strand == '-' && (double) rand() * 255 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
-		}
+            if (strand == '+') {
+				if (totalCount) totalCount[p + i]++;
+				if ((double) rand() * 100.0 / RAND_MAX >= meth[i+p]) r[i] = 'T';
+				else if (methylCount) methylCount[p+i]++;
+			}
+            else {
+				if (totalCount) totalCount[p+readl-1-i]++;
+				if ((double) rand() * 100.0 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
+				else  if (methylCount) methylCount[p+readl-1-i]++;
+			}
+        }
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
     for (int i = 0; i < readl; i++)
@@ -349,25 +248,32 @@ void PrintRead(FILE *f, int readNumber, int chr, long long p, char *quals) {
     fprintf(f, "%-60s\n+\n%-60s\n", r,quals);
 }
 
+// Can print both single and paired end reads, along with the header line
+
+void PrintRead(int readNumber, int chr, long long p, char *quals, int pairDis) {
+    char strand = '+', original='o';
+    if (neg && (double) rand() / RAND_MAX < 0.5) strand='-';
+    if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
+    if (! paired) fprintf(outputFile, "@%d|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), p - chromPos[chr]+1, p-chromPos[chr] + readl, strand, original);
+	else {
+		fprintf(outputFile, "@%d_1|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), p - chromPos[chr]+1, p-chromPos[chr] + readl, strand, original);
+		fprintf(outputFile2, "@%d_2|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), p - chromPos[chr]+readl+pairDis+1, p-chromPos[chr] + 2 * readl + pairDis, strand, original);
+	}
+	PrintSingleRead(outputFile, p, quals, strand, original);
+	if (paired) PrintSingleRead(outputFile2, p + readl + pairDis, quals, strand, original);
+}
+
+// Looks for a genomic region to find out any repeat regions (lower-case nucleotides)
+
 bool Repeat(const char *g, int length) {
     for (int i = 0; i < length; i++)
         if (g[i] >= 'a') return true;
     return false;
 }
 
-// Returns the chromosome number (zero based) if the given genome-wide location is completely inside a chromosome, or -1 otherwise
-
-int InsideChromosome(unsigned long long start, unsigned long long end) {
-	for (int j = 1; j <= chromNum; j++) // Checking the read to be inside a chromosome
-    if (start < chromPos[j]) {
-		if (end < chromPos[j]) return j - 1; else return -1; // Both start and end within the same chromosome
-	}
-	return -1; // Bigger than all chromosome locations
-}
-
 // Returns the chromosome number if the given location is a good posotion for generating a read, or -1 othersise
 
-int CheckPosition(unsigned long long p, int pairDis) {
+int CheckPosition(long long p, int pairDis) {
 	int chr = -1;
 	if ((chr = InsideChromosome(p, p + readl - 1)) == -1) return -1;
     if (memchr(genome + p, 'N', readl)) return -1;
@@ -380,12 +286,13 @@ int CheckPosition(unsigned long long p, int pairDis) {
 	return chr;
 }
 
+// Simulates the reads
 
-void SimulateReads(FILE * outputFile, FILE * outputFile2) {
+void SimulateReads() {
     char quals[maxReadSize];
     memset(quals, 'I', readl);
     quals[readl] = 0;
-    unsigned long long p;
+    long long p;
 	int pairDis = 0, chr;
 	if (! gs) {
 		cerr << "Error: the length of genome is zero." << endl;
@@ -404,8 +311,7 @@ void SimulateReads(FILE * outputFile, FILE * outputFile2) {
 			pairDis = lrand() % (pairMaxDis - pairMinDis + 1) + pairMinDis;
 			if ((chr = CheckPosition(p, pairDis)) != -1) break;
 		} while (true);
-        PrintRead(outputFile, i, chr, p, quals);
-		if (paired) PrintRead(outputFile2, i, chr, p + readl + pairDis, quals);
+        PrintRead(i, chr, p, quals, pairDis);
     }
 
 // Simulating CpG-island reads
@@ -423,11 +329,11 @@ void SimulateReads(FILE * outputFile, FILE * outputFile2) {
                 exit(-1);
             }
             is = lrand() % islands.size();
-			p = rand() % (islands[is].wEnd - (islands[is].wStart - readl + 1) + 1) + islands[is].wStart - readl + 1; // To have at least 1bp overlap between read and CpG-island
-            if ((chr = CheckPosition(p, pairDis)) != -1) break;
+			p = rand() % (islands[is].wEnd - (islands[is].wStart - readl + 1) + 1) + islands[is].wStart - readl + 1 + chromPos[islands[is].chr]; // To have at least 1bp overlap between read and CpG-island
+//			cerr << islands.size() << " " << is << " " << p << " " << islands[is].chr << " " << CheckPosition(p, pairDis) << endl;
+			if ((chr = CheckPosition(p, pairDis)) == islands[is].chr) break;
 		} while (true);
-        PrintRead(outputFile, n+i, chr, p, quals);
-        if (paired) PrintRead(outputFile2, n+i, chr, p + readl + pairDis, quals);
+        PrintRead(n+i, chr, p, quals, pairDis);
     }
 
 // Closing output
@@ -442,12 +348,34 @@ void ProcessSNPs(void) {
         exit(-1);
     }    
 	for (int i = 0; i < snp; i++) {
-        unsigned long long j = lrand() % gs;
+        long long j = lrand() % gs;
         genome[j] = Mutate(genome[j]);
     }
 }
 
+void WriteMethylationRatios() {
+    if (methOutFile != "") {
+        cerr << "Writing methylation ratio of the nucleotides in: " << methOutFile << endl << "Please be patient, this might take some time depending on the genome size" << endl;
+        FILE * f = fopen(methOutFile.c_str(), "w");
+		fprintf(f, "chr\tpos\tmeth\n");
+        for (int i = 0; i < chromNum; i++)
+            for (long long j = chromPos[i]; j < chromPos[i+1]; j++)
+                if (meth[j] > 0) fprintf(f, "%s\t%lld\t%.2f\n", chromName[i].c_str(), j+1-chromPos[i], (double) meth[j] / 100.0);
+        fclose(f);
+    }
+}
 
+void WriteReadCounts() {
+    if (countOutFile != "") {
+        cerr << "Writing the number of reads covering each cytosine (converted, unconverted, ratio) in: " << countOutFile << endl << "Please be patient, this might take some time depending on the genome size" << endl;
+        FILE * f = fopen(countOutFile.c_str(), "w");
+		fprintf(f, "chr\tpos\tnTotal\tnMeth\tmeth\n");		 
+        for (int i = 0; i < chromNum; i++)
+            for (long long j = chromPos[i]; j < chromPos[i+1]; j++)
+                if (totalCount[j] > 0) fprintf(f, "%s\t%lld\t%d\t%d\t%.2f\n", chromName[i].c_str(), j+1-chromPos[i], totalCount[j], methylCount[j], (double) methylCount[j] / totalCount[j]);
+        fclose(f);
+    }
+}
 
 int main(int argc, char * argv[]) {
 // Parsing Arugments
@@ -468,7 +396,7 @@ int main(int argc, char * argv[]) {
             if (strcmp(argv[i], "-g") == 0)
                 genomeFile = argv[++i];
             else if (strcmp(argv[i], "-a") == 0)
-                annotationFile = argv[++i];
+                cpgIslandFile = argv[++i];
             else if (strcmp(argv[i], "-o") == 0)
                 outputFileName = argv[++i];
             else if (strcmp(argv[i], "-n") == 0)
@@ -491,6 +419,8 @@ int main(int argc, char * argv[]) {
                 methInFile = argv[++i];
             else if (strcmp(argv[i], "-mo") == 0)
                 methOutFile = argv[++i];
+			else  if (strcmp(argv[i], "-co") == 0)
+				countOutFile = argv[++i];
 			else if (strcmp(argv[i], "-pMin") == 0)
 				pairMinDis = atoi(argv[++i]);
 			else if (strcmp(argv[i], "-pMax") == 0)
@@ -506,11 +436,12 @@ int main(int argc, char * argv[]) {
     }
 	if (genomeFile == "") {
         cerr << "Arguments: -g <reference genome, mandatory> -n <number of simulated reads from whole genome, default=1000>  -ni <number of simulated reads from CpG-Islands, default=0>" << endl <<
-             "-l <length of each read, default=100> -o <fastq output file without extension, default=stdout> -m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file>" << endl <<
+             "-a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -l <length of each read, default=100> -o <fastq output file without extension, default=stdout>" << endl << 
+			 "-m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -co <count of reads covering each cytosine output file>" << endl <<
              "-ch <methylation ratio of CH dinucleotides, default=0.01> -cg <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
              "-i <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1> -e <sequencing errors ratio, default=0> -s <number of SNPs, default=0>"<<endl <<
              "-a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -neg (simulate reads from negative strand) -p (simulate PCR amplified reads)" << endl <<
-			 "-P (produce paired-end reads), -pMin (min distance between a pair of reads), -pMax (max distance between a pair of reads)" << endl;
+			 "-P (produce paired-end reads) -pMin (min distance between a pair of reads,default=300) -pMax (max distance between a pair of reads, default=1000)" << endl;
         exit(1);
     } 
 
@@ -520,14 +451,24 @@ int main(int argc, char * argv[]) {
 	}
 // Reading input
     ReadGenome(genomeFile);
+	ReadCpGIslands();
     ProcessSNPs();
-    AssignMethylationRatio(annotationFile);
+    AssignMethylationRatio(cpgIslandFile);
 	if (outputFileName != "") {
 		if (paired) {	
 			outputFile = fopen((outputFileName + "_1.fastq").c_str(), "w");
 			outputFile2 = fopen((outputFileName + "_2.fastq").c_str(), "w");
 		} else outputFile = fopen((outputFileName + ".fastq").c_str(), "w");
 	}
-    SimulateReads(outputFile, outputFile2);
+	cerr << "Simulating reads..." << endl;
+    SimulateReads();
+	WriteMethylationRatios();
+	WriteReadCounts();
+	cerr << "Finished." << endl;
     delete [] genome;
+	delete [] meth;
+	if (totalCount) {
+		delete[] totalCount;
+		delete[] methylCount;
+	}
 }
