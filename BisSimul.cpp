@@ -421,9 +421,9 @@ int main(int argc, char * argv[]) {
                 methOutFile = argv[++i];
 			else  if (strcmp(argv[i], "-co") == 0)
 				countOutFile = argv[++i];
-			else if (strcmp(argv[i], "-pMin") == 0)
+			else if (strcmp(argv[i], "-Pmin") == 0)
 				pairMinDis = atoi(argv[++i]);
-			else if (strcmp(argv[i], "-pMax") == 0)
+			else if (strcmp(argv[i], "-Pmax") == 0)
 				pairMaxDis = atoi(argv[++i]);
 			else {
                 cerr << "Unrecognized argument: "<< argv[i] << endl;
@@ -440,8 +440,8 @@ int main(int argc, char * argv[]) {
 			 "-m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -co <count of reads covering each cytosine output file>" << endl <<
              "-ch <methylation ratio of CH dinucleotides, default=0.01> -cg <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
              "-i <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1> -e <sequencing errors ratio, default=0> -s <number of SNPs, default=0>"<<endl <<
-             "-a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -neg (simulate reads from negative strand) -p (simulate PCR amplified reads)" << endl <<
-			 "-P (produce paired-end reads) -pMin (min distance between a pair of reads,default=300) -pMax (max distance between a pair of reads, default=1000)" << endl;
+             "-neg (simulate reads from negative strand) -p (simulate PCR amplified reads) -P (produce paired-end reads)" << endl <<
+			 "-Pmin (min distance between a pair of reads,default=300) -Pmax (max distance between a pair of reads, default=1000)" << endl;
         exit(1);
     } 
 
