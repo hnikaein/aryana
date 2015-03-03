@@ -90,3 +90,19 @@ Example:
 	./aryana_bs hg19.fa BS_Genomes/ cpg_islands_hg19.txt reads.fastq result ar="-p 10"
 
 </code>
+
+Analyzing output
+================
+
+The BisAnalyzer receives the SAM file of aligining Bis-Seq reads to the genome, produces a table containing the minimum edit distance between each read
+and the aligned position, considering difference scenarios the read can be produced: Allowing either C->T or G->A conversion, checking PCR-read possibility, 
+and considering the positive or negative strand.
+
+If the reads are produces through BisSimul program, the BisAnalyzer can also analyze each read against the real genomic position the read has been simulated from.
+
+The output is a tab-delimited table including several columns: the read name (ReadName), chromosome name and chromosomal position of the alignment according to SAM file (AlnChr and  AlnPos), the minimum edit distance - penalty - between the read and the aligned sequence based on the CIGAR sequence (AlnPen), and the same information for the real read location (RealChr, RealPos and RealPen).
+
+<code>
+    ./BisAnalyzer  -g <reference genome, mandatory> -i <alignment SAM file> -s (use this argument if the reads are generated via BisSimul)
+</code>
+
