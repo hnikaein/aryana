@@ -21,7 +21,7 @@ SUBDIRS=	.
 .cc.o:
 		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-all:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul
+all:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul BisAnalyzer
 
 aryana:$(OBJS) aryana_main.o
 		$(CC) $(CFLAGS2) $(DFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
@@ -37,6 +37,9 @@ methyl-extract:
 
 BisSimul:	
 		$(CXX) $(DFLAGS) BisSimul.cpp -o BisSimul
+
+BisAnalyzer:
+		$(CXX) $(DFLAGS) BisAnalyzer.cpp -o BisAnalyzer
 
 QSufSort.o:QSufSort.h
 
@@ -60,6 +63,6 @@ bwtsw2_main.o:bwtsw2.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes BisSimul 
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes BisSimul BisAnalyzer 
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen
