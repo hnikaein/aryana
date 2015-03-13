@@ -208,7 +208,8 @@ void convertCigar(char * cigar, char * cigar2) {
 }
 
 // read chunks from samfile and does computation on them
-
+bool paired = false;
+uint64_t last_pos;
 int ProcessSamFile(FILE * samFile, FILE * ambFile) {
     char buffer[maxSamFileLineLength];
     char rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength]; //(Ali) I kept most of the limitations, but better to update them based on defined constants
@@ -226,6 +227,8 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
             return -1;
         sscanf(buffer, "%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", line.rname, &flag, line.chr, &(line.pos) ,&mapq, line.cigar,rnext,pnext, &tlen,seq_string,quality_string);
         if (flag & 4) continue; // Unmapped read
+        if((flag & 0x1) && line.pos==last_pos)//paired read and unmapped
+            continue;
         line.seq_string = seq_string;
         convertCigar(line.cigar, line.cigar2);
         if(debug)
