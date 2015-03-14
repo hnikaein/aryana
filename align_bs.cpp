@@ -481,7 +481,7 @@ int main(int argc, char *argv[]) {
                 flag2 = 1;
             if(i > 2) // if read has been aligned to last three genome
                 flag2 = 0;
-            if(flag[i] == 16){
+/*            if(flag[i] == 16){
                 //reversed = 1;
                 strcpy(copy,seq_string); // copy read for printing it later
                 reverseRead(copy);
@@ -490,7 +490,8 @@ int main(int argc, char *argv[]) {
 
             }
             else
-                readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
+*/
+            readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
             
             if (paired) {
                 sscanf(line,"%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, &flagTwo[i], rname2[i], &pos2[i],&mapq2[i], cigar2[i],rnext2,pnext2, &tlen2,seq_string2,quality_string2);
@@ -504,7 +505,7 @@ int main(int argc, char *argv[]) {
                     flag2 = 1;
                 if(i > 2) // if read has been aligned to last three genome
                     flag2 = 0;
-                if(flagTwo[i] == 16){
+/*                if(flagTwo[i] == 16){
                     //reversed = 1;
                     strcpy(copy2,seq_string2); // copy read for printing it later
                     reverseRead(copy2);
@@ -512,8 +513,8 @@ int main(int argc, char *argv[]) {
                     readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, copy2, i ,index,pos2[i],flagTwo[i],flag2);
                     
                 }
-                else
-                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
+                else */
+                readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
             }
         }
         if(stop)

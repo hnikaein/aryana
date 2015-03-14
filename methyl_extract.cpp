@@ -234,7 +234,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
         if(debug)
             cerr << "cigar2:  "<<line.cigar2<< endl;
         convertRead();
-        if (flag & 16) reverseRead();
+        //if (flag & 16) reverseRead();
         int result = checkGAorCT();
         if(debug)
             cerr << result<<endl;

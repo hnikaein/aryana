@@ -19,7 +19,7 @@ map <int, string> chromName;
 char * genome;
 int chromNum = 0;
 string genomeFile, samFileName, outputFileName;
-bool bisSimul = false;
+bool bisSeq = false, bisSimul = false;
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
@@ -130,7 +130,7 @@ int CigarLen(string cigar) {
 // Finds the best alignment between a (reference) and b (query). 
 // Permits conversions from orig_base inside a to conv_base inside b with 0 penalty. returns the edit distance
 
-int EditDistance(string a, string b, string cigar, char orig_base, char conv_base) {
+int EditDistance(string a, string b, string cigar, char orig_base = '\0', char conv_base = '\0') {
 	//cerr << "Edit distance, length(a): " << a.size() << ", length(b): " << b.size() << ", cigar: " << cigar << endl << "a: " << a << endl << "b: " << b << endl;
 	int apos = 0, bpos = 0, cigarpos = 0, penalty = 0;
 	while (cigarpos < cigar.size()) {
@@ -176,7 +176,10 @@ int EditDistance(string a, string b, string cigar, char orig_base, char conv_bas
 }
 
 void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos1 = 0, int penalty1 = 0, string chr2 = "NA", long long pos2 = 0, int penalty2 = 0) {
-	fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
+	if (! bisSimul)
+		fprintf(f, "%s\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1);
+	else
+		fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
 }
 
 void ProcessSamFile(string samFileName) {
@@ -191,7 +194,10 @@ void ProcessSamFile(string samFileName) {
 		exit(-1);
 	}
 	char buf[maxSamLineLength];
-	fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen\n");
+	if (bisSimul)
+		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen\n");
+	else 
+		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\n");
 	while (! feof(f)) {
 		buf[0] = 0; penalty = penalty2 = -1;
 		if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
@@ -203,11 +209,18 @@ void ProcessSamFile(string samFileName) {
 			strcpy(rname, "NA");
 			pos = 0;
 		} else if (GetSequence(rname, pos, CigarLen(cigar), refSeq)) {
-			if (flag & 16) revcomp(refSeq);
-			penalty = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
+//			cerr << "Flag: " << flag << ", Read: " << seq << ", Ref: " << refSeq << endl;
+//			if (flag & 16) { 
+//				revcomp(refSeq);
+//				cerr << "Converted Ref: " << refSeq << endl;
+//			}
+			if (bisSeq)
+				penalty = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
+			else 
+				penalty = EditDistance(refSeq, seq, cigar);
 		}
 		if (! bisSimul) {
-			PrintOutput(of, qname, rname, pos, penalty, "NA", 0, -1);
+			PrintOutput(of, qname, rname, pos, penalty);
 			continue;
 		}
 		// BisSimul simulated reads
@@ -240,9 +253,13 @@ int main(int argc, char * argv[]) {
     for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-s") == 0) {
 			bisSimul = true;
+			bisSeq = true;
 			continue;
 		}
-		
+		if (strcmp(argv[i], "-b") == 0) {
+			bisSeq = true;
+			continue;
+		}
 		if (i < argc - 1) { // The paired arguments
             if (strcmp(argv[i], "-g") == 0)
                 genomeFile = argv[++i];
@@ -260,7 +277,8 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 	if (genomeFile == "") {
-        cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -s (use this argument if the reads are generated via BisSimul)" << endl; 
+        cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -o <result file>" << endl \
+		     << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul, it enables -b)" << endl; 
         exit(1);
     } 
 
@@ -272,9 +290,3 @@ int main(int argc, char * argv[]) {
 	cerr << "Finished." << endl;
     delete [] genome;
 }
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <string.h>
-#include <stdlib.h>
-#include <map>

@@ -13,6 +13,8 @@
 const int sam_line=5000;
 char int_to_bp[4]={'A','C','G','T'};
 
+
+
 int sam_generator(char *buffer, char *qname, int flag, char * rname, bwtint_t position, uint32_t mapq, char * cigar, char * rnext, bwtint_t pnext, long long tlen, ubyte_t *seq, ubyte_t * quality,int len)
 {
 	char  *seq_string=(char *) malloc(len+1),*quality_string=(char *) malloc(len+1);
@@ -20,14 +22,25 @@ int sam_generator(char *buffer, char *qname, int flag, char * rname, bwtint_t po
 		mapq = 0;
 	seq_string[len]=quality_string[len]=0;
 	int i;
-	for (i=0; i<len; i++)
-	{
-		if (seq[i]<4)
-			seq_string[i]=int_to_bp[seq[i]];
-		else
-			seq_string[i]='N';
-		quality_string[i]=quality[i];
-	}
+	if (! (flag & 16)) {
+		for (i=0; i<len; i++)
+		{
+			if (seq[i]<4)
+				seq_string[i]=int_to_bp[seq[i]];
+			else
+				seq_string[i]='N';
+			quality_string[i]=quality[i];
+		}
+	} else {
+        for (i=0; i<len; i++)
+        {
+            if (seq[i]<4)
+                seq_string[len - i - 1]=int_to_bp[3 - seq[i]];
+            else
+                seq_string[len - i - 1]='N';
+            quality_string[len - i - 1]=quality[i];
+        }	
+	}	
 	buffer[0] = '\0';
 	uint64_t pos=position;
 /*	if ((flag & 4) ==0)
