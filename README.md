@@ -94,15 +94,20 @@ Example:
 Analyzing output
 ================
 
-The BisAnalyzer receives the SAM file of aligining Bis-Seq reads to the genome, produces a table containing the minimum edit distance between each read
-and the aligned position, considering difference scenarios the read can be produced: Allowing either C->T or G->A conversion, checking PCR-read possibility, 
+The SamAnalyzer receives the SAM file of aligining either normal DNA or Bis-Seq reads to the genome, produces a table containing the minimum edit distance between each read
+and the aligned position. For Bis-Seq reads, it considers difference scenarios the read can be produced: Allowing either C->T or G->A conversion, checking PCR-read possibility, 
 and considering the positive or negative strand.
 
-If the reads are produces through BisSimul program, the BisAnalyzer can also analyze each read against the real genomic position the read has been simulated from.
+If the reads are produces through BisSimul program, or the names of the reads include the true genomic location, in the same way that BisSimul does, the SamAnalyzer can also analyze 
+each read against the real genomic position the read has been simulated from.
 
-The output is a tab-delimited table including several columns: the read name (ReadName), chromosome name and chromosomal position of the alignment according to SAM file (AlnChr and  AlnPos), the minimum edit distance - penalty - between the read and the aligned sequence based on the CIGAR sequence (AlnPen), and the same information for the real read location (RealChr, RealPos and RealPen).
+The output is a tab-delimited table including several columns: the read name (ReadName), chromosome name and chromosomal position of the alignment according to SAM file (AlnChr and  AlnPos), the minimum edit distance - penalty - between the read and the aligned sequence based on the CIGAR sequence (AlnPen), and the same information for the real read location (RealChr, RealPos and RealPen) if the -s argument is used.
+
+If -i and -o arguments are not used, the standard input and standard output will be used.
 
 <code>
-    ./BisAnalyzer  -g <reference genome, mandatory> -i <alignment SAM file> -s (use this argument if the reads are generated via BisSimul)
+    ./BisAnalyzer  -g <reference genome, mandatory> -i <alignment SAM file> -o <output tabular file> 
+    -b (input is Bis-Seq, default: normal DNA-seq) 
+    -s (use this argument if the reads are generated via BisSimul, or the read names include the true position in a similar way)
 </code>
 

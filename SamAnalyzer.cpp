@@ -19,7 +19,7 @@ map <int, string> chromName;
 char * genome;
 int chromNum = 0;
 string genomeFile, samFileName, outputFileName;
-bool bisSeq = false, bisSimul = false;
+bool bisSeq = false, realPos = false;
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
@@ -176,7 +176,7 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
 }
 
 void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos1 = 0, int penalty1 = 0, string chr2 = "NA", long long pos2 = 0, int penalty2 = 0) {
-	if (! bisSimul)
+	if (! realPos)
 		fprintf(f, "%s\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1);
 	else
 		fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
@@ -194,7 +194,7 @@ void ProcessSamFile(string samFileName) {
 		exit(-1);
 	}
 	char buf[maxSamLineLength];
-	if (bisSimul)
+	if (realPos)
 		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen\n");
 	else 
 		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\n");
@@ -219,7 +219,7 @@ void ProcessSamFile(string samFileName) {
 			else 
 				penalty = EditDistance(refSeq, seq, cigar);
 		}
-		if (! bisSimul) {
+		if (! realPos) {
 			PrintOutput(of, qname, rname, pos, penalty);
 			continue;
 		}
@@ -252,7 +252,7 @@ int main(int argc, char * argv[]) {
 // Parsing Arugments
     for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-s") == 0) {
-			bisSimul = true;
+			realPos = true;
 			bisSeq = true;
 			continue;
 		}
@@ -278,7 +278,7 @@ int main(int argc, char * argv[]) {
     }
 	if (genomeFile == "") {
         cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -o <result file>" << endl \
-		     << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul, it enables -b)" << endl; 
+		     << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul or contain the true positions in a similar way)" << endl; 
         exit(1);
     } 
 
