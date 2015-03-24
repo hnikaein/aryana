@@ -19,7 +19,7 @@ map <int, string> chromName;
 char * genome;
 int chromNum = 0;
 string genomeFile, samFileName, outputFileName;
-bool bisSeq = false, realPos = false;
+bool bisSeq = false, realPos = false, seqOutput = false;
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
@@ -175,17 +175,22 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
 	return penalty;		
 }
 
-void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos1 = 0, int penalty1 = 0, string chr2 = "NA", long long pos2 = 0, int penalty2 = 0) {
-	if (! realPos)
-		fprintf(f, "%s\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1);
-	else
-		fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d\n", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
+void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos1 = 0, int penalty1 = 0, string chr2 = "NA", long long pos2 = 0, int penalty2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char* seq2 = NULL) {
+	if (! realPos) {
+		fprintf(f, "%s\t%s\t%lld\t%d", name.c_str(), chr1.c_str(), pos1, penalty1);
+		if (seqOutput) fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
+	}
+	else {
+		fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
+		if (seqOutput) fprintf(f, "\t%s\t%s\t%s\t%s", samSeq, cigar, seq1, seq2);
+	}
+	fprintf(f, "\n");
 }
 
 void ProcessSamFile(string samFileName) {
     long long int tlen, tlen2, pos, pos2;
-	int flag, mapq, penalty, penalty2;
-    char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], copy[maxReadLen], qname2[1000], rnext2[1000], pnext2[1000], seq2[maxReadLen], quality_string2[maxReadLen], copy2[maxReadLen], cigar[2*maxReadLen], cigar2[2*maxReadLen], refSeq[2*maxReadLen];
+	int flag, mapq, penalty, penalty2, startPos;
+    char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], copy[maxReadLen], qname2[1000], rnext2[1000], pnext2[1000], seq2[maxReadLen], quality_string2[maxReadLen], copy2[maxReadLen], cigar[2*maxReadLen], cigar2[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
 	FILE * f = stdin, * of = stdout;
 	if (samFileName != "") f = fopen(samFileName.c_str(), "r");
 	if (outputFileName != "") of = fopen(outputFileName.c_str(), "w");
@@ -194,12 +199,19 @@ void ProcessSamFile(string samFileName) {
 		exit(-1);
 	}
 	char buf[maxSamLineLength];
-	if (realPos)
-		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen\n");
-	else 
-		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\n");
+	if (realPos) {
+		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen");
+		if (seqOutput) fprintf(of, "\tsamSeq\tAlnSeq\tRealSeq");
+	}
+	else {
+		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen");
+		if (seqOutput) fprintf(of, "\tsamSeq\tAlnSeq");
+	}
+	fprintf(of, "\n");
 	while (! feof(f)) {
 		buf[0] = 0; penalty = penalty2 = -1;
+		startPos = 0;
+		string tmp, chr = "NA", start, end, type;
 		if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
 		if (buf[0] == '@') continue;
 //		cerr << "SAM line: " << buf << endl;
@@ -219,31 +231,24 @@ void ProcessSamFile(string samFileName) {
 			else 
 				penalty = EditDistance(refSeq, seq, cigar);
 		}
-		if (! realPos) {
-			PrintOutput(of, qname, rname, pos, penalty);
-			continue;
-		}
+		if (realPos) {
 		// BisSimul simulated reads
-		stringstream s(qname);
-		string tmp, chr, start, end, type;
-		getline(s, tmp, '|');
-		getline(s, chr, ':');
-		getline(s, start, '-');
-		getline(s, end, '|');
-		getline(s, type, ' ');
-		if (! GetSequence(chr, atoi(start.c_str()), atoi(end.c_str()) - atoi(start.c_str()) + 1, refSeq)) {
-			PrintOutput(of, qname, rname, pos, penalty, chr, atoi(start.c_str()), -1);
-			continue;
+			stringstream s(qname);
+			getline(s, tmp, '|');
+			getline(s, chr, ':');
+			getline(s, start, '-');
+			getline(s, end, '|');
+			getline(s, type, ' ');
+			if (GetSequence(chr, atoi(start.c_str()), atoi(end.c_str()) - atoi(start.c_str()) + 1, refSeq2)) {
+				startPos = atoi(start.c_str());
+				if (type == "-o" || type == "+p") {
+					revcomp(refSeq2);
+				}	
+				if (type[1] == 'o') penalty2 = EditDistance(refSeq2, seq, "100m", 'C', 'T');
+				else penalty2 = EditDistance(refSeq2, seq, "100m", 'G', 'A');
+			}
 		}
-//		cerr << "RefSeq: " << refSeq << " Type: " << type << endl;
-		if (type == "-o" || type == "+p") {
-			revcomp(refSeq);
-//			cerr << "RevCom: " << refSeq << endl;
-		}
-		int penalty2; 
-		if (type[1] == 'o') penalty2 = EditDistance(refSeq, seq, "100m", 'C', 'T');
-		else penalty2 = EditDistance(refSeq, seq, "100m", 'G', 'A');
-		PrintOutput(of, qname, rname, pos, penalty, chr, atoi(start.c_str()), penalty2);
+		PrintOutput(of, qname, rname, pos, penalty, chr, startPos, penalty2, seq, cigar, refSeq, refSeq2);
 	}
 }
 
@@ -258,6 +263,10 @@ int main(int argc, char * argv[]) {
 		}
 		if (strcmp(argv[i], "-b") == 0) {
 			bisSeq = true;
+			continue;
+		}
+		if (strcmp(argv[i], "-S") == 0) {
+			seqOutput = true;
 			continue;
 		}
 		if (i < argc - 1) { // The paired arguments
@@ -277,9 +286,9 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 	if (genomeFile == "") {
-        cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -o <result file>" << endl \
-		     << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul or contain the true positions in a similar way)" << endl; 
-        exit(1);
+        cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -o <result file> -S (print SAM, CIGAR and alignment sequences in output)" << endl \
+       		 << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul or contain the true positions in a similar way)" << endl;
+		exit(1);
     } 
 
 // Reading input
