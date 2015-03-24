@@ -107,7 +107,7 @@ If -i and -o arguments are not used, the standard input and standard output will
 
 <code>
     ./SamAnalyzer  -g <reference genome, mandatory> -i <alignment SAM file> -o <output tabular file>  
-	-S (print SAM, CIGAR and alignment sequences in output)
+    -S (print SAM, CIGAR and alignment sequences in output)
     -b (input is Bis-Seq, default: normal DNA-seq) 
     -s (use this argument if the reads are generated via BisSimul, or the read names include the true position in a similar way)
 </code>

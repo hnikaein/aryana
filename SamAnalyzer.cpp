@@ -201,11 +201,11 @@ void ProcessSamFile(string samFileName) {
 	char buf[maxSamLineLength];
 	if (realPos) {
 		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen");
-		if (seqOutput) fprintf(of, "\tsamSeq\tAlnSeq\tRealSeq");
+		if (seqOutput) fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq\tRealSeq");
 	}
 	else {
 		fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen");
-		if (seqOutput) fprintf(of, "\tsamSeq\tAlnSeq");
+		if (seqOutput) fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq");
 	}
 	fprintf(of, "\n");
 	while (! feof(f)) {
