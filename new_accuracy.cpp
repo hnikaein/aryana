@@ -20,9 +20,9 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-    
-    
-    if ( argc != 2 ){
+
+
+    if ( argc != 2 ) {
         /* We print argv[0] assuming it is the program name */
         printf( "usage: %s filename", argv[0] );
     }
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
         /* fopen returns 0, the NULL pointer, on failure */
         if ( samFile == 0 )
             printf( "Could not open file\n" );
-        
+
         //    FILE *samFile;
         //    samFile = fopen(samName, "r");
         long long badAlignedReads = 0;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         uint64_t pos;
         uint32_t mapq;
         long long int tlen;
-        
+
         rname = new char[100];
         cigar = new char[200];
         qname = new char[100];
@@ -54,13 +54,13 @@ int main(int argc, char *argv[]) {
         pnext = new char[100];
         seq_string = new char[1000];
         quality_string = new char[500];
-        
+
         int stop = 0;
         while (1) {
             if (fgets(line, 1000, samFile) == NULL)
                 break;
-            while (line[0] == '@'){
-                if(fgets(line, 1000, samFile) == NULL){
+            while (line[0] == '@') {
+                if(fgets(line, 1000, samFile) == NULL) {
                     stop = 1;
                     break;
                 }
@@ -68,44 +68,44 @@ int main(int argc, char *argv[]) {
             if(stop)
                 break;
             readNum++;
-            
+
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos,&mapq, cigar,rnext,pnext, &tlen,seq_string,quality_string);
 
             string readname(seq_string);
             //1000000_chr21:30778456-30778555
             //968_>chr2:24442257-24442356_-o
-            
+
             char *copy = (char *)malloc(strlen(qname) + 1);
             strcpy(copy, qname);
-            
+
             char* token=strtok(copy, ":");
             char* chrom = strtok(token, ">");
             chrom = strtok(NULL, ">");
-            
+
             char *tokens = strtok(qname, ":");
             tokens = strtok(NULL, ":");
             //printf( "chrom: %s   tokens:    %s \n",chrom,tokens  );
-            
+
             char *first,*second;
             first = strtok(tokens, "-");
             second = strtok(NULL, "-");
-            
-			second = strtok(second, "_");
-            
+
+            second = strtok(second, "_");
+
             uint64_t start, end;
             start = strtoll(first,NULL,10);
             end = strtoll(second,NULL,10);
             //printf( "first: %" PRIu64 "   sec:%" PRIu64 " \n",start,end  );
             if(start-20 <= pos && pos <=end+20 && !strcmp(chrom,rname ));
             //exact aligning
-            else if(!strstr(cigar,"*")){
+            else if(!strstr(cigar,"*")) {
                 badAlignedReads += 1;
-                
+
                 //fprintf(stdout,"%s\n",line);
             }
-            
+
             //fprintf(stdout, "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n \n",qname, flag, rname, pos,mapq, cigar,rnext,pnext, tlen,seq_string,quality_string);
-            
+
             if(strstr(cigar,"*"))
                 notAlignedReads++;
             //      chromNum=0;
@@ -160,27 +160,27 @@ int main(int argc, char *argv[]) {
 
 
 
-void computeMethylation(){
-    
+void computeMethylation() {
+
     if(lines.size() == 0)
         return;
     int lastchecked = lines[0].pos;
-    if(cytosines.size()!=0){
+    if(cytosines.size()!=0) {
         lastchecked= cytosines[cytosines.size()-1].pos+1;
         if (lines[0].pos > lastchecked || strcmp(cytosines[cytosines.size()-1].chr,lines[0].chr)) {//if chrom has changed or start of the read has passed lastchecked pos
             lastchecked = lines[0].pos;
         }
     }
     long refPos = chrom[ChromIndex(lines[0].chr)].chrStart;
-    
-    for(long i = lastchecked ; i< (lines[0].seq_string.size()+lines[0].pos ) ;i++){
-        if(toupper(reference[refPos + i-1]) == 'C'){
+
+    for(long i = lastchecked ; i< (lines[0].seq_string.size()+lines[0].pos ) ; i++) {
+        if(toupper(reference[refPos + i-1]) == 'C') {
             setPointer(i , lines[0].chr);
-            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand)); 
-            for(int j=0 ; j< secondPointer ; j++){
-                if( lines[j].strand == '+'){
+            cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
+            for(int j=0 ; j< secondPointer ; j++) {
+                if( lines[j].strand == '+') {
                     int relative_pos = lines[j].pos + lines[j].seq_string.size();
-                    if(i < relative_pos){
+                    if(i < relative_pos) {
                         if (lines[j].seq_string[i - lines[j].pos] == 'C') {
                             cytosines[cytosines.size()-1].methylated++;
                         }
@@ -190,35 +190,35 @@ void computeMethylation(){
                 }
             }
         }
-        else if(toupper(reference[refPos + i-1]) == 'G'){
+        else if(toupper(reference[refPos + i-1]) == 'G') {
             setPointer(i , lines[0].chr);
             cytosines.push_back(Cytosine(i ,lines[0].chr,lines[0].strand));
-            for(int j=0 ; j< secondPointer ; j++){
-                if(lines[j].strand == '-'){
-                    
+            for(int j=0 ; j< secondPointer ; j++) {
+                if(lines[j].strand == '-') {
+
                     if(!(lines[j].pos < (lines[0].pos+lines[0].seq_string.size())))
                         break;
                     int relative_pos = lines[j].pos + lines[j].seq_string.size();
-                    if(i < relative_pos ){
-                        
+                    if(i < relative_pos ) {
+
                         if (lines[j].seq_string[i - lines[j].pos] == 'G')
                             cytosines[cytosines.size()-1].methylated++;
-                        
+
                         else if(lines[j].seq_string[i - lines[j].pos] == 'A')
                             cytosines[cytosines.size()-1].unmethylated++;
                     }
                 }
             }
-        }     
+        }
     }
-    
+
     lines.erase(lines.begin());
     secondPointer--;
     computeMethylation();
-    
+
 }
-void setPointer(int pos, char * chr){
-    while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)){
+void setPointer(int pos, char * chr) {
+    while(secondPointer < lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
         secondPointer++;
     }
     if (secondPointer == lines.size() && lines[secondPointer].pos <= pos && !strcmp(lines[secondPointer].chr,chr)) {
@@ -226,7 +226,7 @@ void setPointer(int pos, char * chr){
         int res = readSamFile(samFile);
         if(res != -1)
             setPointer(pos, chr);
-        
+
     }
     else if(secondPointer == lines.size())
         secondPointer--;

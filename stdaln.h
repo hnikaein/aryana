@@ -85,53 +85,53 @@
 
 typedef struct
 {
-	int gap_open;
-	int gap_ext;
-	int gap_end;
+    int gap_open;
+    int gap_ext;
+    int gap_end;
 
-	int *matrix;
-	int row;
-	int band_width;
+    int *matrix;
+    int row;
+    int band_width;
 } AlnParam;
 
 typedef struct
 {
-	int i, j;
-	unsigned char ctype;
+    int i, j;
+    unsigned char ctype;
 } path_t;
 
 typedef struct
 {
-	path_t *path; /* for advanced users... :-) */
-	int path_len; /* for advanced users... :-) */
-	int start1, end1; /* start and end of the first sequence, coordinations are 1-based */
-	int start2, end2; /* start and end of the second sequence, coordinations are 1-based */
-	int score, subo; /* score */
+    path_t *path; /* for advanced users... :-) */
+    int path_len; /* for advanced users... :-) */
+    int start1, end1; /* start and end of the first sequence, coordinations are 1-based */
+    int start2, end2; /* start and end of the second sequence, coordinations are 1-based */
+    int score, subo; /* score */
 
-	char *out1, *out2; /* print them, and then you will know */
-	char *outm;
+    char *out1, *out2; /* print them, and then you will know */
+    char *outm;
 
-	int n_cigar;
-	uint32_t *cigar32;
+    int n_cigar;
+    uint32_t *cigar32;
 } AlnAln;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	AlnAln *aln_stdaln_aux(const char *seq1, const char *seq2, const AlnParam *ap,
-						   int type, int do_align, int len1, int len2);
-	AlnAln *aln_stdaln(const char *seq1, const char *seq2, const AlnParam *ap, int type, int do_align);
-	void aln_free_AlnAln(AlnAln *aa);
+AlnAln *aln_stdaln_aux(const char *seq1, const char *seq2, const AlnParam *ap,
+                       int type, int do_align, int len1, int len2);
+AlnAln *aln_stdaln(const char *seq1, const char *seq2, const AlnParam *ap, int type, int do_align);
+void aln_free_AlnAln(AlnAln *aa);
 
-	int aln_global_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
-						path_t *path, int *path_len);
-	int aln_local_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
-					   path_t *path, int *path_len, int _thres, int *_subo);
-	int aln_extend_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
-						path_t *path, int *path_len, int G0, uint8_t *_mem);
-	uint16_t *aln_path2cigar(const path_t *path, int path_len, int *n_cigar);
-	uint32_t *aln_path2cigar32(const path_t *path, int path_len, int *n_cigar);
+int aln_global_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
+                    path_t *path, int *path_len);
+int aln_local_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
+                   path_t *path, int *path_len, int _thres, int *_subo);
+int aln_extend_core(unsigned char *seq1, int len1, unsigned char *seq2, int len2, const AlnParam *ap,
+                    path_t *path, int *path_len, int G0, uint8_t *_mem);
+uint16_t *aln_path2cigar(const path_t *path, int path_len, int *n_cigar);
+uint32_t *aln_path2cigar32(const path_t *path, int path_len, int *n_cigar);
 
 #ifdef __cplusplus
 }

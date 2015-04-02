@@ -4,18 +4,32 @@
 #include <stdint.h>
 #include <zlib.h>
 
+#ifdef USE_MALLOC_WRAPPERS
+#  include "malloc_wrap.h"
+#endif
+
+#define USE_VERBOSE_ZLIB_WRAPPERS
+
 typedef gzFile bamFile;
-#define bam_open(fn, mode) gzopen(fn, mode)
-#define bam_dopen(fd, mode) gzdopen(fd, mode)
-#define bam_close(fp) gzclose(fp)
-#define bam_read(fp, buf, size) gzread(fp, buf, size)
+#ifdef USE_VERBOSE_ZLIB_WRAPPERS
+/* These print error messages on failure */
+#  define bam_open(fn, mode)      bamlite_gzopen(fn, mode)
+#  define bam_dopen(fd, mode)     gzdopen(fd, mode)
+#  define bam_close(fp)           bamlite_gzclose(fp)
+#  define bam_read(fp, buf, size) bamlite_gzread(fp, buf, size)
+#else
+#  define bam_open(fn, mode)      gzopen(fn, mode)
+#  define bam_dopen(fd, mode)     gzdopen(fd, mode)
+#  define bam_close(fp)           gzclose(fp)
+#  define bam_read(fp, buf, size) gzread(fp, buf, size)
+#endif /* USE_VERBOSE_ZLIB_WRAPPERS */
 
 typedef struct {
-	int32_t n_targets;
-	char **target_name;
-	uint32_t *target_len;
-	size_t l_text, n_text;
-	char *text;
+    int32_t n_targets;
+    char **target_name;
+    uint32_t *target_len;
+    size_t l_text, n_text;
+    char *text;
 } bam_header_t;
 
 #define BAM_FPAIRED        1
@@ -42,20 +56,20 @@ typedef struct {
 #define BAM_CPAD        6
 
 typedef struct {
-	int32_t tid;
-	int32_t pos;
-	uint32_t bin:16, qual:8, l_qname:8;
-	uint32_t flag:16, n_cigar:16;
-	int32_t l_qseq;
-	int32_t mtid;
-	int32_t mpos;
-	int32_t isize;
+    int32_t tid;
+    int32_t pos;
+    uint32_t bin:16, qual:8, l_qname:8;
+    uint32_t flag:16, n_cigar:16;
+    int32_t l_qseq;
+    int32_t mtid;
+    int32_t mpos;
+    int32_t isize;
 } bam1_core_t;
 
 typedef struct {
-	bam1_core_t core;
-	int l_aux, data_len, m_data;
-	uint8_t *data;
+    bam1_core_t core;
+    int l_aux, data_len, m_data;
+    uint8_t *data;
 } bam1_t;
 
 #ifndef kroundup32
@@ -82,10 +96,16 @@ extern int bam_is_be;
 extern "C" {
 #endif
 
-	bam_header_t *bam_header_init(void);
-	void bam_header_destroy(bam_header_t *header);
-	bam_header_t *bam_header_read(bamFile fp);
-	int bam_read1(bamFile fp, bam1_t *b);
+bam_header_t *bam_header_init(void);
+void bam_header_destroy(bam_header_t *header);
+bam_header_t *bam_header_read(bamFile fp);
+int bam_read1(bamFile fp, bam1_t *b);
+
+#ifdef USE_VERBOSE_ZLIB_WRAPPERS
+gzFile bamlite_gzopen(const char *fn, const char *mode);
+int bamlite_gzread(gzFile file, void *ptr, unsigned int len);
+int bamlite_gzclose(gzFile file);
+#endif /* USE_VERBOSE_ZLIB_WRAPPERS */
 
 #ifdef __cplusplus
 }

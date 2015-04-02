@@ -50,7 +50,7 @@ struct SamRecord {
     char line[maxReadLength];
     char chr[maxChrNameLength];
     uint64_t start , pos;
-    char cigar[maxReadLength * 2], cigar2[maxReadLength * 2]; 
+    char cigar[maxReadLength * 2], cigar2[maxReadLength * 2];
     char rname[maxReadNameLength];
     string seq_string;
     char strand;
@@ -147,7 +147,7 @@ void ProcessMethylation() {
 void convertRead() {
     int j = 0;
     for(int i=0; i< line.seq_string.size(); i++) {
-        if (line.cigar2[i] == 'i') 
+        if (line.cigar2[i] == 'i')
             line.seq_string.erase(j,1);
         else if (line.cigar2[i] == 'd') {
             line.seq_string.insert(j,"M");
@@ -240,7 +240,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
             cerr << result<<endl;
         if (result == -1) {
             amb++;
-			if (ambFile) fprintf(ambFile, "%s\n", buffer);
+            if (ambFile) fprintf(ambFile, "%s\n", buffer);
             continue; // The read can not be decided to match either PCR product or original sequence.
             // (Ali) we should add some input argument that shows whether PCR amplification is used or not. If not, we can ignore PCR product probability in deciding GAorCT
         }
@@ -248,7 +248,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
         line.strand = (result) ? '-' : '+';
         ProcessMethylation();
     }//while
-	return 0;
+    return 0;
 }
 
 
@@ -258,15 +258,15 @@ int ReadGenome(char * genomeFile) {
     struct stat file_info;
     FILE *fp;
     if (stat(genomeFile, &file_info) == -1) {
-		fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
+        fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
         return -1;
     }
 
     fp = fopen(genomeFile, "r");
-	if (! fp) {
-		fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
-		exit(-1);
-	}
+    if (! fp) {
+        fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
+        exit(-1);
+    }
     off_t file_size_bytes = file_info.st_size;
     reference_size = ceil(((double) file_size_bytes) / (double) (sizeof(char)));
     reference = (char *) malloc(reference_size * sizeof(char));
@@ -275,8 +275,8 @@ int ReadGenome(char * genomeFile) {
     chromNum = 0;
     fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
-	while (! feof(fp)) {
-		int n = fscanf(fp, "%s\n", fLine);
+    while (! feof(fp)) {
+        int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
         if (fLine[0] == '>') {
@@ -290,22 +290,22 @@ int ReadGenome(char * genomeFile) {
                 fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
             fprintf(stderr, "%s\n",fLine);
         } else {
-			memcpy(reference+gs, fLine, n);
+            memcpy(reference+gs, fLine, n);
             gs += n;
         }
     }
     fclose(fp);
-	return 0;
+    return 0;
 }
 
 
 int main(int argc, char *argv[]) {
     char *referenceName = NULL, *samName = NULL, *ambName = NULL;
-	FILE * samFile = NULL;
+    FILE * samFile = NULL;
 
     static struct option long_options[] = {
-		{ "ref", required_argument, NULL, 'r' },
-		{ "sam", required_argument, NULL, 's' },
+        { "ref", required_argument, NULL, 'r' },
+        { "sam", required_argument, NULL, 's' },
         { "all", no_argument, NULL, 'a' },
         { "amb", required_argument, NULL, 'm' },
         { NULL, 0, NULL, 0}
@@ -322,38 +322,38 @@ int main(int argc, char *argv[]) {
             samName = strdup(optarg);
             break;
         case 'a':
-			allCytosines = true;
+            allCytosines = true;
             break;
         case 'm':
-			ambName = strdup(optarg);
+            ambName = strdup(optarg);
             break;
         }
     }
 
     if (! referenceName || ! samName ) {
         fprintf(stderr, "usage: %s <-r reference genome> <-s input SAM file> [-a] [-m file]\n Use -a for printing the information of all cytosines (+/- strands) which are not methylated nor in CpG context.\n", argv[0]);
-		fprintf(stderr, "Use -m followed by SAM file name as the output for the ambiguous reads.\n");
+        fprintf(stderr, "Use -m followed by SAM file name as the output for the ambiguous reads.\n");
         return 1;
-    } 
+    }
     ReadGenome(referenceName);
     fprintf(stderr, "Complete reading genome.\n");
     samFile = fopen(samName, "r");
     if (!samFile) {
         fprintf(stderr, "Could not open SAM file %s\n", samName);
-		return 1;
-	}
+        return 1;
+    }
 
     for(int k = 0 ; k < BUFFER_SIZE ; k++) queue[k].pos = -1;
-	FILE * ambFile = NULL;
-	if (ambName) ambFile = fopen(ambName, "w");
+    FILE * ambFile = NULL;
+    if (ambName) ambFile = fopen(ambName, "w");
     // Main process starts here
     ProcessSamFile(samFile, ambFile);
     // Flushing out the remaining information in the queue
     for(int i=0; i<BUFFER_SIZE ; i++)
         if (queue[i].pos > -1 && queue[i].count[0] + queue[i].count[1] > 0)
             PrintOutput(i);
-	if (samFile) fclose(samFile);
-	if (ambFile) fclose(ambFile);
+    if (samFile) fclose(samFile);
+    if (ambFile) fclose(ambFile);
     fprintf(stderr, "There were %lld ambiguous reads, with equal C->T and G->A conversions.\n", amb);
     fprintf(stderr, "Finished successfully.\n");
 }//main

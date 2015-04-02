@@ -113,7 +113,7 @@ int ReadGenome(char * genomeFile) {
     chromPos[chromNum] = gs;
     fprintf(stderr, "Lenght: %lld\n",chromPos[chromNum] - chromPos[chromNum - 1]);
     fclose(fp);
-	return 0;
+    return 0;
 }
 
 
@@ -128,7 +128,7 @@ void reverseRead(char *s) {
         *s0 = *s1;
         *s1 =  c;
     }
-    
+
     return;
 }
 
@@ -136,24 +136,24 @@ void complementRead(char *read) {
     int i;
     for (i=0; i< strlen(read); i++) {
         switch (read[i]) {
-            case 'T':
-            case 't':
-                read[i]='A';
-                break;
-            case 'C':
-            case 'c':
-                read[i]='G';
-                break;
-            case 'G':
-            case 'g':
-                read[i]='C';
-                break;
-            case 'A':
-            case 'a':
-                read[i]='T';
-                break;
-            default:
-                break;
+        case 'T':
+        case 't':
+            read[i]='A';
+            break;
+        case 'C':
+        case 'c':
+            read[i]='G';
+            break;
+        case 'G':
+        case 'g':
+            read[i]='C';
+            break;
+        case 'A':
+        case 'a':
+            read[i]='T';
+            break;
+        default:
+            break;
         }
     }
     return;
@@ -163,8 +163,8 @@ void complementRead(char *read) {
 int min_penalty() {
     int j = 0;
     long min = readPenalties[0];
-    for (int i = 1; i< numberOfGenomes ; i++){
-       // cerr<<readPenalties[i]<<endl;
+    for (int i = 1; i< numberOfGenomes ; i++) {
+        // cerr<<readPenalties[i]<<endl;
         if(min > readPenalties[i]) {
             min = readPenalties[i];
             j = i;
@@ -193,7 +193,7 @@ int ChromIndex(char * chr) {
             return i;
     }
     return -1;
-    
+
 }
 
 
@@ -229,77 +229,77 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
     reference[ref_i] = toupper(reference[ref_i]);
     reference[ref_i+1] = toupper(reference[ref_i+1]);
     reference[ref_i-1] = toupper(reference[ref_i-1]);
-    
+
     if(flag2) {
-        if (read == 'A' || read == 'G'){
+        if (read == 'A' || read == 'G') {
             if (getNuc(ref_i) != read)
                 readPenalties[readNum] += highPenalty;
         }
-            else { //read = C or T
-                
-                if (read == 'T' && getNuc(ref_i) == 'C') {
-                    if (getNuc(ref_i+1) == 'G') { // in the CpG context
-                        if (isInIsland(chr,chrPos)) // in CpG and also island
-                            readPenalties[readNum] += 0;
-                        else
-                            readPenalties[readNum] += highPenalty;
-                        
-                    } else // out of CpG context
-                        
-                        readPenalties[readNum] += lowPenalty;
-                    
-                } else if (read == 'C' && getNuc(ref_i) == 'C') {
-                    if (getNuc(ref_i+1) == 'G') { // in the CpG context
-                        int temp = isInIsland(chr , chrPos);
-                        if (temp == 1)  // in CpG and also island
-                            readPenalties[readNum] += highPenalty;
-                        else            // in CpG and out of island
-                            readPenalties[readNum] += lowPenalty;
-                        
-                    } else              // out of CpG context
+        else { //read = C or T
+
+            if (read == 'T' && getNuc(ref_i) == 'C') {
+                if (getNuc(ref_i+1) == 'G') { // in the CpG context
+                    if (isInIsland(chr,chrPos)) // in CpG and also island
+                        readPenalties[readNum] += 0;
+                    else
                         readPenalties[readNum] += highPenalty;
-                    
-                } else if (read == 'C' && getNuc(ref_i) == 'T')
+
+                } else // out of CpG context
+
+                    readPenalties[readNum] += lowPenalty;
+
+            } else if (read == 'C' && getNuc(ref_i) == 'C') {
+                if (getNuc(ref_i+1) == 'G') { // in the CpG context
+                    int temp = isInIsland(chr , chrPos);
+                    if (temp == 1)  // in CpG and also island
+                        readPenalties[readNum] += highPenalty;
+                    else            // in CpG and out of island
+                        readPenalties[readNum] += lowPenalty;
+
+                } else              // out of CpG context
                     readPenalties[readNum] += highPenalty;
-                
-            }
+
+            } else if (read == 'C' && getNuc(ref_i) == 'T')
+                readPenalties[readNum] += highPenalty;
+
+        }
     }
     else {
-        if (read == 'C' || read == 'T'){
+        if (read == 'C' || read == 'T') {
             if (getNuc(ref_i) != read)
                 readPenalties[readNum] += highPenalty;
         }
-            else { //read = G or A
-                
-                if (read == 'A' && getNuc(ref_i) == 'G') {
-                    if (getNuc(ref_i-1) == 'C') { // in the CpG context
-                        if (isInIsland(chr , chrPos)) { // in CpG and also island
-                            readPenalties[readNum] += 0;
-                        } else {
-                            readPenalties[readNum] += highPenalty;
-                        }
-                    } else { // out of CpG context
-                        
-                        readPenalties[readNum] += lowPenalty;
-                    }
-                } else if (read == 'G' && getNuc(ref_i) == 'G') {
-                    if (getNuc(ref_i-1) == 'C') { // in the CpG context
-                        int temp = isInIsland(chr , chrPos);
-                        if (temp == 1) { // in CpG and also island
-                            readPenalties[readNum] += highPenalty;
-                        } else {
-                            readPenalties[readNum] += lowPenalty;
-                        }
-                    } else { // out of CpG context
+        else { //read = G or A
+
+            if (read == 'A' && getNuc(ref_i) == 'G') {
+                if (getNuc(ref_i-1) == 'C') { // in the CpG context
+                    if (isInIsland(chr , chrPos)) { // in CpG and also island
+                        readPenalties[readNum] += 0;
+                    } else {
                         readPenalties[readNum] += highPenalty;
                     }
-                    
-                } else if (read == 'G' && getNuc(ref_i) == 'A')
+                } else { // out of CpG context
+
+                    readPenalties[readNum] += lowPenalty;
+                }
+            } else if (read == 'G' && getNuc(ref_i) == 'G') {
+                if (getNuc(ref_i-1) == 'C') { // in the CpG context
+                    int temp = isInIsland(chr , chrPos);
+                    if (temp == 1) { // in CpG and also island
+                        readPenalties[readNum] += highPenalty;
+                    } else {
+                        readPenalties[readNum] += lowPenalty;
+                    }
+                } else { // out of CpG context
                     readPenalties[readNum] += highPenalty;
-            }
-        
+                }
+
+            } else if (read == 'G' && getNuc(ref_i) == 'A')
+                readPenalties[readNum] += highPenalty;
+        }
+
     }
-    
+
 }
 
 // Reads Cigar sequence and call CalcPenalties for calculating penalties for each base
@@ -356,88 +356,88 @@ int main(int argc, char *argv[]) {
         { "reference", required_argument, 0, 'x' },
         { "CpG-islands", required_argument, 0, 'c' },
         { "penalties", required_argument, 0, 'p' },
-		{ "output", required_argument, 0, 'o' }, 
-		{ "header", required_argument, 0, 'h' },
+        { "output", required_argument, 0, 'o' },
+        { "header", required_argument, 0, 'h' },
         { "paired-end", no_argument, 0, 'U' }
     };
     int option_index = 0;
     char* samFileName = 0, *tmp;
     int c, i;
-	outputFile = stdout;
+    outputFile = stdout;
     while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:P:", long_options, &option_index))
-           >= 0) {
+            >= 0) {
         switch (c) {
-            case 0:
-                break;
-            case 1:
-                break;
-            case 'x':
-                referenceName = (char *) malloc(strlen(optarg)+1);
-                strcpy(referenceName, optarg);
-                break;
-            case 's':
-                samFileName = strdup(optarg);
-                tmp = strdup(samFileName);
-                samFilePath = dirname(tmp);
-                for(i=0; i<numberOfGenomes; i++) {
-                    samNames[i] = (char *) malloc(strlen(samFileName) + 10);
-                    sprintf(samNames[i], "%s-%d", samFileName, i);
-                }
-                break;
-            case 'c':
-                annotationFile = (char *) malloc(strlen(optarg)+1);
-                strcpy(annotationFile, optarg);
-                break;
-            case 'p':
-                lowPenalty = atoi(optarg);
-                medPenalty = atoi(argv[optind]);
-                highPenalty = atoi(argv[optind + 1]);
-                optind = optind + 2;
-                break;
-			case 'o': 
-				outputFile = fopen(optarg, "w");
-				break;
-			case 'h': 
-				headerFile = fopen(optarg, "w");
-				break;
-            case 'P':
-                paired = true;
-                break;
+        case 0:
+            break;
+        case 1:
+            break;
+        case 'x':
+            referenceName = (char *) malloc(strlen(optarg)+1);
+            strcpy(referenceName, optarg);
+            break;
+        case 's':
+            samFileName = strdup(optarg);
+            tmp = strdup(samFileName);
+            samFilePath = dirname(tmp);
+            for(i=0; i<numberOfGenomes; i++) {
+                samNames[i] = (char *) malloc(strlen(samFileName) + 10);
+                sprintf(samNames[i], "%s-%d", samFileName, i);
+            }
+            break;
+        case 'c':
+            annotationFile = (char *) malloc(strlen(optarg)+1);
+            strcpy(annotationFile, optarg);
+            break;
+        case 'p':
+            lowPenalty = atoi(optarg);
+            medPenalty = atoi(argv[optind]);
+            highPenalty = atoi(argv[optind + 1]);
+            optind = optind + 2;
+            break;
+        case 'o':
+            outputFile = fopen(optarg, "w");
+            break;
+        case 'h':
+            headerFile = fopen(optarg, "w");
+            break;
+        case 'P':
+            paired = true;
+            break;
         }
     }
-	if (! headerFile) headerFile = outputFile;
+    if (! headerFile) headerFile = outputFile;
 
     if (! samFileName) {
         cerr << "Error: input SAM file name not found." << endl;
         return 1;
     }
     ReadGenome(referenceName);
-    
+
     ReadCpGIslands(annotationFile);
-    
+
     // Printing header of original samfile to standard output
     FILE *samFile = fopen(samNames[0], "r");
     fgets(line, 10000, samFile);
-    while (line[0] == '@'){
+    while (line[0] == '@') {
         header += line;
         fgets(line, 10000, samFile);
     }
     fprintf(headerFile,"%s",header.c_str());
     fclose(samFile);
     if (headerFile != outputFile) fclose(headerFile);
- /* Sorting SAM files is no longer needed since they are sorted by aryana using -O argument   
-    char command[] = "LC_ALL=C sort -k 1 ";
-    char buf[strlen(samNames[0]) + 100];
-    for (i = 0; i < numberOfGenomes; i++) {
-        sprintf(buf, "%s%s > %s/samFile%d.sam", command, samNames[i], samFilePath, i+1);
-        system(buf);
-        sprintf(buf, "%s/samFile%d.sam", samFilePath, i+1);
-        samFiles[i] = fopen(buf, "r");
+    /* Sorting SAM files is no longer needed since they are sorted by aryana using -O argument
+       char command[] = "LC_ALL=C sort -k 1 ";
+       char buf[strlen(samNames[0]) + 100];
+       for (i = 0; i < numberOfGenomes; i++) {
+           sprintf(buf, "%s%s > %s/samFile%d.sam", command, samNames[i], samFilePath, i+1);
+           system(buf);
+           sprintf(buf, "%s/samFile%d.sam", samFilePath, i+1);
+           samFiles[i] = fopen(buf, "r");
 
-    }
-*/
-    
-	for (i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
+       }
+    */
+
+    for (i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
     char *rname[numberOfGenomes], *cigar[numberOfGenomes],*rname2[numberOfGenomes], *cigar2[numberOfGenomes];
     int flag[numberOfGenomes],flagTwo[numberOfGenomes];
     uint64_t pos[numberOfGenomes],pos2[numberOfGenomes];
@@ -455,14 +455,14 @@ int main(int argc, char *argv[]) {
     int j=0;
     for (; j < numberOfGenomes; j++)
         chosen[j] = 0;
-    
+
     int stop = 0;
-    
+
     while (1 && !stop) {
         //int reversed = 0;///////////////////////////bugesh dorost she
         for (i = 0; i < numberOfGenomes && !stop; i++) {
-            do{
-                if(fgets(line, 10000, samFiles[i]) == NULL){
+            do {
+                if(fgets(line, 10000, samFiles[i]) == NULL) {
                     stop = 1;
                     break;
                 }
@@ -472,7 +472,7 @@ int main(int argc, char *argv[]) {
             //reversed = 0;
             sscanf(line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
-            if(index == -1){
+            if(index == -1) {
                 readPenalties[i] += LONG_MAX;
                 continue;
             }
@@ -481,22 +481,22 @@ int main(int argc, char *argv[]) {
                 flag2 = 1;
             if(i > 2) // if read has been aligned to last three genome
                 flag2 = 0;
-/*            if(flag[i] == 16){
-                //reversed = 1;
-                strcpy(copy,seq_string); // copy read for printing it later
-                reverseRead(copy);
-                complementRead(copy);
-                readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, copy, i ,index,pos[i],flag[i],flag2);
+            /*            if(flag[i] == 16){
+                            //reversed = 1;
+                            strcpy(copy,seq_string); // copy read for printing it later
+                            reverseRead(copy);
+                            complementRead(copy);
+                            readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, copy, i ,index,pos[i],flag[i],flag2);
 
-            }
-            else
-*/
+                        }
+                        else
+            */
             readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
-            
+
             if (paired) {
                 sscanf(line,"%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, &flagTwo[i], rname2[i], &pos2[i],&mapq2[i], cigar2[i],rnext2,pnext2, &tlen2,seq_string2,quality_string2);
                 index = ChromIndex(rname2[i]);
-                if(index == -1){
+                if(index == -1) {
                     readPenalties[i] = LONG_MAX;
                     continue;
                 }
@@ -505,15 +505,15 @@ int main(int argc, char *argv[]) {
                     flag2 = 1;
                 if(i > 2) // if read has been aligned to last three genome
                     flag2 = 0;
-/*                if(flagTwo[i] == 16){
-                    //reversed = 1;
-                    strcpy(copy2,seq_string2); // copy read for printing it later
-                    reverseRead(copy2);
-                    complementRead(copy2);
-                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, copy2, i ,index,pos2[i],flagTwo[i],flag2);
-                    
-                }
-                else */
+                /*                if(flagTwo[i] == 16){
+                                    //reversed = 1;
+                                    strcpy(copy2,seq_string2); // copy read for printing it later
+                                    reverseRead(copy2);
+                                    complementRead(copy2);
+                                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, copy2, i ,index,pos2[i],flagTwo[i],flag2);
+
+                                }
+                                else */
                 readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
             }
         }
@@ -530,10 +530,10 @@ int main(int argc, char *argv[]) {
         for (; j < numberOfGenomes; j++)
             readPenalties[j]=0;
     }
-    
+
     for (j=0; j < numberOfGenomes; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
 
-	if (outputFile != stdout) fclose(outputFile);    
+    if (outputFile != stdout) fclose(outputFile);
 }
 
