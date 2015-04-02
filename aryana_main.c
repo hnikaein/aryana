@@ -35,12 +35,12 @@ void Usage() {
     fprintf(stderr, "Alignment of single end reads:\n");
     fprintf(stderr, "aryana [-x,--index <reference genome index>] [-i,--input <reads file (fastq format)>] [-o,--output <alignment file (SAM format)>]\n");
     fprintf(stderr, "Optional arguments: \n");
-    fprintf(stderr, "[-p,--threads <threads number>] [-c,--candidates <num of alignment candidates, default=10>] [-s,--seed <fixed length of seed sequence, default=dynamic>]\n");
-    fprintf(stderr, "[-D <debug info level, default=0>] [\n\n");
+    fprintf(stderr, "[-t,--threads <threads number>] [-c,--candidates <num of alignment candidates, default=10>] [-s,--seed <fixed length of seed sequence, default=dynamic>]\n");
+    fprintf(stderr, "[-D <debug info level, default=0>] [-O (keep the order of reads in output as the input)]\n\n");
     fprintf(stderr, "Alignment of paired end reads:\n");
     fprintf(stderr, "aryana [-x,--index <reference genome index>] [-1,--first <reads file 1 (fastq format)>] [-2,--second <reads file 2 (fastq format)>]\n");
     fprintf(stderr, "Optional arguments:\n");
-    fprintf(stderr, "[--fr, --ff, --rf (orientation of paired ends)] [-m,--min <min distance between pair reads>] [-M,--max  <min distance between pair reads>]\n");
+    fprintf(stderr, "[--fr, --ff, --rf (orientation of paired ends)] [-m,--min <min distance between pair reads>] [-M,--max  <max distance between pair reads>]\n");
     fprintf(stderr, "[-d,--no-discordant (do not print discordants reads)]\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing reads:\n");
     fprintf(stderr, "[-b,--bisulfite <bisulfite reference genome index>]\n\n");
