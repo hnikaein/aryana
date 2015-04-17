@@ -3,6 +3,9 @@
 #include <inttypes.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+#include <limits.h>
+
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
@@ -155,6 +158,65 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
     return total_errors;//best->index;
 }
 
+#define BITMASK(b) (1 << ((b) % CHAR_BIT))
+#define BITSLOT(b) ((b) / CHAR_BIT)
+#define BITSET(a, b) ((a)[BITSLOT(b)] |= BITMASK(b))
+#define BITCLEAR(a, b) ((a)[BITSLOT(b)] &= ~BITMASK(b))
+#define BITTEST(a, b) ((a)[BITSLOT(b)] & BITMASK(b))
+#define BITNSLOTS(nb) ((nb + CHAR_BIT - 1) / CHAR_BIT)
+
+void floyd(long long down, long long up , int exactmatch_num,long long *selected){
+    long N = up - down+1;
+    long long in, im,j;
+    im = 0;
+    if(N < exactmatch_num){
+        for (j=down; j<=up; j++) {
+            selected[j-down]=j;
+        }
+        return;
+    }
+    char is_used[BITNSLOTS(N)];
+    memset(is_used, 0, BITNSLOTS(N));
+
+    in = N - exactmatch_num;
+    
+    for (; in < N && im < exactmatch_num; ++in) {
+        srand (time(NULL));
+        long long r = rand() % (in + 1); /* generate a random number 'r' */
+        if(BITTEST(is_used, r))
+        /* we already have 'r' */
+            r = in; /* use 'in' instead of the generated number */
+
+        selected[im++] = r + down; /* +1 since your range begins from 1 */
+        BITSET(is_used, r);
+        
+    }
+}
+void knuth(long long down, long long up , int exactmatch_num,long long *selected){
+    long long j,in, im=0 ,rn,rm;
+    long N = up - down+1;
+    if(N < exactmatch_num){
+        for (j=down; j<=up; j++) {
+            selected[j-down]=j;
+        }
+        return;
+    }
+    for (in = 0; in < N && im < exactmatch_num; ++in) {
+        rn = N - in;
+        rm = exactmatch_num - im;
+        srand (time(NULL));
+        if (rand() % rn < rm)
+            selected[im++] = down + in;
+    }
+}
+void match_select(long long down, long long up , int exactmatch_num,long long *selected){
+    if (exactmatch_num < (up-down+1)/2) {
+        floyd(down,up,exactmatch_num, selected);
+    }
+    else
+        knuth(down,up,exactmatch_num, selected);
+}
+
 // The main Aryana aligner routine.
 
 void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
@@ -253,7 +315,12 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             fprintf(stderr, "aligner(), %llu regions have exact match with %llu score, seq: ", (unsigned long long) (up - down + 1), (unsigned long long) limit);
             PrintSeq(seq + i + 1 - limit, limit, 1);
         }
-        for (j=down; j<=up && j <= (down + 50); j++) {
+
+        long long selected[args->exactmatch_num];
+        match_select(down, up , args->exactmatch_num,selected);
+        //		for (j=down; j<=up && j <= (down + 50); j++){
+        int ii=0;
+        for ( j= selected[ii]; ii < args->exactmatch_num && ii < up ; ii++){
             bwtint_t index=bwt_sa(bwt,j);
 //            		if (index > len)
 //                 		index = index - len;

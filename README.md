@@ -33,6 +33,7 @@ Optional arguments:
 	-s, --seed		<fixed length of seed sequence, default=dynamic>
 	-D 			<debug info level, default=0>
 	-O			(keep the order of reads in output the same as input)
+    -e          <number of exact matches to select>
 
 </code>
 

@@ -44,6 +44,7 @@ void Usage() {
     fprintf(stderr, "[-d,--no-discordant (do not print discordants reads)]\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing reads:\n");
     fprintf(stderr, "[-b,--bisulfite <bisulfite reference genome index>]\n\n");
+    fprintf(stderr, "[-e, <number of selected exact matches>]\n\n");
     fprintf(stderr, "See README.md for more details.\n");
     exit(1);
 }
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
         {"order", no_argument, 0, 'O'},
         {"debug", required_argument, 0, 'D'},
         {"no-discordant", no_argument, 0, 'd'},
+        {"exact-match", required_argument, 0, 'e'},
     };
     char* output = NULL;
     char* inputFolder;
@@ -164,6 +166,8 @@ int main(int argc, char *argv[])
             strcpy(refNames[4], inputFolder);
             strcat(refNames[4], "BisulfiteGenomeCompleteGA.fa");
             break;
+        case 'e':
+            args.exactmatch_num = atoi(optarg);
         case 'O':
             args.order = 1;
             break;
