@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     char* inputFolder;
     int option_index = 0;
     int c;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:OD:d", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OD:d", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
