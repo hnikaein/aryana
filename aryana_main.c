@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
     args.best_factor = -1;
     args.bisulfite = 0;
     args.order = 0;
+    args.exactmatch_num=50;
     char *refNames[5];
     bzero(refNames, sizeof(refNames));
     if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
@@ -168,6 +169,7 @@ int main(int argc, char *argv[])
             break;
         case 'e':
             args.exactmatch_num = atoi(optarg);
+            break;
         case 'O':
             args.order = 1;
             break;

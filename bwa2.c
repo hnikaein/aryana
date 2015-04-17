@@ -630,6 +630,7 @@ void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options) {
             //fprintf(stderr, "thread %d ending...\n", tid);
             break;
         }
+        
         pthread_mutex_unlock(&input);
 
         /*		fprintf(stderr, "Thread %d reads ", tid);
