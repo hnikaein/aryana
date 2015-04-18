@@ -160,16 +160,6 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
 void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
 {
     if (debug > 4) {
-        /*		fprintf(stderr, "Generating the whole genome sequence...");
-        		long long l = 0;
-        		FILE *f = fopen("GENOME.fa", "w");
-        		for (;l < bwt->seq_len;l++){
-        			fprintf(f, "%c", atom[(int) getNuc(l, bwt->seq_len)]);
-        			if (l % 100 == 99) fprintf(f, "\n");
-        		}
-        		fclose(f);
-        		exit(1);
-        */
         fprintf(stderr, "Generating BWT Table, seq_len= %lld...", (long long) bwt->seq_len);
         long long l, i;
         FILE * f = fopen("BWT.txt", "w");
@@ -180,18 +170,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         fclose(f);
         fprintf(stderr, "Done.\n");
         exit(0);
-        /*        fprintf(stderr, "Checking the order of sequences in BWT, seq_len=%lld\n", (long long) bwt->seq_len);
-        		char seq[2][20];
-        		seq[0][0] = seq[1][0] = 0;
-        		long long l, tmpind = -1, tmpind2 = -1;
-                for (l = 0; l < bwt->seq_len; l++) {
-        			tmpind2 = tmpind;
-                    tmpind = bwt_sa(bwt, l);
-        			if (tmpind < bwt->seq_len - 10) {
-        				GetRefSeq(tmpind, tmpind + 10, bwt->seq_len, seq[l % 2]);
-        				if (strcmp(seq[l%2],seq[(l+1)%2]) < 0) fprintf(stderr, "Error in order, %lld %lld %lld %s %s\n", l, tmpind2, tmpind, seq[(l+1)%2], seq[l%2]);
-        			}
-                }	*/
     }
     //showerr(len,seq);
     //initialize

@@ -33,10 +33,10 @@ struct window {
 
 vector <window> islands;
 long long int n = 1000, ni = 0, snp = 0, readl = 100;
-double island = 0.1, cpg = 0.9, noncpg = 0.01, err = 0;
-bool repeatMask = false, neg = false, pcr = false, paired=false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
+double island = 0.1, cpg = 0.9, noncpg = 0.01, mismatchRate = 0, insRate = 0, delRate = 0;
+bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired=false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
 int pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance between paired end reads
-
+char bases[4] = {'A','C','G','T'};
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
     ifstream ifile(genomeFile.c_str());
@@ -224,12 +224,17 @@ void revcomp(char * a, long long l) {
     delete [] b;
 }
 
+char RandBase() {
+	return bases[rand() % 4];
+}
+
 // Just generates a single read, without header line but with quality line
 
 void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char original) {
-    char r[maxReadSize];
+    char r[maxReadSize], R[maxReadSize];
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
+	if (bisSeq) 
     for (int i = 0; i < readl; i++) // Bisulfite conversion
         if (r[i] == 'c' || r[i] == 'C') {
             if (strand == '+') {
@@ -245,9 +250,20 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
         }
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
-    for (int i = 0; i < readl; i++)
-        if ((double) rand() / RAND_MAX < err) r[i] = Mutate(r[i]); // NGS Errors
-    fprintf(f, "%-60s\n+\n%-60s\n", r,quals);
+	int RLen = 0;
+    for (int i = 0; i < readl; i++) {
+		double e = (double) rand() / RAND_MAX; 
+        if (e < mismatchRate) R[RLen++] = Mutate(r[i]); // Mutation
+		else if (e < insRate + mismatchRate) { // Insertion
+			R[RLen++] = RandBase();
+			i--;
+		} else if (e < delRate + insRate + mismatchRate) { // Deletion, do nothing 
+		} else R[RLen++] = r[i];
+	}
+	R[RLen] = 0;
+	quals[RLen] = 0;
+    fprintf(f, "%-60s\n+\n%-60s\n", R,quals);
+	quals[RLen] = 'I';
 }
 
 // Can print both single and paired end reads, along with the header line
@@ -292,8 +308,7 @@ int CheckPosition(long long p, int pairDis) {
 
 void SimulateReads() {
     char quals[maxReadSize];
-    memset(quals, 'I', readl);
-    quals[readl] = 0;
+    memset(quals, 'I', sizeof(quals));
     long long p;
     int pairDis = 0, chr;
     if (! gs) {
@@ -417,8 +432,14 @@ int main(int argc, char * argv[]) {
                 cpg = atof(argv[++i]);
             else if (strcmp(argv[i], "-i")==0)
                 island = atof(argv[++i]);
-            else if (strcmp(argv[i], "-e") == 0)
-                err = atof(argv[++i]);
+            else if (strcmp(argv[i], "-rm") == 0)
+                mismatchRate = atof(argv[++i]);
+			else if (strcmp(argv[i], "-ri") == 0)
+				insRate = atof(argv[++i]);
+			else if (strcmp(argv[i], "-rd") == 0)
+				delRate = atof(argv[++i]);
+			else if (strcmp(argv[i], "-b") == 0)
+				bisSeq = true;
             else if (strcmp(argv[i], "-s") == 0)
                 snp = atoi(argv[++i]);
             else if (strcmp(argv[i], "-l") == 0)
@@ -443,25 +464,49 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
     if (genomeFile == "") {
-        cerr << "Arguments: -g <reference genome, mandatory> -n <number of simulated reads from whole genome, default=1000>  -ni <number of simulated reads from CpG-Islands, default=0>" << endl <<
-             "-a <genomic map of CpG-Islands, mandatory if -ni greater than 0> -l <length of each read, default=100> -o <fastq output file without extension, default=stdout>" << endl <<
-             "-m (mask repeats) -mi <methylation ratio input file> -mo <methylation ratio output file> -co <count of reads covering each cytosine output file>" << endl <<
-             "-ch <methylation ratio of CH dinucleotides, default=0.01> -cg <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
-             "-i <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1> -e <sequencing errors ratio, default=0> -s <number of SNPs, default=0>"<<endl <<
-             "-neg (simulate reads from negative strand) -p (simulate PCR amplified reads) -P (produce paired-end reads)" << endl <<
-             "-Pmin (min distance between a pair of reads,default=300) -Pmax (max distance between a pair of reads, default=1000)" << endl;
+        cerr << "Arguments:" << endl <<
+				"-g     <reference genome, mandatory>" << endl <<
+				"-n     <number of simulated reads from whole genome, default=1000>" << endl <<
+			    "-l     <length of each read, default=100>" << endl << 
+				"-o     <fastq output file without extension, default=stdout>" << endl <<
+				"-m     (mask repeats)" << endl <<
+				"-rm    <sequencing mismatch rate, between 0 and 1, default=0>" << endl << 
+				"-ri    <sequencing insertion rate, between 0 and 1, default=0>" << endl <<
+				"-rd    <sequencing deletion rate, between 0 and 1, default=0>" << endl <<
+				"-s     <number of SNPs, default=0>" << endl <<		
+			    "-neg   (simulate reads from negative strand)" << endl <<  
+				"-p     (simulate PCR amplified reads)" << endl << endl <<
+				"Paired end arguments:" << endl <<
+				"-P     (produce paired-end reads)" << endl <<
+				"-Pmin  <min distance between a pair of reads,default=300>" << endl <<
+				"-Pmax  <max distance between a pair of reads, default=1000>" << endl << endl <<
+			    "Bisulfite-Sequencing arguments:" << endl <<
+				"-b     (produce bis-seq reads)" << endl <<
+				"-ni    <number of simulated reads from CpG-Islands, default=0>" << endl <<
+             	"-a     <genomic map of CpG-Islands, mandatory if -ni greater than 0>" << endl << 
+             	"-mi    <methylation ratio input file>" << endl <<
+				"-mo    <methylation ratio output file>" << endl << 
+				"-co    <count of reads covering each cytosine output file>" << endl <<
+             	"-ch    <methylation ratio of CH dinucleotides, default=0.01>" << endl << 
+				"-cg    <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
+             	"-i     <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1>" << endl;
         exit(1);
     }
 
     if (pairMinDis > pairMaxDis || pairMinDis < 0) {
-        cerr << "Min distance between pair of reads should be a non-negative integer, smaller than max distance between them" << endl;
+        cerr << "Error: Min distance between pair of reads should be a non-negative integer, smaller than max distance between them" << endl;
         exit(1);
     }
+	if (insRate + delRate + mismatchRate > 1) {
+		cerr << "Error: Sum of insertion, deletion and mismatch ratios should be between 0 and 1" << endl;
+		exit(1);
+	}
 // Reading input
     ReadGenome(genomeFile);
     ReadCpGIslands();
     ProcessSNPs();
-    AssignMethylationRatio(cpgIslandFile);
+	if (bisSeq)
+	    AssignMethylationRatio(cpgIslandFile);
     if (outputFileName != "") {
         if (paired) {
             outputFile = fopen((outputFileName + "_1.fastq").c_str(), "w");
@@ -470,7 +515,8 @@ int main(int argc, char * argv[]) {
     }
     cerr << "Simulating reads..." << endl;
     SimulateReads();
-    WriteMethylationRatios();
+	if (bisSeq)
+	    WriteMethylationRatios();
     WriteReadCounts();
     cerr << "Finished." << endl;
     delete [] genome;
