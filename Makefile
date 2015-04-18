@@ -21,7 +21,7 @@ SUBDIRS=	.
 .cc.o:
 		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
 
-all:$(PROG) aryana convert-genomes align-bs methyl-extract BisSimul SamAnalyzer fastaseq bwtcheck
+all:$(PROG) aryana convert-genomes align-bs methyl-extract read_simul SamAnalyzer fastaseq bwtcheck
 
 aryana:$(OBJS) aryana_main.o
 		$(CC) $(CFLAGS2) $(DFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
@@ -35,8 +35,8 @@ align-bs:
 methyl-extract:
 		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
 
-BisSimul:	
-		$(CXX) $(DFLAGS) BisSimul.cpp -o BisSimul
+read_simul:	
+		$(CXX) $(DFLAGS) read_simul.cpp -o read_simul
 
 SamAnalyzer:
 		$(CXX) $(DFLAGS) SamAnalyzer.cpp -o SamAnalyzer
@@ -69,6 +69,6 @@ bwa.o: bntseq.h bwa.h bwt.h ksw.h utils.h kstring.h malloc_wrap.h kvec.h
 aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
-		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes BisSimul SamAnalyzer bwtcheck fastaseq
+		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes read_simul SamAnalyzer bwtcheck fastaseq
 gen:
 	g++ readgen.cpp -Wall -O2 -o readgen
