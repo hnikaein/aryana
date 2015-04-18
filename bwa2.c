@@ -75,16 +75,17 @@ int collision_error_reported = 0;
 
 
 int offsearch(int bot, int top, uint64_t * a, uint64_t key) {
-    if(bot > top)
-        return -1;
-    int mid = (bot + top) / 2;
-    //fprintf(stderr, "bot = %d, top = %d, a[%d] = %llu\n", bot, top, mid, a[mid]);
-    if(key >= a[mid] && a[mid + 1] > key)
-        return mid;
-    if(key < a[mid])
-        return offsearch(bot, mid - 1, a, key);
-    return offsearch(mid + 1, top, a, key);
+	while (bot <= top) {
+	    int mid = (bot + top) / 2;
+    	//fprintf(stderr, "bot = %d, top = %d, a[%d] = %llu\n", bot, top, mid, a[mid]);
+	    if(key >= a[mid] && (mid + 1 > top || a[mid + 1] > key))
+    	    return mid;
+	    if(key < a[mid]) top = mid - 1;
+		else bot = mid + 1;
+	}
+	return -1;
 }
+
 int align_paired_read(char * buffer, char *cigar1[20], char *cigar2[20], bwa_seq_t *seqs1, bwa_seq_t *seqs2, hash_element *table1, hash_element *table2,uint64_t level, aryana_args *options,int **d, char **arr, char* tmp_cigar)
 {
     int flag1 = 4, flag2=1;
@@ -564,7 +565,9 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
 //                fprintf(stderr,"index: %d, ref_aligned_len: %d, seq_len: %d\n", seq->index, ref_aligned_len, bwt->seq_len);
     }
     ind = offsearch(0, offInd - 1, offset, seq->index);
-
+	if (debug > 1) {
+		fprintf(stderr, "Offset search, ind: %d, chromosome name: %s\n", ind, name[ind]);
+	}
     seq->index -= offset[ind];
 
     //pnext = 0;
