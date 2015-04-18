@@ -18,5 +18,6 @@ typedef struct {
     int bisulfite;
     int order;
     int debug;
+    int exactmatch_num;
 } aryana_args;
 #endif
