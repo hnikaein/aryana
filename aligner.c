@@ -198,7 +198,6 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
     if(N < exactmatch_num){
         for (j=down; j<=up; j++) {
             selected[j-down]=j;
-            fprintf(stderr, "down:%lld:  up:%lld %lld\n",down,up,j);
         }
         return;
     }

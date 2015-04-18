@@ -508,8 +508,12 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
     int best_num=best_size;
     aligner(bwt, seq->len, seq->seq,  level, table, best,best_size,&best_num, options);
     int best_errors=-1;
-    int best_found=-1;
+    int best_founds[best_size];
+    int best_index = 0;
     double prob=0.0;
+    // for(int ii=0; ii<100; ii++)
+    //     fprintf(stderr, "%d ", best[ii]);
+    // fprintf(stderr, "%d\n", best_num );
     for (ii=best_num; ii<best_size; ii++)
         if (best[ii]!=-1)
         {
@@ -530,11 +534,18 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
                 fprintf(stderr,"%d %lf %llu\n",tmp_errors,scaled_err,(unsigned long long) seq->index);
                 */
             }
-            if (best_errors==-1 || best_errors>=tmp_errors)
+            // fprintf(stderr, "%d, %d, %d\n", best_errors, tmp_errors, best_size);
+            if (best_errors==-1 || best_errors>tmp_errors)
             {
 
                 best_errors=tmp_errors;
-                best_found=ii;
+                best_founds[0] = ii;
+                best_index = 1;
+            }
+            else if(best_errors==tmp_errors)
+            {
+                best_founds[best_index] = ii;
+                best_index++;
             }
         }
 
@@ -548,39 +559,87 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
     seq->mapQ=mapq;
     //	fprintf(stderr,"%lf\n",mapq);
     seq->index=0;
-
-    if (best_found!=-1)
-        seq->index=table[best[best_found]].index;
-//	fprintf(stderr, "seq->index : %d\n", seq->index);
-    if (best_found==-1 || seq->index >= bwt->seq_len)
-        flag = 4;
-    else if(seq->index <= bwt->seq_len / 2)
-        flag = 0;
-    else
-        flag=16;
-    if(flag == 16)
-    {
-        uint64_t ref_aligned_len=reverse_cigar(cigar[best_found]);
-        seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-ref_aligned_len;
+    int primary_align = rand() % best_index;
+    if (options->report_multi == 0 || best_index == 0){
+         if (best_index != 0)
+           seq->index=table[best[best_founds[primary_align]]].index;
+//     fprintf(stderr, "seq->index : %d\n", seq->index);
+        if (best_index == 0 || seq->index >= bwt->seq_len)
+            flag = 4;
+        else if(seq->index <= bwt->seq_len / 2)
+            flag = 0;
+        else
+            flag=16;
+        if(flag == 16)
+        {
+            uint64_t ref_aligned_len=reverse_cigar(cigar[best_founds[primary_align]]);
+            seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-ref_aligned_len;
 //                fprintf(stderr,"index: %d, ref_aligned_len: %d, seq_len: %d\n", seq->index, ref_aligned_len, bwt->seq_len);
+        }
+        ind = offsearch(0, offInd - 1, offset, seq->index);
+        if (debug > 1) {
+            fprintf(stderr, "Offset search, ind: %d, chromosome name: %s\n", ind, name[ind]);
+        }
+        seq->index -= offset[ind];
+
+        //pnext = 0;
+        //tlen = 0;
+
+        buffer[0]='\0';
+//      if (seq->mapQ!=3)
+//          return 0;
+        if (flag==4)
+            return sam_generator(buffer, seq->name, flag, "*", (uint64_t)(0), (uint32_t)(0), "*", "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
+        else
+            return sam_generator(buffer, seq->name, flag, name[ind], seq->index+1, seq->mapQ, cigar[best_founds[primary_align]], "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
+
     }
-    ind = offsearch(0, offInd - 1, offset, seq->index);
-	if (debug > 1) {
-		fprintf(stderr, "Offset search, ind: %d, chromosome name: %s\n", ind, name[ind]);
-	}
-    seq->index -= offset[ind];
 
-    //pnext = 0;
-    //tlen = 0;
+    int buffer_end = 0;
+    for(int ii=0; ii < best_index; ii++)
+    {
+        seq->index=table[best[best_founds[ii]]].index;
+        if (seq->index >= bwt->seq_len)
+            flag = 4;
+        else if(seq->index <= bwt->seq_len / 2){
+            if(ii == primary_align)
+                flag = 0;
+            else
+                flag = 256; //Secondary alignment
+        }
+        else{
+            if(ii == primary_align)
+                flag=16;
+            else
+                flag=272;
+        }
+        if(flag == 16 || flag == 272)
+        {
+            uint64_t ref_aligned_len=reverse_cigar(cigar[best_founds[ii]]);
+            seq->index = (bwt->seq_len / 2) - (seq->index - (bwt->seq_len / 2))-ref_aligned_len;
+//                fprintf(stderr,"index: %d, ref_aligned_len: %d, seq_len: %d\n", seq->index, ref_aligned_len, bwt->seq_len);
+        }
+        ind = offsearch(0, offInd - 1, offset, seq->index);
+        if (debug > 1) {
+            fprintf(stderr, "Offset search, ind: %d, chromosome name: %s\n", ind, name[ind]);
+        }
+        seq->index -= offset[ind];
 
-    buffer[0]='\0';
-//	if (seq->mapQ!=3)
-//		return 0;
-    if (flag==4)
-        return sam_generator(buffer, seq->name, flag, "*", (uint64_t)(0), (uint32_t)(0), "*", "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
-    else
-        return sam_generator(buffer, seq->name, flag, name[ind], seq->index+1, seq->mapQ, cigar[best_found], "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
+        //pnext = 0;
+        //tlen = 0;
 
+        buffer[buffer_end]='\0';
+//      if (seq->mapQ!=3)
+//          return 0;
+        if (flag==4)
+            buffer_end += sam_generator(buffer+buffer_end, seq->name, flag, "*", (uint64_t)(0), (uint32_t)(0), "*", "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
+        else
+            buffer_end += sam_generator(buffer+buffer_end, seq->name, flag, name[ind], seq->index+1, seq->mapQ, cigar[best_founds[ii]], "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
+    }
+    return buffer_end;
+
+//	fprintf(stderr, "seq->index : %d\n", seq->index);
+    
 }
 
 void multiAligner(int tid, const gap_opt_t *opt, aryana_args *options) {

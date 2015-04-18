@@ -45,6 +45,7 @@ void Usage() {
     fprintf(stderr, "Alignment of bisulfite-sequencing reads:\n");
     fprintf(stderr, "[-b,--bisulfite <bisulfite reference genome index>]\n\n");
     fprintf(stderr, "[-e, <number of selected exact matches>]\n\n");
+    fprintf(stderr, "[-r,--report-multi-aligns (Report multi-aligned reads)]\n\n");
     fprintf(stderr, "See README.md for more details.\n");
     exit(1);
 }
@@ -60,7 +61,8 @@ int main(int argc, char *argv[])
     args.best_factor = -1;
     args.bisulfite = 0;
     args.order = 0;
-    args.exactmatch_num=50;
+    args.exactmatch_num = 50;
+    args.report_multi = 0;
     char *refNames[5];
     bzero(refNames, sizeof(refNames));
     if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
@@ -86,12 +88,13 @@ int main(int argc, char *argv[])
         {"debug", required_argument, 0, 'D'},
         {"no-discordant", no_argument, 0, 'd'},
         {"exact-match", required_argument, 0, 'e'},
+        {"report-multi-aligns", no_argument, 0, 'r'},
     };
     char* output = NULL;
     char* inputFolder;
     int option_index = 0;
     int c;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OD:d", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OD:dr", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
@@ -169,6 +172,9 @@ int main(int argc, char *argv[])
             break;
         case 'e':
             args.exactmatch_num = atoi(optarg);
+            break;
+        case 'r':
+            args.report_multi = 1;
             break;
         case 'O':
             args.order = 1;

@@ -19,5 +19,6 @@ typedef struct {
     int order;
     int debug;
     int exactmatch_num;
+    int report_multi;
 } aryana_args;
 #endif
