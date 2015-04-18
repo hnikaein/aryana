@@ -198,6 +198,7 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
     if(N < exactmatch_num){
         for (j=down; j<=up; j++) {
             selected[j-down]=j;
+            fprintf(stderr, "down:%lld:  up:%lld %lld\n",down,up,j);
         }
         return;
     }
@@ -320,7 +321,8 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         match_select(down, up , args->exactmatch_num,selected);
         //		for (j=down; j<=up && j <= (down + 50); j++){
         int ii=0;
-        for ( j= selected[ii]; ii < args->exactmatch_num && ii < up ; ii++){
+        for ( ; ii < args->exactmatch_num && ii < up-down+1 ; ii++){
+            j= selected[ii];
             bwtint_t index=bwt_sa(bwt,j);
 //            		if (index > len)
 //                 		index = index - len;
