@@ -1,7 +1,7 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-g3 -Wall -Wno-unused-function -O2
-CXXFLAGS=	-g3 -Wall -Wno-unused-function -O2
+CFLAGS=		-Wall -Wno-unused-function -O2
+CXXFLAGS=	-Wall -Wno-unused-function -O2
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
@@ -11,8 +11,8 @@ PROG=		aryana
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	. 
-debug:		CFLAGS += -DDEBUG -g
-debug:		CXXFLAGS += -DDEBUG -g
+debug:		CFLAGS += -DDEBUG -g3 -O0
+debug:		CXXFLAGS += -DDEBUG -g3 -O0
 
 .SUFFIXES:.c .o .cc
 
