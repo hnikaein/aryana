@@ -86,7 +86,7 @@ int ChromIndex(char * chr) {
 int checkGAorCT() {
     int GA = 0, CT = 0;
     long long pos = chrom[ChromIndex(line.chr)].chrStart + line.pos-1;
-    for (int i = 0; i < line.seq_string.size(); i++)
+    for (unsigned int i = 0; i < line.seq_string.size(); i++)
         if (toupper(line.seq_string[i])=='A' && toupper(reference[pos+i])=='G') GA++;
         else if (toupper(line.seq_string[i])=='T' && toupper(reference[pos+i])=='C') CT++;
     return (GA > CT) ? 1 : ((GA < CT) ? 0 : -1);
@@ -120,11 +120,11 @@ void ProcessMethylation() {
     int chrNum = ChromIndex(line.chr);
     long long refPos = chrom[chrNum].chrStart + line.pos-1;
 
-    if(line.strand == '-') {
+    if (line.strand == '-') {
         methyl='G';
         unmethyl='A';
     }
-    for(int i=0; i < line.seq_string.size() ; i++)
+    for (unsigned int i=0; i < line.seq_string.size() ; i++)
         if(toupper(reference[refPos+i]) == methyl) { // It's a cytosine either in + or - strands
             long long pos = refPos+i;
             int index = (pos)%BUFFER_SIZE;
@@ -146,7 +146,7 @@ void ProcessMethylation() {
 // Handles mismatches and inserts in cigar by converting reads
 void convertRead() {
     int j = 0;
-    for(int i=0; i< line.seq_string.size(); i++) {
+    for(unsigned int i=0; i< line.seq_string.size(); i++) {
         if (line.cigar2[i] == 'i')
             line.seq_string.erase(j,1);
         else if (line.cigar2[i] == 'd') {
@@ -225,7 +225,7 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
         } while (! stop && buffer[0] == '@'); // End of file, header lines
         if(stop)
             return -1;
-        sscanf(buffer, "%s\t%d\t%s\t%lld\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", line.rname, &flag, line.chr, &(line.pos) ,&mapq, line.cigar,rnext,pnext, &tlen,seq_string,quality_string);
+        sscanf(buffer, "%s\t%d\t%s\t%llu\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", line.rname, &flag, line.chr, (unsigned long long *) &(line.pos) ,&mapq, line.cigar,rnext,pnext, &tlen,seq_string,quality_string);
         if (flag & 4) continue; // Unmapped read
         if((flag & 0x1) && line.pos==last_pos)//paired read and unmapped
             continue;
@@ -311,7 +311,6 @@ int main(int argc, char *argv[]) {
         { NULL, 0, NULL, 0}
     };
     int option_index = 0;
-    char *tmp;
     int c;
     while ((c = getopt_long(argc, argv, "r:s:am:", long_options, &option_index)) >= 0) {
         switch (c) {

@@ -1,9 +1,7 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-g -Wall -Wno-unused-function -O2
-CFLAGS2=	-g -Wall -Wno-unused-function -O2
-CXXFLAGS=	$(CFLAGS)
-DFLAGS=		-DHAVE_PTHREAD #-D_NO_SSE2 #-D_FILE_OFFSET_BITS=64
+CFLAGS=		-g3 -Wall -Wno-unused-function -O2
+CXXFLAGS=	-g3 -Wall -Wno-unused-function -O2
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
@@ -13,39 +11,42 @@ PROG=		aryana
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	. 
+debug:		CFLAGS += -DDEBUG -g
+debug:		CXXFLAGS += -DDEBUG -g
 
 .SUFFIXES:.c .o .cc
 
 .c.o:
-		$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
+		$(CC) -c $(CFLAGS) $(INCLUDES) $< -o $@
 .cc.o:
-		$(CXX) -c $(CXXFLAGS) $(DFLAGS) $(INCLUDES) $< -o $@
+		$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
-all:$(PROG) aryana convert-genomes align-bs methyl-extract read_simul SamAnalyzer fastaseq bwtcheck
+all:	$(PROG) aryana convert-genomes align-bs methyl-extract read_simul SamAnalyzer fastaseq bwtcheck
+debug:	all
 
 aryana:$(OBJS) aryana_main.o
-		$(CC) $(CFLAGS2) $(DFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
+		$(CC) $(CFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
 
 convert-genomes:
-		$(CXX) $(DFLAGS) convert_genomes.cpp -o convert_genomes
+		$(CXX) $(CXXFLAGS) convert_genomes.cpp -o convert_genomes
 
 align-bs:
-		$(CXX) $(DFLAGS)  align_bs.cpp -o align_bs 
+		$(CXX) $(CXXFLAGS)  align_bs.cpp -o align_bs 
 
 methyl-extract:
-		$(CXX) $(DFLAGS) methyl_extract.cpp -o methyl_extract
+		$(CXX) $(CXXFLAGS) methyl_extract.cpp -o methyl_extract
 
 read_simul:	
-		$(CXX) $(DFLAGS) read_simul.cpp -o read_simul
+		$(CXX) $(CXXFLAGS) read_simul.cpp -o read_simul
 
 SamAnalyzer:
-		$(CXX) $(DFLAGS) SamAnalyzer.cpp -o SamAnalyzer
+		$(CXX) $(CXXFLAGS) SamAnalyzer.cpp -o SamAnalyzer
 
 fastaseq:
-		$(CXX) $(DFLAGS) fastaseq.cpp -o fastaseq
+		$(CXX) $(CXXFLAGS) fastaseq.cpp -o fastaseq
 
 bwtcheck:
-		$(CXX) $(DFLAGS) bwtcheck.cpp -o bwtcheck
+		$(CXX) $(CXXFLAGS) bwtcheck.cpp -o bwtcheck
 
 QSufSort.o:QSufSort.h
 

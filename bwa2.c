@@ -596,7 +596,7 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
     }
 
     int buffer_end = 0;
-    for(int ii=0; ii < best_index; ii++)
+    for(ii=0; ii < best_index; ii++)
     {
         seq->index=table[best[best_founds[ii]]].index;
         if (seq->index >= bwt->seq_len)

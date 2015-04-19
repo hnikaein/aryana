@@ -133,7 +133,7 @@ void reverseRead(char *s) {
 }
 
 void complementRead(char *read) {
-    int i;
+    unsigned int i;
     for (i=0; i< strlen(read); i++) {
         switch (read[i]) {
         case 'T':
@@ -178,7 +178,7 @@ char getNuc(uint64_t place) {
 }
 
 inline void ToLower(char * s) {
-    int i = 0;
+    unsigned int i = 0;
     for (i = 0; i < strlen(s); i++)
         if (s[i] >= 'A' && s[i] <= 'Z')
             s[i] += 'a' - 'A';
@@ -200,13 +200,13 @@ int ChromIndex(char * chr) {
 void ReadCpGIslands(char * annotationFile) {
     FILE* file = fopen(annotationFile, "r"); /* should check the result */
     char fLine[10000], chrom[maxChrNameLength];
-    uint64_t start, end;
+    unsigned long long start, end;
     do {
         if(NULL==fgets(fLine, sizeof(fLine), file)) {
             fclose(file);
             break;
         }
-        sscanf(fLine, "%s %lld %lld", chrom, &start, &end);
+        sscanf(fLine, "%s %llu %llu", chrom, &start, &end);
         islands.push_back(Island(ChromIndex(chrom), start, end));
     } while (true);
     sort(islands.begin(), islands.end());
@@ -449,8 +449,8 @@ int main(int argc, char *argv[]) {
         rname2[i] = new char[maxChrNameLength];
         cigar2[i] = new char[maxReadLength * 2];
     }
-    char qname[100], rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength], copy[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
-    char qname2[100], rnext2[100], pnext2[100], seq_string2[maxReadLength], quality_string2[maxReadLength], copy2[maxReadLength];
+    char qname[100], rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
+    char qname2[100], rnext2[100], pnext2[100], seq_string2[maxReadLength], quality_string2[maxReadLength];
     int chosen[numberOfGenomes];
     int j=0;
     for (; j < numberOfGenomes; j++)

@@ -47,12 +47,12 @@ struct Gene {
 };
 
 inline void ToLower(char * s) {
-    for (int i = 0; i < strlen(s); i++)
+    for (unsigned int i = 0; i < strlen(s); i++)
         if (s[i] >= 'A' && s[i] <= 'Z') s[i] += 'a' - 'A';
 }
 
 inline void ToUpper(char * s) {
-    for (int i = 0; i < strlen(s); i++)
+    for (unsigned int i = 0; i < strlen(s); i++)
         if (s[i] >= 'a' && s[i] <= 'z') s[i] += 'A' - 'a';
 
 }
@@ -151,7 +151,7 @@ bool GetSequence(long chr, bool strand, long wStart, long wEnd, char * seq) {
                 break;
             }
     }
-    for (int i = 0; i < strlen(seq); i++)
+    for (unsigned int i = 0; i < strlen(seq); i++)
         if (seq[i] == 'N' || seq[i] == 'n') {
             result = false;
             break;
@@ -163,11 +163,10 @@ bool GetSequence(long chr, bool strand, long wStart, long wEnd, char * seq) {
 // Returns true if the sequence is in valid position and containing no NAs
 bool ConvertSequence(long chr, long wStart, long wEnd, int CT) {
     //pos--; // Converting 1 base position to 0 base
-    bool result = true;
     if (wStart < 1 || wStart + chromPos[chr] - 1 >= chromPos[chr + 1]) return false;
 
     //cout << chr << "\t" << wStart << "\t" << wEnd << endl;
-    for (unsigned long i = wStart + chromPos[chr] - 1; i < wEnd + chromPos[chr]; i++) {
+    for (unsigned long i = wStart + chromPos[chr] - 1; i < (unsigned) (wEnd + chromPos[chr]); i++) {
         //cout << genome[i];
         if ((genome[i] == 'c' || genome[i] == 'C') && (genome[i+1] == 'g' || genome[i+1] == 'G')) {// A CpG
             if(CT)
@@ -214,7 +213,7 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
         cerr << "Error: CpG island locations file not found or could not be opened" << endl;
         exit(1);
     }
-    char fLine[10000], chrom[10], strand[10];
+    char fLine[10000], chrom[10];
     long long wStart, wEnd, chr;
     f.getline(fLine, sizeof(fLine)); // First row
     while (!f.eof()) {
@@ -235,11 +234,11 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
 void WriteGenome(char * outputFile)
 {
     FILE * f = fopen(outputFile, "w");
-    char s[100], tmp;
+    char tmp;
     for (int i = 0; i < chromNum; i++) {
         fprintf(f, "%s\n", chromName[i].c_str());
         unsigned long j;
-        for (j = chromPos[i]; j + 50 < chromPos[i + 1]; j+= 50) {
+        for (j = chromPos[i]; j + 50 < (unsigned) chromPos[i + 1]; j+= 50) {
             tmp = genome[j + 50];
             genome[j + 50] = 0;
             fprintf(f, "%s\n", genome + j);

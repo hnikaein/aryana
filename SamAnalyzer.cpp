@@ -112,7 +112,7 @@ bool GetSequence(string chr, long long start, long long length, char *seq) {
 // Returns the total length of reference sequence pointed to by the given cigar sequence
 
 int CigarLen(string cigar) {
-    int cigarpos = 0, len = 0;
+    unsigned int cigarpos = 0, len = 0;
     while (cigarpos < cigar.size()) {
         int num = 0;
         while (cigarpos < cigar.size() && cigar[cigarpos] >= '0' && cigar[cigarpos] <= '9') num = num * 10 + cigar[cigarpos++] - '0';
@@ -135,7 +135,8 @@ int CigarLen(string cigar) {
 
 int EditDistance(string a, string b, string cigar, char orig_base = '\0', char conv_base = '\0') {
     //cerr << "Edit distance, length(a): " << a.size() << ", length(b): " << b.size() << ", cigar: " << cigar << endl << "a: " << a << endl << "b: " << b << endl;
-    int apos = 0, bpos = 0, cigarpos = 0, penalty = 0;
+    unsigned int apos = 0, bpos = 0, cigarpos = 0;
+	int penalty = 0;
     while (cigarpos < cigar.size()) {
         int num = 0;
         while (cigarpos < cigar.size() && cigar[cigarpos] >= '0' && cigar[cigarpos] <= '9') num = num * 10 + cigar[cigarpos++] - '0';
@@ -192,9 +193,9 @@ void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos
 }
 
 void ProcessSamFile(string samFileName) {
-    long long int tlen, tlen2, pos, pos2;
+    long long int tlen, pos;
     int flag, mapq, penalty, penalty2, startPos;
-    char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], copy[maxReadLen], qname2[1000], rnext2[1000], pnext2[1000], seq2[maxReadLen], quality_string2[maxReadLen], copy2[maxReadLen], cigar[2*maxReadLen], cigar2[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
+    char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], cigar[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
     FILE * f = stdin, * of = stdout;
     if (samFileName != "") f = fopen(samFileName.c_str(), "r");
     if (outputFileName != "") of = fopen(outputFileName.c_str(), "w");
