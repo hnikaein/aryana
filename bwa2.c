@@ -559,10 +559,12 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
     seq->mapQ=mapq;
     //	fprintf(stderr,"%lf\n",mapq);
     seq->index=0;
-    int primary_align = rand() % best_index;
+    int primary_align;
     if (options->report_multi == 0 || best_index == 0){
-         if (best_index != 0)
+         if (best_index != 0) {
+			 primary_align = rand() % best_index;
            seq->index=table[best[best_founds[primary_align]]].index;
+		 }
 //     fprintf(stderr, "seq->index : %d\n", seq->index);
         if (best_index == 0 || seq->index >= bwt->seq_len)
             flag = 4;
@@ -594,7 +596,7 @@ int align_read(char * buffer, char *cigar[20], bwa_seq_t *seq, hash_element *tab
             return sam_generator(buffer, seq->name, flag, name[ind], seq->index+1, seq->mapQ, cigar[best_founds[primary_align]], "*", (uint64_t)(0), (long long)(0), seq->seq, seq->qual, seq->len);
 
     }
-
+    primary_align = rand() % best_index;
     int buffer_end = 0;
     for(ii=0; ii < best_index; ii++)
     {
