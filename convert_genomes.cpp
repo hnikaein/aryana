@@ -6,10 +6,8 @@
 #include <vector>
 using namespace std;
 
-const long maxGenomeSize = 4e9;
-const int maxChromosomeNum = 1000;
 const int interval_side = 3000;
-long chromPos[maxChromosomeNum];
+vector <long long> chromPos, chromLen;
 unsigned long gs;
 map <string, int> chromIndex;
 map <int, string> chromName;
@@ -69,36 +67,52 @@ int ChromIndex(char * chrom) {
     else return -1;
 }
 
-
-void ReadGenome(char * genomeFile) {
+void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
-    genome = new char[maxGenomeSize];
+    ifstream ifile(genomeFile.c_str());
+    ifile.seekg(0, std::ios_base::end); //seek to end
+    //now get current position as length of file
+    long long size = ifile.tellg();
+    ifile.close();
+    genome = new char[size];
     gs = 0;
     chromNum = 0;
     cerr << "Reading genome..." << endl;
     char fLine[10000];
-    FILE * f = fopen(genomeFile, "r");
+    FILE * f = fopen(genomeFile.c_str(), "r");
     if (! f) {
         cerr << "Error: Genome file not found or could not be opened" << endl;
         exit(1);
     }
     while (! feof(f)) {
+        fLine[0] = 0;
         int n = fscanf(f, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
+        if (n == 0) break;
         if (fLine[0] == '>') {
-            chromPos[chromNum++] = gs;
-            if (chromNum > 1) cerr << " Length: " << chromPos[chromNum - 1] - chromPos[chromNum - 2] <<  endl;
-            cerr << fLine;
-            chromIndex[fLine] = chromNum - 1;
-            chromName[chromNum - 1] = fLine;
+            chromPos.push_back(gs);
+            if (chromNum > 0) {
+                chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
+                cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
+            }
+
+            string name = fLine;
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            else name = name.substr(1, name.size() - 1);
+            cerr << name;
+            chromIndex[name] = chromNum;
+            chromName[chromNum] = name;
+            chromNum++;
         } else {
-//            ToUpper(fLine);
             memcpy(genome+gs, fLine, n);
             gs += n;
         }
     }
-    chromPos[chromNum] = gs;
+    chromPos.push_back(gs);
+    chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
+//  for (int i = 0; i < chromNum; i++)
+//      cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
     cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
     fclose(f);
 }
@@ -180,6 +194,9 @@ bool ConvertSequence(long chr, long wStart, long wEnd, int CT) {
     return true;
 }
 
+
+// If CT==1: For all C[!G] converts C->T
+// If CT==0: For all [!C]G converts G->A
 void ConvertWholeGenome(int CT) {
     if(CT) {
         for (unsigned long i = 0; i < gs; i++) {

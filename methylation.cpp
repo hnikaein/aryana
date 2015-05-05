@@ -26,12 +26,10 @@ using namespace std;
 
 
 #define maxGenomeSize 1e5
-#define maxChromosomeNum 1000
 #define READ_LENGHT 100
 #define READ_SAM_BY 100002
 #define BUFFER_SIZE 200
 unsigned long gs;
-char chromName[maxChromosomeNum][100];
 int chromNum;
 int debug=0;
 int EndOfFile=0;

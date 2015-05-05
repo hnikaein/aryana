@@ -8,10 +8,9 @@
 #include <string>
 using namespace std;
 
-const int maxChromosomeNum = 1000;
 const int maxReadSize = 10000;
 const int maxTries = 10000; // Maximum number of tries to find a suitable location for each read
-long long chromPos[maxChromosomeNum], chromLen[maxChromosomeNum];
+vector<long long> chromPos, chromLen;
 long long gs;
 map <string, int> chromIndex;
 map <int, string> chromName;
@@ -69,14 +68,14 @@ void ReadGenome(string genomeFile) {
         n = strlen(fLine);
         if (n == 0) break;
         if (fLine[0] == '>') {
-            chromPos[chromNum] = gs;
+            chromPos.push_back(gs);
             if (chromNum > 0) {
-                chromLen[chromNum - 1] = chromPos[chromNum] - chromPos[chromNum - 1];
+                chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
                 cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
             }
 
             string name = fLine;
-            if (name.find("|") != string::npos) name = name.substr(1, name.find("|")-1);
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
             else name = name.substr(1, name.size() - 1);
             cerr << name;
             chromIndex[name] = chromNum;
@@ -87,8 +86,8 @@ void ReadGenome(string genomeFile) {
             gs += n;
         }
     }
-    chromPos[chromNum] = gs;
-    chromLen[chromNum - 1] = chromPos[chromNum] - chromPos[chromNum - 1];
+    chromPos.push_back(gs);
+    chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
 //	for (int i = 0; i < chromNum; i++)
 //		cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
     cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;

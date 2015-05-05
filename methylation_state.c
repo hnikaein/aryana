@@ -14,10 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-
+#include <vector>
 
 #define maxGenomeSize 1e5
-#define maxChromosomeNum 1000
 #define READ_LENGHT 100
 unsigned long gs;
 char chromName[maxChromosomeNum][100];
@@ -43,7 +42,7 @@ struct Chrom
     long chrNum;
 };
 
-struct Chrom chrom[maxChromosomeNum] ;
+vector <Chrom> chrom;
 
 int main(int argc, char *argv[]) {
     char *referenceName, *annotationFile;
@@ -157,9 +156,12 @@ int ReadGenome(char * genomeFile) {
         if (n == EOF) break;
         n = strlen(fLine);
         // fprintf(stderr, "Reading genome2 :n %d ...\n",n);
+		Chrom ch;
         if (fLine[0] == '>') {
             //chromPos[chromNum++] = gs;
-            chrom[chromNum++].chrStart = gs;
+			ch.chrStart = gs;
+			chrom.push_back(ch);
+			crhomNum++;
             char * temp = fLine;
             temp++;
             int lenght = strlen(temp);
@@ -235,8 +237,7 @@ void computeMethylation2(char *chr) {
     int end = chrom[index].
 }
 int ChromIndex(char * chr) {
-    int i = 0;
-    for(i; i < maxChromosomeNum; i++) {
+    for(unsigned int i = 0; i < chrom.size(); i++) {
         if(chrom[i].chrName == NULL)
             break;
         if(strcmp(chrom[i].chrName, chr) == 0)

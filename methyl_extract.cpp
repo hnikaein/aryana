@@ -17,11 +17,10 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
-
+#include <vector>
 using namespace std;
 
 
-#define maxChromosomeNum 1000
 #define READ_SAM_BY 10
 #define maxReadLength 2000
 #define BUFFER_SIZE (maxReadLength + 1) // Should be higher than maximum read length
@@ -63,7 +62,7 @@ struct Chrom
     long long chrNum;
 };
 
-struct Chrom chrom[maxChromosomeNum] ;
+vector <Chrom> chrom;
 
 struct QItem {
     int count[2]; 		// Number of reads covering the base in [0] methylated, and [1] unmethylated form.
@@ -72,8 +71,7 @@ struct QItem {
 } queue[BUFFER_SIZE];
 
 int ChromIndex(char * chr) {
-    int i = 0;
-    for(; i < maxChromosomeNum; i++) {
+    for(unsigned int i = 0; i < chrom.size(); i++) {
         if(chrom[i].chrName == NULL)
             break;
         if(strcmp(chrom[i].chrName, chr) == 0)
@@ -275,12 +273,15 @@ int ReadGenome(char * genomeFile) {
     chromNum = 0;
     fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
+	Chrom ch;
     while (! feof(fp)) {
         int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
         if (fLine[0] == '>') {
-            chrom[chromNum++].chrStart = gs;
+			ch.chrStart = gs;
+            chrom.push_back(ch);
+			chromNum++;
             char * temp = fLine;
             temp++;
             int lenght = strlen(temp);

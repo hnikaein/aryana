@@ -18,7 +18,6 @@
 #include <iostream>
 using namespace std;
 
-#define maxChromosomeNum 1000
 #define numberOfGenomes 5
 #define maxReadLength 2000
 #define maxChrNameLength 100
@@ -26,9 +25,9 @@ using namespace std;
 //const long maxGenomeSize = 4e9;
 //const int maxChromosomeNum = 1000;
 
-long long chromPos[maxChromosomeNum];
+vector <long long> chromPos, chromLen;
 unsigned long long gs;
-char chromName[maxChromosomeNum][maxChrNameLength];
+vector <string> chromName;
 char * genome;
 int chromNum;
 char * genomeFile, *annotationFile, *samFilePath, *referenceName;
@@ -63,10 +62,10 @@ char str[maxReadLength];
 struct Chrom
 {
     char * chrName;
-    long chrStart;
+    long long chrStart;
 }; // for converting refrence position to chromosome based position
 
-struct Chrom chrom[maxChromosomeNum] ;
+vector <Chrom> chrom;
 char * reference;
 uint32_t reference_size;
 uint32_t reference_reminder;
@@ -76,47 +75,50 @@ uint32_t reference_reminder;
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
+    FILE *fp;
     if (stat(genomeFile, &file_info) == -1) {
-        fprintf(stderr,
-                "Could not get the information of file %s\nplease make sure the file exists\n",
-                genomeFile);
+        fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
         return -1;
     }
-    FILE *fp;
+
     fp = fopen(genomeFile, "r");
+    if (! fp) {
+        fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
+        exit(-1);
+    }
     off_t file_size_bytes = file_info.st_size;
     reference_size = ceil(((double) file_size_bytes) / (double) (sizeof(char)));
     reference = (char *) malloc(reference_size * sizeof(char));
     memset(reference, 0, reference_size * sizeof(char));
     gs = 0;
     chromNum = 0;
+    fprintf(stderr, "Reading genome...\n");
     char fLine[10000];
+    Chrom ch;
     while (! feof(fp)) {
         int n = fscanf(fp, "%s\n", fLine);
         if (n == EOF) break;
         n = strlen(fLine);
         if (fLine[0] == '>') {
-            chrom[chromNum++].chrStart = gs;
+            ch.chrStart = gs;
+            chrom.push_back(ch);
+            chromNum++;
             char * temp = fLine;
             temp++;
             int lenght = strlen(temp);
             chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
-            strcpy(chrom[chromNum-1].chrName, temp);
+            memcpy(chrom[chromNum-1].chrName, temp, lenght);
             if (chromNum >= 1)
-                fprintf(stderr, "chrName: %s, chrStart: %ld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
+                fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
             fprintf(stderr, "%s\n",fLine);
         } else {
             memcpy(reference+gs, fLine, n);
             gs += n;
         }
     }
-    chromPos[chromNum] = gs;
-    fprintf(stderr, "Lenght: %lld\n",chromPos[chromNum] - chromPos[chromNum - 1]);
     fclose(fp);
     return 0;
 }
-
-
 void reverseRead(char *s) {
     char  c;
     char* s0 = s - 1;
@@ -186,7 +188,7 @@ inline void ToLower(char * s) {
 
 
 int ChromIndex(char * chr) {
-    for(int i=0; i < maxChromosomeNum; i++) {
+    for(unsigned int i=0; i < chrom.size(); i++) {
         if(chrom[i].chrName == NULL)
             break;
         if(strcmp(chrom[i].chrName, chr) == 0)
