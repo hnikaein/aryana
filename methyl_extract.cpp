@@ -33,9 +33,7 @@ long long amb = 0; // the number of ambiguous reads, for which CT conversions eq
 int chromNum;
 int debug=0;
 
-char * reference;
-uint32_t reference_size;
-uint32_t reference_reminder;
+char * genome;
 FILE *samFile;
 bool allCytosines = false; // Whether or not print the information of cytosines neither methylated nor in CpG context
 
@@ -57,9 +55,8 @@ struct SamRecord {
 
 struct Chrom
 {
-    char * chrName;
+    string chrName;
     long long chrStart;
-    long long chrNum;
 };
 
 vector <Chrom> chrom;
@@ -72,9 +69,7 @@ struct QItem {
 
 int ChromIndex(char * chr) {
     for(unsigned int i = 0; i < chrom.size(); i++) {
-        if(chrom[i].chrName == NULL)
-            break;
-        if(strcmp(chrom[i].chrName, chr) == 0)
+        if(chrom[i].chrName == chr)
             return i;
     }
     return -1;
@@ -85,23 +80,23 @@ int checkGAorCT() {
     int GA = 0, CT = 0;
     long long pos = chrom[ChromIndex(line.chr)].chrStart + line.pos-1;
     for (unsigned int i = 0; i < line.seq_string.size(); i++)
-        if (toupper(line.seq_string[i])=='A' && toupper(reference[pos+i])=='G') GA++;
-        else if (toupper(line.seq_string[i])=='T' && toupper(reference[pos+i])=='C') CT++;
+        if (toupper(line.seq_string[i])=='A' && toupper(genome[pos+i])=='G') GA++;
+        else if (toupper(line.seq_string[i])=='T' && toupper(genome[pos+i])=='C') CT++;
     return (GA > CT) ? 1 : ((GA < CT) ? 0 : -1);
 }
 
 // Prints the information of one base stored in the queue[index].
 
 void PrintOutput(int index) {
-    long long pos = queue[index].pos;                       // Location in the whole genome
+    unsigned long long pos = queue[index].pos;                       // Location in the whole genome
     if (pos < 0) return;
     int chrNum = queue[index].chr;
-    char * chrName = chrom[chrNum].chrName;
+    string chrName = chrom[chrNum].chrName;
     long long chrPos = pos - chrom[chrNum].chrStart;	// Location in the chromosome
-    char base = toupper(reference[pos - 1]);	// Main base
+    char base = toupper(genome[pos - 1]);	// Main base
     char next;
-    if (base == 'C') next = (reference_size > pos) ? toupper(reference[pos]) : '$';
-    else if (base == 'G') next = (pos > 1) ? toupper(reference[pos - 2]) : '$';
+    if (base == 'C') next = (gs > pos) ? toupper(genome[pos]) : '$';
+    else if (base == 'G') next = (pos > 1) ? toupper(genome[pos - 2]) : '$';
     else fprintf(stderr, "Bug: The base at genomic locationd %lld is not either C or G\n", pos);
     char strand = (base == 'C') ? '+' : '-';
     bool cpg = (base == 'C' && next == 'G') || (base == 'G' && next == 'C');
@@ -110,7 +105,7 @@ void PrintOutput(int index) {
     int total = queue[index].count[0] + queue[index].count[1];
     int meth = queue[index].count[0];
     if (allCytosines || cpg || meth > 0)
-        fprintf(stdout, "%s\t%lld\t%c\t%d\t%d\t%.4f\t%s\n", chrName, chrPos, strand,total, meth, (double) meth / total, context);
+        fprintf(stdout, "%s\t%lld\t%c\t%d\t%d\t%.4f\t%s\n", chrName.c_str(), chrPos, strand,total, meth, (double) meth / total, context);
 }
 
 void ProcessMethylation() {
@@ -123,7 +118,7 @@ void ProcessMethylation() {
         unmethyl='A';
     }
     for (unsigned int i=0; i < line.seq_string.size() ; i++)
-        if(toupper(reference[refPos+i]) == methyl) { // It's a cytosine either in + or - strands
+        if(toupper(genome[refPos+i]) == methyl) { // It's a cytosine either in + or - strands
             long long pos = refPos+i;
             int index = (pos)%BUFFER_SIZE;
             if(queue[index].pos == -1 || queue[index].chr != chrNum || queue[index].pos != pos + 1) { // A different genomic location, the process of which is already finished
@@ -254,48 +249,51 @@ int ProcessSamFile(FILE * samFile, FILE * ambFile) {
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
-    FILE *fp;
+    FILE *f;
     if (stat(genomeFile, &file_info) == -1) {
         fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
         return -1;
     }
 
-    fp = fopen(genomeFile, "r");
-    if (! fp) {
+    f = fopen(genomeFile, "r");
+    if (! f) {
         fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
         exit(-1);
     }
     off_t file_size_bytes = file_info.st_size;
-    reference_size = ceil(((double) file_size_bytes) / (double) (sizeof(char)));
-    reference = (char *) malloc(reference_size * sizeof(char));
-    memset(reference, 0, reference_size * sizeof(char));
+    long long reference_size = 1 + ceil(((double) file_size_bytes) / (double) (sizeof(char)));
+    genome = (char *) malloc(reference_size * sizeof(char));
+    memset(genome, 0, reference_size * sizeof(char));
     gs = 0;
     chromNum = 0;
     fprintf(stderr, "Reading genome...\n");
-    char fLine[10000];
-	Chrom ch;
-    while (! feof(fp)) {
-        int n = fscanf(fp, "%s\n", fLine);
-        if (n == EOF) break;
-        n = strlen(fLine);
+    char fLineMain[10000];
+    Chrom ch;
+    while (! feof(f)) {
+        if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
+        int n = strlen(fLineMain), start = 0;
+        while (n > 0 && fLineMain[n-1] <= ' ') n--;
+        fLineMain[n] = 0;
+        while (start < n && fLineMain[start] <= ' ') start++;
+        if (start >= n) continue;
+        char * fLine = fLineMain + start;
+        n -= start;
+
         if (fLine[0] == '>') {
-			ch.chrStart = gs;
+            ch.chrStart = gs;
+            string name = fLine;
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            else name = name.substr(1, name.size() - 1);
+            cerr << name << endl;
+            ch.chrName = name;
             chrom.push_back(ch);
-			chromNum++;
-            char * temp = fLine;
-            temp++;
-            int lenght = strlen(temp);
-            chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
-            memcpy(chrom[chromNum-1].chrName, temp, lenght);
-            if (chromNum >= 1)
-                fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
-            fprintf(stderr, "%s\n",fLine);
+            chromNum++;
         } else {
-            memcpy(reference+gs, fLine, n);
+            memcpy(genome+gs, fLine, n);
             gs += n;
         }
     }
-    fclose(fp);
+    fclose(f);    
     return 0;
 }
 

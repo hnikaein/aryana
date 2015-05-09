@@ -31,18 +31,22 @@ void ReadGenome(string genomeFile) {
     gs = 0;
     chromNum = 0;
     cerr << "Reading genome..." << endl;
-    char fLine[10000];
+    char fLineMain[10000];
     FILE * f = fopen(genomeFile.c_str(), "r");
     if (! f) {
         cerr << "Error: Genome file not found or could not be opened" << endl;
         exit(1);
     }
     while (! feof(f)) {
-        fLine[0] = 0;
-        int n = fscanf(f, "%s\n", fLine);
-        if (n == EOF) break;
-        n = strlen(fLine);
-        if (n == 0) break;
+        if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
+		int n = strlen(fLineMain), start = 0;
+		while (n > 0 && fLineMain[n-1] <= ' ') n--;
+		fLineMain[n] = 0;
+		while (start < n && fLineMain[start] <= ' ') start++;
+		if (start >= n) continue;
+		char * fLine = fLineMain + start;
+		n -= start;
+
         if (fLine[0] == '>') {
             chromPos.push_back(gs);
             if (chromNum > 0) {
@@ -214,7 +218,7 @@ void ProcessSamFile(string samFileName) {
     fprintf(of, "\n");
     while (! feof(f)) {
         buf[0] = 0;
-        penalty = penalty2 = -1;
+        penalty = penalty2 = 1000000;
         startPos = 0;
         string tmp, chr = "NA", start, end, type;
         if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
@@ -224,6 +228,7 @@ void ProcessSamFile(string samFileName) {
 //		cerr << "Position: " << rname << ":" << pos << endl;
         if (strcmp(rname, "*") == 0) {
             strcpy(rname, "NA");
+			strcpy(refSeq, "NA");
             pos = 0;
         } else if (GetSequence(rname, pos, CigarLen(cigar), refSeq)) {
 //			cerr << "Flag: " << flag << ", Read: " << seq << ", Ref: " << refSeq << endl;

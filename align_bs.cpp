@@ -25,7 +25,6 @@ using namespace std;
 //const long maxGenomeSize = 4e9;
 //const int maxChromosomeNum = 1000;
 
-vector <long long> chromPos, chromLen;
 unsigned long long gs;
 vector <string> chromName;
 char * genome;
@@ -61,64 +60,65 @@ char str[maxReadLength];
 
 struct Chrom
 {
-    char * chrName;
+    string chrName;
     long long chrStart;
 }; // for converting refrence position to chromosome based position
 
 vector <Chrom> chrom;
-char * reference;
-uint32_t reference_size;
-uint32_t reference_reminder;
 
 
 // Reads genome and saves start position of chromosomes
 int ReadGenome(char * genomeFile) {
     fprintf(stderr, "Allocating memory...\n");
     struct stat file_info;
-    FILE *fp;
+    FILE *f;
     if (stat(genomeFile, &file_info) == -1) {
         fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", genomeFile);
         return -1;
     }
 
-    fp = fopen(genomeFile, "r");
-    if (! fp) {
+    f = fopen(genomeFile, "r");
+    if (! f) {
         fprintf(stderr, "Error opening reference file: %s\n", genomeFile);
         exit(-1);
     }
     off_t file_size_bytes = file_info.st_size;
-    reference_size = ceil(((double) file_size_bytes) / (double) (sizeof(char)));
-    reference = (char *) malloc(reference_size * sizeof(char));
-    memset(reference, 0, reference_size * sizeof(char));
+    long long reference_size = 1 + ceil(((double) file_size_bytes) / (double) (sizeof(char)));
+   	genome = (char *) malloc(reference_size * sizeof(char));
+    memset(genome, 0, reference_size * sizeof(char));
     gs = 0;
     chromNum = 0;
     fprintf(stderr, "Reading genome...\n");
-    char fLine[10000];
+    char fLineMain[10000];
     Chrom ch;
-    while (! feof(fp)) {
-        int n = fscanf(fp, "%s\n", fLine);
-        if (n == EOF) break;
-        n = strlen(fLine);
+    while (! feof(f)) {
+        if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
+        int n = strlen(fLineMain), start = 0;
+        while (n > 0 && fLineMain[n-1] <= ' ') n--;
+        fLineMain[n] = 0;
+        while (start < n && fLineMain[start] <= ' ') start++;
+        if (start >= n) continue;
+        char * fLine = fLineMain + start;
+        n -= start;
+
         if (fLine[0] == '>') {
-            ch.chrStart = gs;
-            chrom.push_back(ch);
+			ch.chrStart = gs;
+            string name = fLine;
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            else name = name.substr(1, name.size() - 1);
+            cerr << name << endl;
+			ch.chrName = name;
+			chrom.push_back(ch);
             chromNum++;
-            char * temp = fLine;
-            temp++;
-            int lenght = strlen(temp);
-            chrom[chromNum-1].chrName = (char *) malloc(lenght * sizeof(char));
-            memcpy(chrom[chromNum-1].chrName, temp, lenght);
-            if (chromNum >= 1)
-                fprintf(stderr, "chrName: %s, chrStart: %lld\n",chrom[chromNum-1].chrName, chrom[chromNum-1].chrStart);
-            fprintf(stderr, "%s\n",fLine);
         } else {
-            memcpy(reference+gs, fLine, n);
+            memcpy(genome+gs, fLine, n);
             gs += n;
         }
     }
-    fclose(fp);
+    fclose(f);
     return 0;
 }
+
 void reverseRead(char *s) {
     char  c;
     char* s0 = s - 1;
@@ -176,7 +176,7 @@ int min_penalty() {
 }
 
 char getNuc(uint64_t place) {
-    return reference[place];
+    return genome[place];
 }
 
 inline void ToLower(char * s) {
@@ -189,9 +189,7 @@ inline void ToLower(char * s) {
 
 int ChromIndex(char * chr) {
     for(unsigned int i=0; i < chrom.size(); i++) {
-        if(chrom[i].chrName == NULL)
-            break;
-        if(strcmp(chrom[i].chrName, chr) == 0)
+        if(chrom[i].chrName == chr)
             return i;
     }
     return -1;
@@ -228,9 +226,9 @@ bool isInIsland(int chr, long long pos) {
 
 void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chrPos,int flag,int flag2) {
     read = toupper(read);
-    reference[ref_i] = toupper(reference[ref_i]);
-    reference[ref_i+1] = toupper(reference[ref_i+1]);
-    reference[ref_i-1] = toupper(reference[ref_i-1]);
+    genome[ref_i] = toupper(genome[ref_i]);
+    genome[ref_i+1] = toupper(genome[ref_i+1]);
+   	genome[ref_i-1] = toupper(genome[ref_i-1]);
 
     if(flag2) {
         if (read == 'A' || read == 'G') {

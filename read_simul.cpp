@@ -55,19 +55,22 @@ void ReadGenome(string genomeFile) {
     gs = 0;
     chromNum = 0;
     cerr << "Reading genome..." << endl;
-    char fLine[10000];
+    char fLineMain[10000];
     FILE * f = fopen(genomeFile.c_str(), "r");
     if (! f) {
         cerr << "Error: Genome file not found or could not be opened" << endl;
         exit(1);
     }
     while (! feof(f)) {
-        fLine[0] = 0;
-        int n = fscanf(f, "%s\n", fLine);
-        if (n == EOF) break;
-        n = strlen(fLine);
-        if (n == 0) break;
-        if (fLine[0] == '>') {
+        if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
+        int n = strlen(fLineMain), start = 0;
+        while (n > 0 && fLineMain[n-1] <= ' ') n--;
+        fLineMain[n] = 0;
+        while (start < n && fLineMain[start] <= ' ') start++;
+        if (start >= n) continue;
+        char * fLine = fLineMain + start;
+        n -= start;        
+		if (fLine[0] == '>') {
             chromPos.push_back(gs);
             if (chromNum > 0) {
                 chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
