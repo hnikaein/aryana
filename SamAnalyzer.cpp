@@ -68,8 +68,6 @@ void ReadGenome(string genomeFile) {
     }
     chromPos.push_back(gs);
     chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
-//	for (int i = 0; i < chromNum; i++)
-//		cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
     cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
     fclose(f);
 }

@@ -1,18 +1,31 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "smith.h"
 #include <math.h>
+#include "aryana_args.h"
 #include "bwa2.h"
-
+#include "smith.h"
 int max(int q , int p)
 {
     return q<p ? p : q;
 }
 
 
-int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * errors, uint64_t seq_len
-                   ,int **d, char **arr, char *tmp_cigar)
+// Adds one letter *edit* to the cigar sequence *tmp_cigar* and updates the mismatch/gap open/gap extension numbers
+
+void extend_cigar(char * tmp_cigar, char edit, char *last, int * tail, penalty_t * penalty) {
+	switch (edit) {
+		case 'm': break;
+		case 'M': edit = 'm'; penalty->mismatch_num++; break;
+		case 'd': case 'i': if (edit != *last) penalty->gap_open_num++; else penalty->gap_ext_num++; break;
+	}
+	*last = edit;
+	tmp_cigar[(*tail)++] = edit;
+}
+
+
+// Just increments the mismatch_num, gap_open_num and gap_ext_num. They might have previous values and those values are not cleared.
+int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, penalty_t * penalty, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference)
 {
 //	fprintf(stderr,"read: %llu - %llu, ref: %llu - %llu\n",match_start,match_end,index_start,index_end);
     int off=max(2*(abs((index_end-index_start)-(match_end-match_start))),10);
@@ -70,21 +83,17 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
             }
 
             d[i][j]=d[i-1][j];
-            arr[i][j]='m';
-            /*			if (i==226 && j==120)
-            			{
-            				fprintf(stderr,"%c\n",atomic[read[match_start+i-1]]);
-            				int ct=0;
-            					//fprintf(stderr,"%c",atomic[getNuc(index_start+ref_i-1+ct,seq_len)]);
-            				fprintf(stderr,"%d %c\n",real_off,atomic[getNuc(index_start+ref_i-1,seq_len)]);
-            				int t=i;
-            //				for (; t<i+10; t++)
-            //					fprintf(stderr,"%c",atomic[getNuc(t,seq_len)]);
-            				fprintf(stderr,"%d\n",d[i-1][j+1]);
-            			}
-            */
-            if (index_start+ref_i-1 >= seq_len || getNuc(index_start+ref_i-1,seq_len)!=read[match_start+i-1])
+            arr[i][j]='m'; // match
+
+            if (index_start+ref_i-1 >= seq_len) { 
+				d[i][j]++;
+				arr[i][j] = 'd';
+			}
+
+			if (getNuc(index_start+ref_i-1,reference, seq_len)!=read[match_start+i-1]){
                 d[i][j]++;
+				arr[i][j] = 'M'; // mismatch
+			}
 
             if (match_end==len && i==match_end-match_start)
             {
@@ -111,29 +120,26 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
     }
     int cur_off=(index_end-index_start)-(match_end-match_start)+off/2;
     int cur_i=match_end-match_start;
-    (*errors)=d[cur_i][cur_off];
     int tail=0;
-
+	char last = 'm';
     while(1)
     {
         int ref_i=cur_i+cur_off-off/2;
-//		fprintf(stderr,"%d %d %c\n",cur_i,cur_off,arr[cur_i][cur_off]);
-
-
         if (cur_i==0)
         {
             for (j=0; j<ref_i; j++)
-                tmp_cigar[tail++]='d';
+				extend_cigar(tmp_cigar, 'd', &last, &tail, penalty);
             break;
         }
         if (ref_i==0)
         {
 
             for (j=0; j<cur_i; j++)
-                tmp_cigar[tail++]='i';
+				 extend_cigar(tmp_cigar, 'i', &last, &tail, penalty);
             break;
         }
-        tmp_cigar[tail++]=arr[cur_i][cur_off];
+
+        extend_cigar(tmp_cigar, arr[cur_i][cur_off], &last, &tail, penalty);
         if (arr[cur_i][cur_off]=='i')
         {
             cur_off++;
@@ -143,7 +149,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
         {
             cur_off--;
         }
-        else if (arr[cur_i][cur_off]=='m')
+        else if (arr[cur_i][cur_off]=='m' || arr[cur_i][cur_off]=='M')
         {
             cur_i--;
         }
@@ -155,7 +161,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
     }
     tmp_cigar[tail]=0;
     int ct=0;
-    char last=tmp_cigar[tail-1];
+    last=tmp_cigar[tail-1];
     for (i=tail-1; i>=0; i--)
     {
         if (tmp_cigar[i]==last )

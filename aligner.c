@@ -5,12 +5,14 @@
 #include <ctype.h>
 #include <time.h>
 #include <limits.h>
-
+#include "hash.h"
+#include "aryana_args.h"
+#include "bwa2.h"
+#include "smith.h"
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
 //#include "utils.h"
-#include "smith.h"
 #include <math.h>
 #define false 0
 #define true 1
@@ -21,10 +23,13 @@ extern void PrintSeq(const unsigned char *, int, int);
 extern void PrintRefSeq(unsigned long long, unsigned long long, unsigned long long, int);
 extern void GetRefSeq(unsigned long long, unsigned long long, unsigned long long, char*);
 const char atom[4]= {'A','C','G','T'};
-extern char getNuc(uint64_t place, uint64_t seq_len);
+extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
-int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar )
+void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference)
 {
+	penalty->mismatch_num = 0;
+	penalty->gap_open_num = 0;
+	penalty->gap_ext_num = 0;
     int *valid=(int *)malloc(best->parts*(sizeof (int)));
     bwtint_t lastvalid=best->parts-1;
     long long i=0,j=0;
@@ -55,7 +60,6 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
     bwtint_t head_match=0,head_index=best->index >= slack ? best->index-slack : 0;
     bwtint_t slack_index=head_index;
     int print_head=0;
-    int total_errors=0;
     if (best->parts<=0 || best->parts > 50)
         fprintf(stderr , "too much parts!\n");
     if (debug > 0) {
@@ -65,11 +69,9 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
     }
     if (0)
     {
-        int errors_=0;
-        print_head=smith_waterman(0, len, head_index, head_index+len+2*slack, cigar, print_head, seq, len, &errors_, seq_len, d, arr, tmp_cigar);
-        total_errors+=errors_;
+        print_head=smith_waterman(0, len, head_index, head_index+len+2*slack, cigar, print_head, seq, len, penalty, seq_len, d, arr, tmp_cigar, reference);
         if (debug > 1) {
-            fprintf(stderr, "SmithWaterman1 [%d,%d],[%llu,%llu] errors %d, cigar %s, tmp_cigar %s\n", 0, len, (unsigned long long) head_index, (unsigned long long) head_index + len + 2*slack, errors_, cigar, tmp_cigar);
+            fprintf(stderr, "SmithWaterman1 [%d,%d],[%llu,%llu] mismatched %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", 0, len, (unsigned long long) head_index, (unsigned long long) head_index + len + 2*slack, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
             PrintSeq(seq, len, 1);
             PrintRefSeq(head_index, head_index+len+2*slack, seq_len, 1);
         }
@@ -80,12 +82,10 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
         {
             if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && abs((best->match_index[i]-head_index)-(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
             {
-                int errors=0;
-                print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &errors, seq_len, d, arr, tmp_cigar);
+                print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, penalty, seq_len, d, arr, tmp_cigar, reference);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,best->match_start[i],errors);
-                total_errors+=errors;
                 if (debug > 1) {
-                    fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] errors %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], errors, cigar, tmp_cigar);
+                    fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] total mismatch %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
                     PrintSeq(seq+head_match,  best->match_start[i] - head_match + 1, 1);
                     PrintRefSeq(head_index, best->match_index[i], seq_len, 1);
                 }
@@ -95,12 +95,10 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
             }
             if (i==0)
             {
-                int errors=0;
-                print_head=smith_waterman(head_match,len,head_index, head_index+len-head_match+slack, cigar, print_head,seq, len, &errors, seq_len, d, arr, tmp_cigar);
+                print_head=smith_waterman(head_match,len,head_index, head_index+len-head_match+slack, cigar, print_head,seq, len, penalty,  seq_len, d, arr, tmp_cigar, reference);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
-                total_errors+=errors;
                 if (debug > 1) {
-                    fprintf(stderr, "SmithWaterman3 [%llu,%d],[%llu,%llu] errors %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, len, (unsigned long long) head_index, (unsigned long long) head_index+len-head_match+slack, errors, cigar, tmp_cigar);
+                    fprintf(stderr, "SmithWaterman3 [%llu,%d],[%llu,%llu] total mismatch %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, len, (unsigned long long) head_index, (unsigned long long) head_index+len-head_match+slack, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
                     PrintSeq(seq+head_match, len - head_match + 1, 1);
                     PrintRefSeq(head_index, head_index+len-head_match+slack, seq_len, 1);
                 }
@@ -154,8 +152,6 @@ int create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, u
 
     best->index=slack_index;
     free(valid);
-    //fprintf(stderr,"total errors:: %d\n",total_errors);
-    return total_errors;//best->index;
 }
 
 #define BITMASK(b) (1 << ((b) % CHAR_BIT))
@@ -192,6 +188,7 @@ void floyd(long long down, long long up , int exactmatch_num,long long *selected
         
     }
 }
+
 void knuth(long long down, long long up , int exactmatch_num,long long *selected){
     long long j,in, im=0 ,rn,rm;
     long N = up - down+1;
@@ -233,24 +230,11 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         fprintf(stderr, "Done.\n");
         exit(0);
     }
-    //showerr(len,seq);
-    //initialize
-//	fprintf(stderr,"paired :: %d\n", options.paired);
+	// initialize
     bwtint_t down, up;
     bwtint_t limit;
     long long i = 0, j = 0;
 
-    /*best->index = best->value = best->place = best->level = 0;
-    best->parts = 0;
-    best->index = bwt->seq_len;
-    second->index = second->value = second->place = second->level = 0;
-    second->index = bwt->seq_len;
-    second->parts=0;
-    */
-    //for (i=0; i<100; i++)
-    //	fprintf(stderr,"%c",atom[getNuc(10000+i,bwt->seq_len)]);
-    //fprintf(stderr,"\n");
-    //set k
     bwtint_t k;
     if (args->seed_length==-1)
     {
