@@ -41,7 +41,7 @@ void Usage() {
     fprintf(stderr, "Alignment of paired end reads:\n");
     fprintf(stderr, "aryana [-x,--index <reference genome index>] [-1,--first <reads file 1 (fastq format)>] [-2,--second <reads file 2 (fastq format)>]\n");
     fprintf(stderr, "Optional arguments:\n");
-    fprintf(stderr, "[--fr, --ff, --rf (orientation of paired ends)] [-m,--min <min distance between pair reads>] [-M,--max  <max distance between pair reads>]\n");
+    fprintf(stderr, "[--fr, --ff, --rf (orientation of paired ends)] [-m,--min <min distance between pair reads, default=0>] [-M,--max  <max distance between pair reads, default=10000>]\n");
     fprintf(stderr, "[-d,--no-discordant (do not print discordants reads)]\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing reads:\n");
     fprintf(stderr, "[-b,--bisulfite <bisulfite reference genome index>]\n\n");
@@ -71,6 +71,9 @@ int main(int argc, char *argv[])
 	args.gap_open_penalty = 5;
 	args.gap_ext_penalty = 3;
 	args.ignore = ignore_none;
+	args.orientation = orien_all;
+	args.min_dis = 0;
+	args.max_dis = 10000;
     char *refNames[5];	// Number of bisulfite-seq reference genomes
     bzero(refNames, sizeof(refNames));
 	ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
@@ -131,13 +134,13 @@ int main(int argc, char *argv[])
             args.read_file2 = strdup(optarg);
             break;
         case 1:
-			args.orientation = fr;
+			args.orientation = orien_fr;
             break;
         case 2:
-			args.orientation = rf;
+			args.orientation = orien_rf;
             break;
         case 3:
-			args.orientation = ff;
+			args.orientation = orien_ff;
             break;
         case 'm':
             args.min_dis = atoi(optarg);

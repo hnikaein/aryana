@@ -2,7 +2,7 @@
 #ifndef __aryana_args
 #define __aryana_args
 
-typedef enum {ff, fr, rf} orientation_t; 
+typedef enum {orien_all, orien_ff, orien_fr, orien_rf} orientation_t; 
 
 // ignore_none: computer one mismatch for any pair of different nucleotides 
 // ignore_CT: do not count C->T mismatches. This is for alignment of bisulfite reads

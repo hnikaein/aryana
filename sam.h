@@ -31,3 +31,4 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
 char name[max_refs][1000];
 //int sam_headers(char * buffer,char ** name, long long*  offset, int size);
 int sam_headers(char * buffer, bwtint_t*  offset, int size);
+int get_chr(bwtint_t index,  bwtint_t seq_len, bwtint_t * offset, bwtint_t offInd);

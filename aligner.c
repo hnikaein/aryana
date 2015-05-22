@@ -25,7 +25,19 @@ extern void GetRefSeq(unsigned long long, unsigned long long, unsigned long long
 const char atom[4]= {'A','C','G','T'};
 extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
-void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference)
+// Adds one letter *edit* to the cigar sequence *tmp_cigar* and updates the mismatch/gap open/gap extension numbers
+
+void extend_cigar(char * tmp_cigar, char edit, char *last, int * tail, penalty_t * penalty) {
+    switch (edit) {
+        case 'm': break;
+        case 'M': edit = 'm'; penalty->mismatch_num++; break;
+        case 'd': case 'i': if (edit != *last) penalty->gap_open_num++; else penalty->gap_ext_num++; break;
+    }
+    *last = edit;
+    tmp_cigar[(*tail)++] = edit;
+}
+
+void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
 	penalty->mismatch_num = 0;
 	penalty->gap_open_num = 0;
@@ -67,25 +79,13 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
         PrintSeq(seq, len, 1);
         PrintRefSeq(head_index, head_index+len+2*slack, seq_len, 1);
     }
-    if (0)
-    {
-        print_head=smith_waterman(0, len, head_index, head_index+len+2*slack, cigar, print_head, seq, len, penalty, seq_len, d, arr, tmp_cigar, reference);
-        if (debug > 1) {
-            fprintf(stderr, "SmithWaterman1 [%d,%d],[%llu,%llu] mismatched %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", 0, len, (unsigned long long) head_index, (unsigned long long) head_index + len + 2*slack, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
-            PrintSeq(seq, len, 1);
-            PrintRefSeq(head_index, head_index+len+2*slack, seq_len, 1);
-        }
-
-    }
-    else
         for (i=best->parts-1; i>=0; i--)
         {
             if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && abs((best->match_index[i]-head_index)-(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
             {
-                print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, penalty, seq_len, d, arr, tmp_cigar, reference);
-                //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,best->match_start[i],errors);
+                print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
                 if (debug > 1) {
-                    fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] total mismatch %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
+                    fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
                     PrintSeq(seq+head_match,  best->match_start[i] - head_match + 1, 1);
                     PrintRefSeq(head_index, best->match_index[i], seq_len, 1);
                 }
@@ -95,10 +95,10 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
             }
             if (i==0)
             {
-                print_head=smith_waterman(head_match,len,head_index, head_index+len-head_match+slack, cigar, print_head,seq, len, penalty,  seq_len, d, arr, tmp_cigar, reference);
+                print_head=smith_waterman(head_match,len,head_index, head_index+len-head_match+slack, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
                 if (debug > 1) {
-                    fprintf(stderr, "SmithWaterman3 [%llu,%d],[%llu,%llu] total mismatch %d, gap_open %d, gap_ext %d, cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, len, (unsigned long long) head_index, (unsigned long long) head_index+len-head_match+slack, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num, cigar, tmp_cigar);
+					fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
                     PrintSeq(seq+head_match, len - head_match + 1, 1);
                     PrintRefSeq(head_index, head_index+len-head_match+slack, seq_len, 1);
                 }
@@ -111,6 +111,7 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
     int last_size=0;
     char last_char='m';
     print_head=0;
+			 
     for (i=0; cigar[i]; i++)
     {
         char tmp[10];
@@ -130,9 +131,8 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
             {
                 last_size=0;
                 slack_index+=num;
-            }
-
-            continue;
+            } 
+			continue;
         }
         if (cigar[i]==last_char)
         {
@@ -141,15 +141,26 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
         }
         else
         {
-            if (last_size>0)
+            if (last_size>0) {
                 print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
+	            if (last_char == 'i' || last_char == 'd') {
+    	            penalty->gap_open_num++;
+        	        penalty->gap_ext_num += last_size - 1;
+           		 }
+			}
             last_size=num;
             last_char=cigar[i];
         }
     }
-    if (last_char!='d')
+    if (last_char!='d') {
         print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
-
+            if (last_char == 'i') {
+                penalty->gap_open_num++;
+                penalty->gap_ext_num += last_size - 1;
+            }
+	}
+	if (debug > 0)
+		fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
     best->index=slack_index;
     free(valid);
 }

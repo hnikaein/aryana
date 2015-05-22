@@ -1,0 +1,8 @@
+1. Copy all *.c and *.h files of the new version of BWA to the Aryana source folder, excepting bwtaln.h
+
+2. Merge new updates of bwtaln.h of the new BWA version into bwtaln.h of Aryana
+
+3. In bwaseqio.c: add "long long read_num;" to "struct __bwa_seqio_t" definition. Add "bs->read_num = 1;" before return of bwa_seq_open function.
+   Also add "p->read_num = bs->read_num++;" before "if (n_seqs == n_needed) break;" in "bwa_read_seq" function.
+
+3. Make, fix all warnings and errors

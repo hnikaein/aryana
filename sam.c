@@ -17,10 +17,8 @@ static char equal[2] = "=";
 
 uint64_t reverse_cigar(char *cigar)
 {
-    int i=0;
-    int cigar_size=0;
-        cigar_size++;
-    char *cigar_tmp=(char *)malloc((cigar_size+50)*(sizeof (char)));
+    int i=0, cigar_size = strlen(cigar);
+    char cigar_tmp[cigar_size + 50];
     int num=0;
     char type=cigar[cigar_size-1];
     int offset=1;
@@ -48,7 +46,6 @@ uint64_t reverse_cigar(char *cigar)
         length+=num;
     for (i=0; i<cigar_size; i++)
         cigar[i]=cigar_tmp[i];
-    free(cigar_tmp);
     return length;
 }
 
@@ -64,25 +61,34 @@ int binary_search(int bot, int top, uint64_t * a, uint64_t key) {
     return -1;
 }
 
-void get_genomic_position(int * flag, bwtint_t index, genomic_location * loc, char ** cigar, int * len, uint32_t * mapq, bwtint_t seq_len, int unmapped, int reverse, bwtint_t * offset, bwtint_t offInd) {
+int get_chr(bwtint_t index,  bwtint_t seq_len, bwtint_t * offset, bwtint_t offInd) {
+	if (index <= 0 || index >= seq_len)
+		return -1;
+	return  binary_search(0, offInd - 1, offset, index);
+}
+
+void get_genomic_position(int * flag, bwtint_t index, genomic_location * loc, char ** cigar,  uint32_t * mapq, bwtint_t seq_len, int unmapped, int reverse, bwtint_t * offset, bwtint_t offInd) {
     if (index <= 0 || index >= seq_len)
         *flag |= unmapped;
+    if (((*flag) & unmapped) == 0) {
+        if (index >= seq_len / 2) {
+            index = (seq_len / 2) - (index - (seq_len / 2))-reverse_cigar(*cigar);
+            *flag |= reverse;
+        }
+		int chr =  binary_search(0, offInd - 1, offset, index);
+		if (chr < 0) (*flag) |= unmapped;
+		else {
+			index -= offset[chr];
+			loc->pos = index + 1;
+			loc->rname = name[chr];
+		}
+    }     
     if((*flag) & unmapped) {
         mapq = 0;
         loc->pos = 0;
         loc->rname = star;
         *cigar = star;
-        *len = 0;
-    } else {
-        if (index >= seq_len / 2) {
-            index = (seq_len / 2) - (index - (seq_len / 2))-reverse_cigar(*cigar);
-            *flag |= reverse;
-        }
-		bwtint_t chr =  binary_search(0, offInd - 1, offset, index);
-		index -= offset[chr];
-		loc->pos = index;
-		loc->rname = name[chr];
-    }       
+	}	  
 }
 
 int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t index, char * cigar, bwtint_t index2, char * cigar2, ubyte_t *seq, ubyte_t * quality, int len, int len2, bwt_t * bwt, bwtint_t * offset, bwtint_t offInd)
@@ -93,40 +99,64 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
 	long long tlen = 0; // Template length: the size of fragment for paired-end reads
     char  seq_string[len+1], quality_string[len+1];
 	uint32_t tmp;
-	get_genomic_position(&flag, index, &first, &cigar, &len, &mapq, bwt->seq_len, sf_unmapped, sf_reverse, offset, offInd);
-	if (flag & sf_paired) get_genomic_position(&flag, index2, &next, &cigar2, &len2, &tmp, bwt->seq_len, sf_mate_unmapped, sf_mate_reverse, offset, offInd);
+	get_genomic_position(&flag, index, &first, &cigar, &mapq, bwt->seq_len, sf_unmapped, sf_reverse, offset, offInd);
+	if (flag & sf_paired) {
+		get_genomic_position(&flag, index2, &next, &cigar2, &tmp, bwt->seq_len, sf_mate_unmapped, sf_mate_reverse, offset, offInd);
+		if ((flag & sf_unmapped) && ((flag & sf_mate_unmapped) == 0)) {
+    		// According to SAM format, when the mate is mapped but not read, the read rname and pos should be the same as mate                                                             
+        	first.rname = next.rname;
+        	first.pos = next.pos;
+		} else if (((flag & sf_unmapped)==0) && (flag & sf_mate_unmapped)) {
+			next.rname = first.rname;
+			next.pos = first.pos;
+		}
+	}
 	else {
 		next.pos = 0; 
 		next.rname = star;
 	}
 	if (flag & sf_pair_mapped) {
-		if (first.pos < next.pos) tlen = next.pos + len2 - first.pos;
-		else tlen = -(first.pos + len - next.pos);
+        if (first.pos < next.pos) tlen = next.pos + len2 - first.pos;
+        else tlen = -(first.pos + len - next.pos);
 	}
-	if ((flag & sf_paired) && ((flag & (sf_unmapped | sf_mate_unmapped)) == 0) && (strcmp(first.rname, next.rname)!=0) && strcmp(first.rname, "*")) next.rname = equal;
+	if ((flag & sf_paired) && (flag & sf_unmapped) && ((flag & sf_mate_unmapped) == 0)) { 
+	// According to SAM format, when the mate is mapped but not read, the read rname and pos should be the same as mate																
+		first.rname = next.rname;
+        first.pos = next.pos;
+    }
+    if ((flag & sf_paired) && (flag & sf_unmapped) && ((flag & sf_mate_unmapped) == 0)) {
+    // According to SAM format, when the mate is mapped but not read, the read rname and pos should be the same as mate                                                             
+        first.rname = next.rname;
+        first.pos = next.pos;
+    }
+	if ((flag & sf_paired) && (strcmp(first.rname, next.rname)==0) && strcmp(first.rname, "*")) next.rname = equal;
 
 	seq_string[len]=quality_string[len]=0;
     int i;
-    if (! (flag & sf_reverse)) {
-        for (i=0; i<len; i++)
-        {
-            if (seq[i]<4)
-                seq_string[i]=int_to_bp[seq[i]];
-            else
-                seq_string[i]='N';
-            quality_string[i]=quality[i];
-        }
+    if (flag & sf_not_primary) { // To make SAM file shorter, according to the SAM format requirements
+        strcpy(seq_string,"*");
+        strcpy(quality_string, "*");
     } else {
-        for (i=0; i<len; i++)
-        {
-            if (seq[i]<4)
-                seq_string[len - i - 1]=int_to_bp[3 - seq[i]];
-            else
-                seq_string[len - i - 1]='N';
-            quality_string[len - i - 1]=quality[i];
-        }
-    }
-    buffer[0] = '\0';
+	    if (! (flag & sf_reverse)) {
+    	    for (i=0; i<len; i++)
+        	{
+           		if (seq[i]<4)
+                	seq_string[i]=int_to_bp[seq[i]];
+            	else
+                	seq_string[i]='N';
+            	quality_string[i]=quality[i];
+        	}
+    	} else {
+        	for (i=0; i<len; i++)
+        	{
+            	if (seq[i]<4)
+                	seq_string[len - i - 1]=int_to_bp[3 - seq[i]];
+            	else
+                	seq_string[len - i - 1]='N';
+            	quality_string[len - i - 1]=quality[i];
+        	}
+    	}
+	}
     return snprintf(buffer,sam_line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%"PRIu64"\t%lld\t%s\t%s\n",qname,flag,first.rname, first.pos, mapq, cigar,next.rname,next.pos,tlen,seq_string,quality_string);
 }
 

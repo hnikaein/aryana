@@ -1,0 +1,6 @@
+Check if pthread_mutex_lock(&output); provides higher speed for printing output rather than -O. If not, remove the else statement of "if (options->order)" from multiAligner
+
+
+args.factor  : Percent of reads to check
+
+

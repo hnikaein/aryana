@@ -20,6 +20,7 @@ struct __bwa_seqio_t {
     bamFile fp;
     // for fastq input
     kseq_t *ks;
+	long long read_num;
 };
 
 bwa_seqio_t *bwa_bam_open(const char *fn, int which)
@@ -43,6 +44,7 @@ bwa_seqio_t *bwa_seq_open(const char *fn)
     bs = (bwa_seqio_t*)calloc(1, sizeof(bwa_seqio_t));
     fp = xzopen(fn, "r");
     bs->ks = kseq_init(fp);
+	bs->read_num = 1;
     return bs;
 }
 
@@ -212,6 +214,7 @@ bwa_seq_t *bwa_read_seq(bwa_seqio_t *bs, int n_needed, int *n, int mode, int tri
             int t = strlen(p->name);
             if (t > 2 && p->name[t-2] == '/' && (p->name[t-1] == '1' || p->name[t-1] == '2')) p->name[t-2] = '\0';
         }
+		p->read_num = bs->read_num++;
         if (n_seqs == n_needed) break;
     }
     *n = n_seqs;

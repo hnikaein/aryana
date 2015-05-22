@@ -26,7 +26,6 @@
 
 //#include "aligner.h"
 #include "sam.h"
-
 extern int debug;
 char atom2[4]= {'A','C','G','T'};
 int counter = 0;
@@ -71,6 +70,7 @@ void PrintSeq(unsigned char * seq, int len, int endl) {
 
 void PrintRefSeq(uint64_t * reference, unsigned long long start, unsigned long long end, unsigned long long seq_len, int endl) {
     unsigned long long k;
+	if (end >= seq_len) end = seq_len - 1;
     for (k = start; k <= end; k++)
         fprintf(stderr, "%c", atom2[(unsigned short)getNuc(k, reference, seq_len)]);
     if (endl) fprintf(stderr, "\n");
@@ -88,7 +88,7 @@ void compute_cigar_penalties(global_vars *g, int candidates_num, int candidates_
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
         if (candidates[i]!=-1)
         {
-            create_cigar(&table[candidates[i]], cigar[i], seq->len, seq->seq,g->bwt->seq_len,d,arr,tmp_cigar, penalty + i, g->reference);
+            create_cigar(&table[candidates[i]], cigar[i], seq->len, seq->seq,g->bwt->seq_len,d,arr,tmp_cigar, penalty + i, g->reference, g->options->ignore);
             compute_penalty(g->options, penalty + i);
             seq->index=table[candidates[i]].index;
             if (debug >= 1) {
@@ -99,7 +99,8 @@ void compute_cigar_penalties(global_vars *g, int candidates_num, int candidates_
         }
 }
 
-int valid_pair(hash_element *hit1, hash_element * hit2, bwtint_t len1, bwtint_t len2, bwtint_t seqlen, aryana_args * options) {
+int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_t len1, bwtint_t len2) {
+	bwtint_t seqlen = g->bwt->seq_len;
 	bwtint_t index[2], len[2], fragLen;
 	index[0] = hit1->index;
 	index[1] = hit2->index;
@@ -114,11 +115,13 @@ int valid_pair(hash_element *hit1, hash_element * hit2, bwtint_t len1, bwtint_t 
 		}
 	if (index[1] > index[0]) fragLen = index[1] - index[0] + len[1];
 	else fragLen = index[0] - index[1] + len[0];
-    if (fragLen < options->min_dis || fragLen > options->max_dis) return 0; 	// The length of fragment does not match the input arguments
-	switch (options->orientation) {
-		case ff: if (rev[0] != rev[1]) return 0; break;
-		case fr: if (rev[0] == rev[1] || (rev[0] && index[0] < index[1]) || (rev[1] && index[1] < index[0])) return 0; break;
-		case rf: if (rev[0] == rev[1] || (rev[1] && index[0] < index[1]) || (rev[0] && index[1] < index[0])) return 0; break;
+    if (fragLen < g->options->min_dis || fragLen > g->options->max_dis) return 0; 	// The length of fragment does not match the input arguments
+	if (get_chr(index[0], seqlen, g->offset, g->offInd) != get_chr(index[1], seqlen, g->offset, g->offInd)) return 0;
+	switch (g->options->orientation) {
+		case orien_all: break;
+		case orien_ff: if (rev[0] != rev[1]) return 0; break;
+		case orien_fr: if (rev[0] == rev[1] || (rev[0] && index[0] < index[1]) || (rev[1] && index[1] < index[0])) return 0; break;
+		case orien_rf: if (rev[0] == rev[1] || (rev[1] && index[0] < index[1]) || (rev[0] && index[1] < index[0])) return 0; break;
 	}
 	return 1;	// Valid pair
 }
@@ -140,7 +143,7 @@ void compute_mapq() { } // XXX
 }
 */
 
-void find_best_candidates(int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, bwtint_t seqlen, char * cigar[], char * cigar2[], int paired, aryana_args * options) {
+void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2,  char * cigar[], char * cigar2[], int paired) {
 	*best_num = 0;
 	int min_penalty = maxPenalty, i, j;
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
@@ -159,7 +162,8 @@ void find_best_candidates(int candidates_num, int candidates_num2, int candidate
 				}
 			} else { // Paired-end reads
 				for (j = candidates_num2; j < candidates_size; j++)
-					if (candidates2[j] != -1 && valid_pair(table + candidates[i], table2 + candidates2[j], len, len2, seqlen, options)) {
+				{
+					if (candidates2[j] != -1 && valid_pair(g, table + candidates[i], table2 + candidates2[j], len, len2)) {
 						if (min_penalty > penalty[i].penalty + penalty2[j].penalty) { // improving paired-alignment penalty
 							min_penalty =  penalty[i].penalty + penalty2[j].penalty;
 							*best_num = 0;
@@ -174,6 +178,7 @@ void find_best_candidates(int candidates_num, int candidates_num2, int candidate
 							(*best_num)++;
 						}
 					}
+				}
 			} 
 		}
 	if (best_num > 0) 
@@ -184,33 +189,33 @@ long long report_alignment_results(global_vars *g, char * buffer, char *cigar[],
 	long long result = 0;
 	int i, p, flag;
 	if (!g->options->paired) {
-		if (! canNum) return sam_generator(buffer, seq->name, sf_unmapped, 0, 0, 0, 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
+		if (! canNum) return sam_generator(buffer + result, seq->name, sf_unmapped, 0, 0, 0, 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
 		p = rand() % canNum; // primary alignment
-		result += sam_generator(buffer, seq->name, 0, penalty[p].mapq, table[can[p]].index, cigar[can[p]], 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
+		result += sam_generator(buffer + result, seq->name, 0, penalty[p].mapq, table[can[p]].index, cigar[p], 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
 		if (g->options->report_multi) 
 			for (i = 0; i < canNum; i++)
 				if (i != p)
-        			result += sam_generator(buffer, seq->name, sf_not_primary, penalty[i].mapq, table[can[i]].index, cigar[can[i]], 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
+        			result += sam_generator(buffer + result, seq->name, sf_not_primary, penalty[i].mapq, table[can[i]].index, cigar[i], 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);
 		return result;
 	}
 	// Reporting the results for paired alignments
 	flag = sf_paired;
 	if (! canNum) {
 		flag |= sf_unmapped + sf_mate_unmapped;
-		result += sam_generator(buffer, seq->name, flag | sf_first_mate, 0, 0, 0, 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);				
-		result += sam_generator(buffer, seq2->name, flag | sf_second_mate, 0, 0, 0, 0, 0, seq2->seq, seq2->qual, seq2->len, 0, g->bwt, g->offset, g->offInd);
+		result += sam_generator(buffer + result, seq->name, flag | sf_first_mate, 0, 0, 0, 0, 0, seq->seq, seq->qual, seq->len, 0, g->bwt, g->offset, g->offInd);				
+		result += sam_generator(buffer + result, seq2->name, flag | sf_second_mate, 0, 0, 0, 0, 0, seq2->seq, seq2->qual, seq2->len, 0, g->bwt, g->offset, g->offInd);
 		return result;
 	}
 	flag |= sf_pair_mapped;
 	p = rand() % canNum;
-	result += sam_generator(buffer, seq->name, flag | sf_first_mate, penalty[p].mapq, table[can[p]].index, cigar[can[p]], table2[can2[p]].index, cigar2[can2[p]], seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
-    result += sam_generator(buffer, seq2->name, flag | sf_second_mate, penalty2[p].mapq, table2[can2[p]].index, cigar2[can2[p]], table[can[p]].index, cigar[can[p]], seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
+	result += sam_generator(buffer + result, seq->name, flag | sf_first_mate, penalty[p].mapq, table[can[p]].index, cigar[p], table2[can2[p]].index, cigar2[p], seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
+    result += sam_generator(buffer + result, seq2->name, flag | sf_second_mate, penalty2[p].mapq, table2[can2[p]].index, cigar2[p], table[can[p]].index, cigar[p], seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
 	if (g->options->report_multi) {
 		flag |= sf_not_primary;
 		for (i = 0; i < canNum; i++)
         	if (i != p) {
-				result += sam_generator(buffer, seq->name, flag | sf_first_mate, penalty[i].mapq, table[can[i]].index, cigar[can[i]], table2[can2[i]].index, cigar2[can2[i]], seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
-        		result += sam_generator(buffer, seq2->name, flag | sf_second_mate, penalty2[i].mapq, table2[can2[i]].index, cigar2[can2[i]], table[can[i]].index, cigar[can[i]], seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
+				result += sam_generator(buffer + result, seq->name, flag | sf_first_mate, penalty[i].mapq, table[can[i]].index, cigar[i], table2[can2[i]].index, cigar2[i], seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
+        		result += sam_generator(buffer + result, seq2->name, flag | sf_second_mate, penalty2[i].mapq, table2[can2[i]].index, cigar2[i], table[can[i]].index, cigar[i], seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
 			}
 	}
 	return result;
@@ -231,17 +236,17 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
 		mate_cigar = 0;
 	} else {
 		mate_ind = table2[can2[p2]].index;
-		mate_cigar = cigar2[can2[p2]];
+		mate_cigar = cigar2[p2];
 	}
 	if (! canNum) 
-    	result += sam_generator(buffer, seq->name, flag | sf_unmapped, 0, 0, 0, mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
+    	result += sam_generator(buffer + result, seq->name, flag | sf_unmapped, 0, 0, 0, mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
 	else {
-		result += sam_generator(buffer, seq->name, flag, penalty[p].mapq, table[can[p]].index, cigar[can[p]], mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
+		result += sam_generator(buffer + result, seq->name, flag, penalty[p].mapq, table[can[p]].index, cigar[p], mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
 		if (g->options->report_multi) {
 		    flag |= sf_not_primary;
 			for (i = 0; i < canNum; i++)
 				if (i != p)
-					 result += sam_generator(buffer, seq->name, flag, penalty[i].mapq, table[can[i]].index, cigar[can[i]], mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
+					 result += sam_generator(buffer + result, seq->name, flag, penalty[i].mapq, table[can[i]].index, cigar[i], mate_ind, mate_cigar, seq->seq, seq->qual, seq->len, seq2->len, g->bwt, g->offset, g->offInd);
 		}
 	}
 // Reporting matches for the second read	
@@ -252,17 +257,17 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
         mate_cigar = 0;
     } else {
         mate_ind = table[can[p]].index;
-        mate_cigar = cigar[can[p]];
+        mate_cigar = cigar[p];
     }
     if (! canNum2) 
-        result += sam_generator(buffer, seq2->name, flag | sf_unmapped, 0, 0, 0, mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
+        result += sam_generator(buffer + result, seq2->name, flag | sf_unmapped, 0, 0, 0, mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
     else {        
-		result += sam_generator(buffer, seq2->name, flag, penalty2[p2].mapq, table2[can2[p2]].index, cigar2[can2[p2]], mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
+		result += sam_generator(buffer + result, seq2->name, flag, penalty2[p2].mapq, table2[can2[p2]].index, cigar2[p2], mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
         if (g->options->report_multi) {
             flag |= sf_not_primary; 
             for (i = 0; i < canNum2; i++)
                 if (i != p2)                      
-					result += sam_generator(buffer, seq2->name, flag, penalty2[i].mapq, table2[can2[i]].index, cigar2[can2[i]], mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
+					result += sam_generator(buffer + result, seq2->name, flag, penalty2[i].mapq, table2[can2[i]].index, cigar2[i], mate_ind, mate_cigar, seq2->seq, seq2->qual, seq2->len, seq->len, g->bwt, g->offset, g->offInd);
         }
     }
 	return result;	
@@ -289,15 +294,15 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
     //aligner
     aligner(g->bwt, seq->len, seq->seq, level, table, candidates, candidates_size, &candidates_num, g->options);
     compute_cigar_penalties(g, candidates_num, candidates_size, candidates, cigar, seq, table, d, arr, tmp_cigar, penalty);
-
 	if (g->options->paired) {
 		aligner(g->bwt, seq2->len, seq2->seq,  level, table2, candidates2, candidates_size, &candidates_num2, g->options);
 	    compute_cigar_penalties(g, candidates_num2, candidates_size, candidates2, cigar2, seq2, table2, d, arr, tmp_cigar, penalty2);
 	}
-	find_best_candidates(candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len, seq2->len, g->bwt->seq_len, cigar, cigar2, g->options->paired, g->options);
+		 
+	find_best_candidates(g, candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len,  (g->options->paired) ? seq2->len : 0, cigar, cigar2, g->options->paired);
 	if (g->options->paired && g->options->discordant && best_num == 0) { // No valid paired alignments but we should report "discordant" alignments: the best alignment for each read of the pair separately
-	    find_best_candidates(candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0, g->bwt->seq_len, cigar, 0, 0, g->options);		
-		find_best_candidates(candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, g->bwt->seq_len, cigar2, 0, 0, g->options);
+	    find_best_candidates(g, candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0, cigar, 0, 0);	
+		find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, cigar2, 0, 0);
 		return report_discordant_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2); 
 	} 
 	return report_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
@@ -326,7 +331,7 @@ void multiAligner(global_vars * g) {
         d[j]=(int *)malloc(300*(sizeof (int)));
         arr[j]=(char *)malloc(300*(sizeof (char)));
     }
-    seqs = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
+    //seqs = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
     char buffer[100*max_sam_line*(sizeof (char))];
     buffer[0] = '\0';
     long long lasttmpsize = 0;
@@ -337,7 +342,8 @@ void multiAligner(global_vars * g) {
 	if (g->options->paired) {
    		table2=(hash_element *)malloc(TABLESIZE*(sizeof (hash_element)));
     	reset_hash(table2);		
-		seqs2 = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
+		//seqs2 = (bwa_seq_t*) malloc(seq_num_per_read * sizeof(bwa_seq_t));
+		//fprintf(stderr, "1, %d\n", seqs2);
 		cigar2 =  (char **) malloc(g->options->potents * sizeof(char *));
 		for (j=0; j < g->options->potents; j++)
 			cigar2[j]=(char *) malloc(MAX_CIGAR_SIZE*(sizeof (char)));
@@ -360,6 +366,7 @@ void multiAligner(global_vars * g) {
         lasttmpsize = 0;
         for(j=0; j<n_seqs; j++) {
             lasttmpsize+=align_read(g, buffer+lasttmpsize, cigar, cigar2, &seqs[j], (g->options->paired)? &seqs2[j] : 0, table, table2, total_seqs + j + 1, d,arr,tmp_cigar);
+
             if (g->options->order) { // Preserving order of reads
                 unsigned long long read_num = seqs[j].read_num;
                 int pos = read_num % outBufLen;
@@ -386,9 +393,14 @@ void multiAligner(global_vars * g) {
         bwa_free_read_seq(n_seqs, seqs);
 		if (g->options->paired) bwa_free_read_seq(n_seqs, seqs2);
     }
-
+	if (lasttmpsize > 0) {
+                    pthread_mutex_lock(&output);
+                    fputs(buffer, stdout);
+                    pthread_mutex_unlock(&output);
+                    lasttmpsize = 0;		
+	}
 	// Free variables
-    free(seqs);
+    //free(seqs);
     for (j=0; j<MAX_READ_SIZE; j++) {
         free(d[j]);
         free(arr[j]);
@@ -399,7 +411,8 @@ void multiAligner(global_vars * g) {
     free(table);
 	if (g->options->paired) {
 		free(table2);
-		free(seqs2);
+		//fprintf(stderr, "2, %d\n", seqs2);
+		//free(seqs2);
   		for (j = 0; j < g->options->potents; j++)
     	    free(cigar2[j]);		
 		free(cigar2);
@@ -418,16 +431,6 @@ void *worker2(void *data) {
     pthread_mutex_unlock(&input);
     return 0;
 }
-
-/*char getIndexChar(uint32_t place) {
-    //place += 43;
-    uint32_t block = place / (sizeof(uint64_t) * 4);
-    int offset = place % (sizeof(uint64_t) * 4);
-    //fprintf(stderr, "block = %lld\n", block);
-    uint64_t mask = 3;
-    mask = mask & (reference[block] >> (2 * offset));
-    return atom2[mask];
-}*/
 
 int ref_read(char * file_name, uint64_t ** reference_p, uint64_t * reference_size_p, uint64_t * reference_reminder_p) {
     struct stat file_info;
@@ -513,7 +516,7 @@ void bwa_aln_core2(aryana_args *args)
 	bwtint_t offset[max_chrom_num];
 	bwtint_t offInd = 0;
     ks = bwa_open_reads(opt->mode, fn_fa);
-    if (args->paired) 
+	if (args->paired) 
         ks2 = bwa_open_reads(opt->mode, fn_fa2);
 
     // initialization

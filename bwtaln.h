@@ -129,6 +129,7 @@ typedef struct {
 
 struct __bwa_seqio_t;
 typedef struct __bwa_seqio_t bwa_seqio_t;
+
 bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa);
 
 #ifdef __cplusplus
