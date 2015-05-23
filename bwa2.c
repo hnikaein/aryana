@@ -126,7 +126,13 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
 	return 1;	// Valid pair
 }
 
-void compute_mapq() { } // XXX
+void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
+	int i;
+	for (i = 0; i < num; i++) {
+		p[i].mapq = p[i].penalty;
+		if (paired) p2[i].mapq = p2[i].penalty;
+	}
+} // XXX
 /*
                 double scaled_err=scmax*mismatch_num/(seq->len);
                             prob+=pow(base,-scaled_err);
@@ -182,7 +188,7 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
 			} 
 		}
 	if (best_num > 0) 
-		compute_mapq();
+		compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, table, table2, cigar, cigar2, paired);
 }
 
 long long report_alignment_results(global_vars *g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, int * can, int * can2, int canNum, int canNum2, penalty_t * penalty, penalty_t * penalty2) {

@@ -77,8 +77,8 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 			}
 			char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
 			if (gc != rc){
-				if (ignore == ignore_none || (ignore == ignore_CT && (gc != 'C' || rc != 'T')) || (ignore == ignore_GA && (gc != 'G' || rc != 'A'))) { 
-	                d[i][j]++;
+				if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) { 
+					d[i][j]++;
 					arr[i][j] = 'M'; // mismatch
 				}
 			}
