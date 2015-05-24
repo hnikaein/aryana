@@ -9,8 +9,6 @@
 #include <sstream>
 using namespace std;
 
-const int maxReadLen = 10000;
-const int maxSamLineLength = 3 * maxReadLen;
 vector <long long> chromPos, chromLen;
 long long gs;
 map <string, int> chromIndex;

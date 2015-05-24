@@ -6,7 +6,6 @@
 #include <vector>
 using namespace std;
 
-const int interval_side = 3000;
 vector <long long> chromPos, chromLen;
 unsigned long gs;
 map <string, int> chromIndex;

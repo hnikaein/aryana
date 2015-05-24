@@ -88,7 +88,7 @@ int checkGAorCT() {
 // Prints the information of one base stored in the queue[index].
 
 void PrintOutput(int index) {
-    unsigned long long pos = queue[index].pos;                       // Location in the whole genome
+    long long pos = (signed) queue[index].pos;                       // Location in the whole genome
     if (pos < 0) return;
     int chrNum = queue[index].chr;
     string chrName = chrom[chrNum].chrName;

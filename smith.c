@@ -14,11 +14,11 @@ int max(int q , int p)
 int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore)
 {
 //	fprintf(stderr,"read: %llu - %llu, ref: %llu - %llu\n",match_start,match_end,index_start,index_end);
-    int off=max(2*(abs((index_end-index_start)-(match_end-match_start))),10);
+    int off=max(2*(abs((signed)(index_end-index_start)-(signed)(match_end-match_start))),10);
     if (off > 98)
     {
         fprintf(stderr,"off too long\n");
-        head+=snprintf(cigar+head,10,"%d",abs((index_end-index_start)-(match_end-match_start)));
+        head+=snprintf(cigar+head,10,"%d",abs((signed)(index_end-index_start)-(signed)(match_end-match_start)));
         if (match_end-match_start > index_end-index_start)
         {
             head+=snprintf(cigar+head,10,"i");
