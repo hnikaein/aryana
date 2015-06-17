@@ -95,7 +95,7 @@ void PrintOutput(int index) {
     long long chrPos = pos - chrom[chrNum].chrStart;	// Location in the chromosome
     char base = toupper(genome[pos - 1]);	// Main base
     char next;
-    if (base == 'C') next = (gs > pos) ? toupper(genome[pos]) : '$';
+    if (base == 'C') next = ((signed) gs > pos) ? toupper(genome[pos]) : '$';
     else if (base == 'G') next = (pos > 1) ? toupper(genome[pos - 2]) : '$';
     else fprintf(stderr, "Bug: The base at genomic locationd %lld is not either C or G\n", pos);
     char strand = (base == 'C') ? '+' : '-';
