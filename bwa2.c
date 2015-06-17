@@ -167,6 +167,8 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
 					(*best_num)++;
 				}
 			} else { // Paired-end reads
+				char tcigar[g->options->potents][MAX_CIGAR_SIZE], tcigar2[g->options->potents][MAX_CIGAR_SIZE];
+				penalty_t tpenalty[g->options->potents], tpenalty2[g->options->potents];			
 				for (j = candidates_num2; j < candidates_size; j++)
 				{
 					if (candidates2[j] != -1 && valid_pair(g, table + candidates[i], table2 + candidates2[j], len, len2)) {
@@ -174,16 +176,22 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
 							min_penalty =  penalty[i].penalty + penalty2[j].penalty;
 							*best_num = 0;
 						}
-						if (min_penalty < maxPenalty && min_penalty ==  penalty[i].penalty + penalty2[j].penalty) { // A new paired alignment with the same penalty
+						if (*best_num < candidates_size && min_penalty < maxPenalty && min_penalty ==  penalty[i].penalty + penalty2[j].penalty) { // A new paired alignment with the same penalty
 							best_candidates[*best_num] = candidates[i];
 							best_candidates2[*best_num] = candidates2[j];
-							penalty[*best_num] = penalty[i];
-							penalty2[*best_num] = penalty2[j];
-							strcpy(cigar[*best_num], cigar[i]);
-							strcpy(cigar2[*best_num], cigar2[j]);
+							tpenalty[*best_num] = penalty[i];
+							tpenalty2[*best_num] = penalty2[j];
+							strcpy(tcigar[*best_num], cigar[i]);
+							strcpy(tcigar2[*best_num], cigar2[j]);
 							(*best_num)++;
 						}
 					}
+				}
+				for (j = 0; j < *best_num; j++) {
+					penalty[j] = tpenalty[j];
+					penalty2[j] = tpenalty2[j];
+					strcpy(cigar[j], tcigar[j]);
+					strcpy(cigar2[j], tcigar2[j]);
 				}
 			} 
 		}
