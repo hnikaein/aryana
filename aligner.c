@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <limits.h>
+#include <assert.h>
 #include "hash.h"
 #include "aryana_args.h"
 #include "bwa2.h"
@@ -68,7 +69,7 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
     //for (i=0; i<best->parts; i++)
     //	fprintf(stderr, "part %lld: %lld %lld %d %d\n",i,best->match_start[i],best->match_index[i],best->matched[i],valid[i]);
 
-    int slack=20;
+    int slack=10;
     bwtint_t head_match=0,head_index=best->index >= slack ? best->index-slack : 0;
     bwtint_t slack_index=head_index;
     int print_head=0;
@@ -95,7 +96,12 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
             }
             if (i==0)
             {
-                print_head=smith_waterman(head_match,len,head_index, head_index+len-head_match+slack, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+				bwtint_t end = head_index+len-head_match+slack;
+				if (end >= seq_len) end = seq_len -1;
+				if (end > head_index || (signed) (len - head_match) > (signed) (end - head_index) + 10)
+					print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'i');
+				else
+                	print_head=smith_waterman(head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
                 if (debug > 1) {
 					fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
@@ -229,7 +235,7 @@ void match_select(long long down, long long up , int exactmatch_num,long long *s
 
 void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
 {
-    if (debug > 4) {
+/*    if (debug > 4) {
         fprintf(stderr, "Generating BWT Table, seq_len= %lld...", (long long) bwt->seq_len);
         long long l, i;
         FILE * f = fopen("BWT.txt", "w");
@@ -240,7 +246,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         fclose(f);
         fprintf(stderr, "Done.\n");
         exit(0);
-    }
+    }*/
 	// initialize
     bwtint_t down, up;
     bwtint_t limit;
@@ -314,8 +320,9 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
                 }
             }
             bwtint_t score=limit;
-
+			if (index < (i-limit+1)) continue;
             bwtint_t rindex=index- (i - limit+1);
+			assert(rindex < bwt->seq_len);
             add(bwt, rindex/len, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
         }
         groupid_last++;

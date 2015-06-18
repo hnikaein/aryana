@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
@@ -15,6 +16,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 {
 //	fprintf(stderr,"read: %llu - %llu, ref: %llu - %llu\n",match_start,match_end,index_start,index_end);
     int off=max(2*(abs((signed)(index_end-index_start)-(signed)(match_end-match_start))),10);
+	assert(off <= 98); 
     if (off > 98)
     {
         fprintf(stderr,"off too long\n");
@@ -73,13 +75,14 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 
             if (index_start+ref_i-1 >= seq_len) { 
 				d[i][j]++;
-				arr[i][j] = 'd';
-			}
-			char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
-			if (gc != rc){
-				if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) { 
-					d[i][j]++;
-					arr[i][j] = 'M'; // mismatch
+				arr[i][j] = 'i';
+			} else {
+				char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
+				if (gc != rc){
+					if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) { 
+						d[i][j]++;
+						arr[i][j] = 'M'; // mismatch
+					}
 				}
 			}
 
@@ -129,6 +132,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 			(*mismatch_num)++;
 		}
 		tmp_cigar[tail++] = arr[cur_i][cur_off];
+		assert(arr[cur_i][cur_off]=='i' || arr[cur_i][cur_off] == 'm' || arr[cur_i][cur_off] == 'M' || arr[cur_i][cur_off] == 'd');
         if (arr[cur_i][cur_off]=='i')
         {
             cur_off++;
@@ -141,11 +145,6 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
         else if (arr[cur_i][cur_off]=='m' || arr[cur_i][cur_off]=='M')
         {
             cur_i--;
-        }
-        else
-        {
-            fprintf(stderr,"There is something wrong\n");
-            exit(0);
         }
     }
     tmp_cigar[tail]=0;
