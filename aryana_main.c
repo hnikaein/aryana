@@ -30,25 +30,37 @@ void Usage() {
     fprintf(stderr, "Version: %s\n", aryana_version);
     fprintf(stderr, "Usage:\n\n");
     fprintf(stderr, "Creating index from reference genome:\n");
-    fprintf(stderr, "aryana index [reference genome (fasta)]\n");
-    fprintf(stderr, "aryana fa2bin [reference genome (fasta)]\n\n");
-    fprintf(stderr, "Alignment of single end reads:\n");
-    fprintf(stderr, "aryana [-x,--index <reference genome index>] [-i,--input <reads file (fastq format)>] [-o,--output <alignment file (SAM format)>]\n");
+    fprintf(stderr, "    aryana index [reference genome (fasta)]\n");
+    fprintf(stderr, "    aryana fa2bin [reference genome (fasta)]\n\n");
+    fprintf(stderr, "Aligning single or paired-end reads:\n");
+    fprintf(stderr, "    aryana -x <reference genome index> {-i <single-end reads (fastq format)> | -1 <paired-end reads 1> -2 <paired-end reads 2>} [options]*\n\n");
     fprintf(stderr, "Optional arguments: \n");
-    fprintf(stderr, "[-t,--threads <threads number>] [-c,--candidates <num of alignment candidates, default=10>] [-s,--seed <fixed length of seed sequence, default=dynamic>]\n");
-    fprintf(stderr, "[-D <debug info level, default=0>] [-O (keep the order of reads in output as the input)] [-l,--limit <maximum number of mismatches allowed, -1 for unlimited. default=-1> \n\n");
-	fprintf(stderr, "[--mp <maximum mismatch penalty, default=5>] [--go <gap open penalty, default=5>] [--ge <gap extension penalty, default=3>]");
-    fprintf(stderr, "Alignment of paired end reads:\n");
-    fprintf(stderr, "aryana [-x,--index <reference genome index>] [-1,--first <reads file 1 (fastq format)>] [-2,--second <reads file 2 (fastq format)>]\n");
-    fprintf(stderr, "Optional arguments:\n");
-    fprintf(stderr, "[--fr, --ff, --rf (orientation of paired ends)] [-m,--min <min distance between pair reads, default=0>] [-M,--max  <max distance between pair reads, default=10000>]\n");
-    fprintf(stderr, "[-d,--no-discordant (do not print discordants reads)]\n\n");
-    fprintf(stderr, "Alignment of bisulfite-sequencing reads:\n");
-    fprintf(stderr, "[-b,--bisulfite <bisulfite reference genome index>]\n\n");
-    fprintf(stderr, "[-e, <number of selected exact matches>]\n\n");
-	fprintf(stderr, "[--ct (ignore C->T mismatches)]\n");
-	fprintf(stderr, "[--ga (ignore G->A mismatches)]. Either --ct or --ga can be used. These arguments are automatically set when using -b.\n");
-    fprintf(stderr, "[-r,--report-multi-aligns (Report multi-aligned reads)]\n\n");
+	fprintf(stderr, "    -o/--output                   output SAM file for the alignment results, default=standard output\n");
+    fprintf(stderr, "    -t/--threads <int>            the number of parallel threads, default=1\n");
+	fprintf(stderr, "    -s/--seed <int>               fixed length of the seed sequence, default=dynamically selected based on the length of each read\n");
+	fprintf(stderr, "    -l/--limit <int>              maximum number of mismatches allowed for each alignment, default=unlimited\n");
+    fprintf(stderr, "    -O/--order                    print the reads in output with the same order in the input.\n"); 	
+    fprintf(stderr, "    -B/--buffer <int>             size of output buffer. Increase it only when using -O/--order and program issues errors. default=100000\n");
+	fprintf(stderr, "    --mp <float>                  maximum mismatch penalty, default=5\n");
+    fprintf(stderr, "    --go <float>                  gap open penalty, default=5\n");
+	fprintf(stderr, "    --ge <float>                  gap extension penalty, default=3\n");
+    fprintf(stderr, "    -r/--report-multi             report multiple alignment positions for each read\n");
+    fprintf(stderr, "    -e/--exact-match              number of exact matches of each seed to check, increasing it might increase accuracy, default=50\n");
+    fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
+    fprintf(stderr, "    -D/--debug <int>              the level of printing debug info, default=0 (no debug info)\n\n");
+	fprintf(stderr, "Optional arguments for paired-end alignment:\n");
+    fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends. fr=forward-reverse, ff=forward-forward, rf=reverse-forward.\n");
+    fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
+	fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
+	fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
+    fprintf(stderr, "     -d/--no-discordant           do not print discordants reads, default=if a paired alignment is not found, the best hit for each read is reported.\n\n");
+    fprintf(stderr, "Alignment of bisulfite-sequencing (DNA Methylation assays) reads:\n");
+	fprintf(stderr, "     aryana -b <bisulfite reference genome index>  {-i <single-end reads (fastq format)> | -1 <paired-end reads 1> -2 <paired-end reads 2>} [options]*\n\n");
+	fprintf(stderr, "     Bisulfite reference genome index is created by prepare_genomes.sh, please refere to the manual for more details.\n");
+	fprintf(stderr, "     All optional arguments for normal reads can be used for bisulfite-sequencing reads too.\n\n");
+	fprintf(stderr, "Additional optional arguments for bisulfite-sequencing reads:\n");
+	fprintf(stderr, "     --ct                        ignore C->T mismatches. While using -b this argument is automatically set based on the type of converted genome\n");
+	fprintf(stderr, "     --ga                        ignore G->A mismatches. This argument is also automatically set with using -b. Either --ct or --ga can be used.\n");
     fprintf(stderr, "See README.md for more details.\n");
     exit(1);
 }
@@ -70,6 +82,7 @@ int main(int argc, char *argv[])
 	args.mismatch_penalty = 5;
 	args.gap_open_penalty = 5;
 	args.gap_ext_penalty = 3;
+	args.out_buffer_factor = 100000;
 	args.ignore = ignore_none;
 	args.orientation = orien_all;
 	args.min_dis = 0;
@@ -97,10 +110,11 @@ int main(int argc, char *argv[])
         {"factor", required_argument, 0, 'f'},
         {"bisulfite", required_argument, 0, 'b'},
         {"order", no_argument, 0, 'O'},
+		{"buffer", required_argument, 0, 'B'},
         {"debug", required_argument, 0, 'D'},
         {"no-discordant", no_argument, 0, 'd'},
         {"exact-match", required_argument, 0, 'e'},
-        {"report-multi-aligns", no_argument, 0, 'r'},
+        {"report-multi", no_argument, 0, 'r'},
 		{"limit", required_argument, 0, 'l'},
 		{"ct", no_argument, 0, 4},
 		{"ga", no_argument, 0, 5},
@@ -112,7 +126,7 @@ int main(int argc, char *argv[])
     char* inputFolder;
     int option_index = 0;
     int c;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OD:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
@@ -202,6 +216,9 @@ int main(int argc, char *argv[])
         case 'O':
             args.order = 1;
             break;
+		case 'B':
+			args.out_buffer_factor = atoi(optarg);
+			break;
         case 'D':
             debug = atoi(optarg);
             break;

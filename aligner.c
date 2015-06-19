@@ -98,7 +98,7 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
             {
 				bwtint_t end = head_index+len-head_match+slack;
 				if (end >= seq_len) end = seq_len -1;
-				if (end > head_index || (signed) (len - head_match) > (signed) (end - head_index) + 10)
+				if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
 					print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'i');
 				else
                 	print_head=smith_waterman(head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);

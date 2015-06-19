@@ -34,6 +34,7 @@ double scmax=100.0;
 bwa_seq_t *seqs;
 int n_seqs = 0;
 int tot_seqs = 0;
+static int output_buffer_warning = 0;
 pthread_mutex_t input = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t output = PTHREAD_MUTEX_INITIALIZER;
 
@@ -55,11 +56,23 @@ typedef struct {
 outBuf_t * outBuf;
 int running_threads_num;
 unsigned long long outBufIndex, outBufLen;
-int collision_error_reported = 0;
 
 void compute_penalty(aryana_args * options, penalty_t * p) {
 	if (options->mismatch_limit >= 0 && p->mismatch_num > options->mismatch_limit) p->penalty = maxPenalty;
 	else p->penalty = options->mismatch_penalty * p->mismatch_num + options->gap_open_penalty * p->gap_open_num + options->gap_ext_penalty * p->gap_ext_num;
+}
+
+void OutputBufferError() {
+    fprintf(stderr, "Error: Output buffer size is insufficient for preserving the order of reads.\n");
+    fprintf(stderr, "Either set a larger size for output buffer using -B/--buffer argument, or don't use -O/--order argument.\n");
+    exit(1);
+}
+
+void OutputBufferWarning() {
+    if (output_buffer_warning) return;
+    output_buffer_warning = 1;
+    fprintf(stderr, "Warning: Output buffer size is low for preserving the order of reads. This might reduce the speed.\n");
+    fprintf(stderr, "Set a larger size for output buffer using -B/--buffer argument to omit this warning.\n");
 }
 
 void PrintSeq(unsigned char * seq, int len, int endl) {
@@ -385,10 +398,7 @@ void multiAligner(global_vars * g) {
                 unsigned long long read_num = seqs[j].read_num;
                 int pos = read_num % outBufLen;
                 while (outBuf[pos].read_num != 0) {
-                    if (! collision_error_reported) {
-                        fprintf(stderr, "A collision in output hash table occured. Maybe you need longer table (modify outBufLen value), or don't use -O argument.\n");
-                        collision_error_reported = 1;
-                    }
+					OutputBufferWarning();
                     usleep(1);
                 }
                 outBuf[pos].str = strdup(buffer);
@@ -510,8 +520,6 @@ char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len) {
     return mask;//atom[mask];
 }
 
-
-
 //void bwa_aln_core2(const char *prefix, const char *fn_fa, const char *fn_fa1, const char *fn_fa2, const //gap_opt_t *opt, pair_opt *options)
 void bwa_aln_core2(aryana_args *args)
 {
@@ -605,7 +613,7 @@ void bwa_aln_core2(aryana_args *args)
 
     running_threads_num = args->threads;
     if (args->order) {
-        outBufLen = 10 * args->threads * seq_num_per_read;
+        outBufLen = args->out_buffer_factor * args->threads * seq_num_per_read;
         outBuf = malloc(sizeof(outBuf_t) * outBufLen);
         bzero(outBuf, sizeof(outBuf_t) * outBufLen);
         outBufIndex = 1;
@@ -621,7 +629,7 @@ void bwa_aln_core2(aryana_args *args)
             if (!outBuf[o].read_num) usleep(sleep_time); 
             else {
                 if (outBuf[o].read_num != outBufIndex)
-                    fprintf(stderr, "Error in output buffer, expected read number %llu, seen %llu.\n", outBufIndex, outBuf[o].read_num);
+					OutputBufferError();
                 fputs(outBuf[o].str, stdout);
                 free(outBuf[o].str);
                 outBuf[o].read_num = 0;

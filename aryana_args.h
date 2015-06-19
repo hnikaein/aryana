@@ -29,6 +29,7 @@ typedef struct {
     int debug;
     int exactmatch_num;
     int report_multi, mismatch_limit;
+	int out_buffer_factor;
 	double mismatch_penalty, gap_open_penalty, gap_ext_penalty;
 	ignore_mismatch_t ignore;
 } aryana_args;
