@@ -16,7 +16,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
 {
 //	fprintf(stderr,"read: %llu - %llu, ref: %llu - %llu\n",match_start,match_end,index_start,index_end);
     int off=max(2*(abs((signed)(index_end-index_start)-(signed)(match_end-match_start))),10);
-	assert(off <= 98); 
+    assert(off <= 98);
     if (off > 98)
     {
         fprintf(stderr,"off too long\n");
@@ -73,18 +73,18 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
             d[i][j]=d[i-1][j];
             arr[i][j]='m'; // match
 
-            if (index_start+ref_i-1 >= seq_len) { 
-				d[i][j]++;
-				arr[i][j] = 'i';
-			} else {
-				char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
-				if (gc != rc){
-					if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) { 
-						d[i][j]++;
-						arr[i][j] = 'M'; // mismatch
-					}
-				}
-			}
+            if (index_start+ref_i-1 >= seq_len) {
+                d[i][j]++;
+                arr[i][j] = 'i';
+            } else {
+                char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
+                if (gc != rc) {
+                    if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) {
+                        d[i][j]++;
+                        arr[i][j] = 'M'; // mismatch
+                    }
+                }
+            }
 
             if (match_end==len && i==match_end-match_start)
             {
@@ -112,7 +112,7 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
     int cur_off=(index_end-index_start)-(match_end-match_start)+off/2;
     int cur_i=match_end-match_start;
     int tail=0;
-	char last = 'm';
+    char last = 'm';
     while(1)
     {
         int ref_i=cur_i+cur_off-off/2;
@@ -127,12 +127,12 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
             for (j=0; j<cur_i; j++) tmp_cigar[tail++] = 'i';
             break;
         }
-		if (arr[cur_i][cur_off] == 'M') {
-			arr[cur_i][cur_off] = 'm';
-			(*mismatch_num)++;
-		}
-		tmp_cigar[tail++] = arr[cur_i][cur_off];
-		assert(arr[cur_i][cur_off]=='i' || arr[cur_i][cur_off] == 'm' || arr[cur_i][cur_off] == 'M' || arr[cur_i][cur_off] == 'd');
+        if (arr[cur_i][cur_off] == 'M') {
+            arr[cur_i][cur_off] = 'm';
+            (*mismatch_num)++;
+        }
+        tmp_cigar[tail++] = arr[cur_i][cur_off];
+        assert(arr[cur_i][cur_off]=='i' || arr[cur_i][cur_off] == 'm' || arr[cur_i][cur_off] == 'M' || arr[cur_i][cur_off] == 'd');
         if (arr[cur_i][cur_off]=='i')
         {
             cur_off++;

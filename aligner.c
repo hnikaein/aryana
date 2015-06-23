@@ -30,9 +30,17 @@ extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
 void extend_cigar(char * tmp_cigar, char edit, char *last, int * tail, penalty_t * penalty) {
     switch (edit) {
-        case 'm': break;
-        case 'M': edit = 'm'; penalty->mismatch_num++; break;
-        case 'd': case 'i': if (edit != *last) penalty->gap_open_num++; else penalty->gap_ext_num++; break;
+    case 'm':
+        break;
+    case 'M':
+        edit = 'm';
+        penalty->mismatch_num++;
+        break;
+    case 'd':
+    case 'i':
+        if (edit != *last) penalty->gap_open_num++;
+        else penalty->gap_ext_num++;
+        break;
     }
     *last = edit;
     tmp_cigar[(*tail)++] = edit;
@@ -40,9 +48,9 @@ void extend_cigar(char * tmp_cigar, char edit, char *last, int * tail, penalty_t
 
 void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
-	penalty->mismatch_num = 0;
-	penalty->gap_open_num = 0;
-	penalty->gap_ext_num = 0;
+    penalty->mismatch_num = 0;
+    penalty->gap_open_num = 0;
+    penalty->gap_ext_num = 0;
     int *valid=(int *)malloc(best->parts*(sizeof (int)));
     bwtint_t lastvalid=best->parts-1;
     long long i=0,j=0;
@@ -80,44 +88,44 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
         PrintSeq(seq, len, 1);
         PrintRefSeq(head_index, head_index+len+2*slack, seq_len, 1);
     }
-        for (i=best->parts-1; i>=0; i--)
+    for (i=best->parts-1; i>=0; i--)
+    {
+        if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && abs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
         {
-            if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && abs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
-            {
-                print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
-                if (debug > 1) {
-                    fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
-                    PrintSeq(seq+head_match,  best->match_start[i] - head_match + 1, 1);
-                    PrintRefSeq(head_index, best->match_index[i], seq_len, 1);
-                }
-                print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",best->matched[i],'m');
-                head_match=best->match_start[i]+best->matched[i];
-                head_index=best->match_index[i]+best->matched[i];
+            print_head=smith_waterman(head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+            if (debug > 1) {
+                fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
+                PrintSeq(seq+head_match,  best->match_start[i] - head_match + 1, 1);
+                PrintRefSeq(head_index, best->match_index[i], seq_len, 1);
             }
-            if (i==0)
-            {
-				bwtint_t end = head_index+len-head_match+slack;
-				if (end >= seq_len) end = seq_len -1;
-				if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
-					print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'i');
-				else
-                	print_head=smith_waterman(head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
-                //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
-                if (debug > 1) {
-					fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
-                    PrintSeq(seq+head_match, len - head_match + 1, 1);
-                    PrintRefSeq(head_index, head_index+len-head_match+slack, seq_len, 1);
-                }
-                break;
-            }
+            print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",best->matched[i],'m');
+            head_match=best->match_start[i]+best->matched[i];
+            head_index=best->match_index[i]+best->matched[i];
         }
+        if (i==0)
+        {
+            bwtint_t end = head_index+len-head_match+slack;
+            if (end >= seq_len) end = seq_len -1;
+            if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
+                print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'i');
+            else
+                print_head=smith_waterman(head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+            //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
+            if (debug > 1) {
+                fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
+                PrintSeq(seq+head_match, len - head_match + 1, 1);
+                PrintRefSeq(head_index, head_index+len-head_match+slack, seq_len, 1);
+            }
+            break;
+        }
+    }
 
     //refining cigar
     int firstblood=1;
     int last_size=0;
     char last_char='m';
     print_head=0;
-			 
+
     for (i=0; cigar[i]; i++)
     {
         char tmp[10];
@@ -137,8 +145,8 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
             {
                 last_size=0;
                 slack_index+=num;
-            } 
-			continue;
+            }
+            continue;
         }
         if (cigar[i]==last_char)
         {
@@ -149,24 +157,25 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
         {
             if (last_size>0) {
                 print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
-	            if (last_char == 'i' || last_char == 'd') {
-    	            penalty->gap_open_num++;
-        	        penalty->gap_ext_num += last_size - 1;
-           		 }
-			}
+                if (last_char == 'i' || last_char == 'd') {
+                    penalty->gap_open_num++;
+                    penalty->gap_ext_num += last_size - 1;
+                }
+            }
             last_size=num;
             last_char=cigar[i];
         }
     }
     if (last_char!='d') {
-        print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
-            if (last_char == 'i') {
-                penalty->gap_open_num++;
-                penalty->gap_ext_num += last_size - 1;
-            }
-	}
-	if (debug > 0)
-		fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
+        if (last_size > 0)
+            print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
+        if (last_char == 'i') {
+            penalty->gap_open_num++;
+            penalty->gap_ext_num += last_size - 1;
+        }
+    }
+    if (debug > 0)
+        fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
     best->index=slack_index;
     free(valid);
 }
@@ -178,11 +187,11 @@ void create_cigar(hash_element *best, char *cigar, int len, const ubyte_t *seq, 
 #define BITTEST(a, b) ((a)[BITSLOT(b)] & BITMASK(b))
 #define BITNSLOTS(nb) ((nb + CHAR_BIT - 1) / CHAR_BIT)
 
-void floyd(long long down, long long up , int exactmatch_num,long long *selected){
+void floyd(long long down, long long up , int exactmatch_num,long long *selected) {
     long N = up - down+1;
     long long in, im,j;
     im = 0;
-    if(N < exactmatch_num){
+    if(N < exactmatch_num) {
         for (j=down; j<=up; j++) {
             selected[j-down]=j;
         }
@@ -192,24 +201,24 @@ void floyd(long long down, long long up , int exactmatch_num,long long *selected
     memset(is_used, 0, BITNSLOTS(N));
 
     in = N - exactmatch_num;
-    
+
     for (; in < N && im < exactmatch_num; ++in) {
         srand (time(NULL));
         long long r = rand() % (in + 1); /* generate a random number 'r' */
         if(BITTEST(is_used, r))
-        /* we already have 'r' */
+            /* we already have 'r' */
             r = in; /* use 'in' instead of the generated number */
 
         selected[im++] = r + down; /* +1 since your range begins from 1 */
         BITSET(is_used, r);
-        
+
     }
 }
 
-void knuth(long long down, long long up , int exactmatch_num,long long *selected){
+void knuth(long long down, long long up , int exactmatch_num,long long *selected) {
     long long j,in, im=0 ,rn,rm;
     long N = up - down+1;
-    if(N < exactmatch_num){
+    if(N < exactmatch_num) {
         for (j=down; j<=up; j++) {
             selected[j-down]=j;
         }
@@ -223,7 +232,7 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
             selected[im++] = down + in;
     }
 }
-void match_select(long long down, long long up , int exactmatch_num,long long *selected){
+void match_select(long long down, long long up , int exactmatch_num,long long *selected) {
     if (exactmatch_num < (up-down+1)/2) {
         floyd(down,up,exactmatch_num, selected);
     }
@@ -235,19 +244,19 @@ void match_select(long long down, long long up , int exactmatch_num,long long *s
 
 void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element * table, int *best, int best_size, int *best_found, aryana_args *args)
 {
-/*    if (debug > 4) {
-        fprintf(stderr, "Generating BWT Table, seq_len= %lld...", (long long) bwt->seq_len);
-        long long l, i;
-        FILE * f = fopen("BWT.txt", "w");
-        for (l = 0; l < bwt->seq_len; l++) {
-            i = bwt_sa(bwt, l);
-            fprintf(f, "%lld\n", i);
-        }
-        fclose(f);
-        fprintf(stderr, "Done.\n");
-        exit(0);
-    }*/
-	// initialize
+    /*    if (debug > 4) {
+            fprintf(stderr, "Generating BWT Table, seq_len= %lld...", (long long) bwt->seq_len);
+            long long l, i;
+            FILE * f = fopen("BWT.txt", "w");
+            for (l = 0; l < bwt->seq_len; l++) {
+                i = bwt_sa(bwt, l);
+                fprintf(f, "%lld\n", i);
+            }
+            fclose(f);
+            fprintf(stderr, "Done.\n");
+            exit(0);
+        }*/
+    // initialize
     bwtint_t down, up;
     bwtint_t limit;
     long long i = 0, j = 0;
@@ -299,7 +308,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         match_select(down, up , args->exactmatch_num,selected);
         //		for (j=down; j<=up && j <= (down + 50); j++){
         int ii=0;
-        for ( ; ii < args->exactmatch_num && ii < up-down+1 ; ii++){
+        for ( ; ii < args->exactmatch_num && ii < up-down+1 ; ii++) {
             j= selected[ii];
             bwtint_t index=bwt_sa(bwt,j);
 //            		if (index > len)
@@ -320,9 +329,9 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
                 }
             }
             bwtint_t score=limit;
-			if (index < (i-limit+1)) continue;
+            if (index < (i-limit+1)) continue;
             bwtint_t rindex=index- (i - limit+1);
-			assert(rindex < bwt->seq_len);
+            assert(rindex < bwt->seq_len);
             add(bwt, rindex/len, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
         }
         groupid_last++;

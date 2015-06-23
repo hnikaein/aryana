@@ -84,7 +84,7 @@ int ReadGenome(char * genomeFile) {
     }
     off_t file_size_bytes = file_info.st_size;
     long long reference_size = 1 + ceil(((double) file_size_bytes) / (double) (sizeof(char)));
-   	genome = (char *) malloc(reference_size * sizeof(char));
+    genome = (char *) malloc(reference_size * sizeof(char));
     memset(genome, 0, reference_size * sizeof(char));
     gs = 0;
     chromNum = 0;
@@ -102,13 +102,13 @@ int ReadGenome(char * genomeFile) {
         n -= start;
 
         if (fLine[0] == '>') {
-			ch.chrStart = gs;
+            ch.chrStart = gs;
             string name = fLine;
             if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
             else name = name.substr(1, name.size() - 1);
             cerr << name << endl;
-			ch.chrName = name;
-			chrom.push_back(ch);
+            ch.chrName = name;
+            chrom.push_back(ch);
             chromNum++;
         } else {
             memcpy(genome+gs, fLine, n);
@@ -228,7 +228,7 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr,uint64_t chr
     read = toupper(read);
     genome[ref_i] = toupper(genome[ref_i]);
     genome[ref_i+1] = toupper(genome[ref_i+1]);
-   	genome[ref_i-1] = toupper(genome[ref_i-1]);
+    genome[ref_i-1] = toupper(genome[ref_i-1]);
 
     if(flag2) {
         if (read == 'A' || read == 'G') {

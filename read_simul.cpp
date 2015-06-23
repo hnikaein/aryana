@@ -69,8 +69,8 @@ void ReadGenome(string genomeFile) {
         while (start < n && fLineMain[start] <= ' ') start++;
         if (start >= n) continue;
         char * fLine = fLineMain + start;
-        n -= start;        
-		if (fLine[0] == '>') {
+        n -= start;
+        if (fLine[0] == '>') {
             chromPos.push_back(gs);
             if (chromNum > 0) {
                 chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
@@ -227,7 +227,7 @@ void revcomp(char * a, long long l) {
 }
 
 char RandBase() {
-	return bases[rand() % 4];
+    return bases[rand() % 4];
 }
 
 // Just generates a single read, without header line but with quality line
@@ -236,36 +236,36 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
     char r[maxReadSize], R[maxReadSize];
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
-	if (bisSeq) 
-    for (int i = 0; i < readl; i++) // Bisulfite conversion
-        if (r[i] == 'c' || r[i] == 'C') {
-            if (strand == '+') {
-                if (totalCount) totalCount[p + i]++;
-                if ((double) rand() * 100.0 / RAND_MAX >= meth[i+p]) r[i] = 'T';
-                else if (methylCount) methylCount[p+i]++;
+    if (bisSeq)
+        for (int i = 0; i < readl; i++) // Bisulfite conversion
+            if (r[i] == 'c' || r[i] == 'C') {
+                if (strand == '+') {
+                    if (totalCount) totalCount[p + i]++;
+                    if ((double) rand() * 100.0 / RAND_MAX >= meth[i+p]) r[i] = 'T';
+                    else if (methylCount) methylCount[p+i]++;
+                }
+                else {
+                    if (totalCount) totalCount[p+readl-1-i]++;
+                    if ((double) rand() * 100.0 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
+                    else  if (methylCount) methylCount[p+readl-1-i]++;
+                }
             }
-            else {
-                if (totalCount) totalCount[p+readl-1-i]++;
-                if ((double) rand() * 100.0 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
-                else  if (methylCount) methylCount[p+readl-1-i]++;
-            }
-        }
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
-	int RLen = 0;
+    int RLen = 0;
     for (int i = 0; i < readl; i++) {
-		double e = (double) rand() / RAND_MAX; 
+        double e = (double) rand() / RAND_MAX;
         if (e < mismatchRate) R[RLen++] = Mutate(r[i]); // Mutation
-		else if (e < insRate + mismatchRate) { // Insertion
-			R[RLen++] = RandBase();
-			i--;
-		} else if (e < delRate + insRate + mismatchRate) { // Deletion, do nothing 
-		} else R[RLen++] = r[i];
-	}
-	R[RLen] = 0;
-	quals[RLen] = 0;
+        else if (e < insRate + mismatchRate) { // Insertion
+            R[RLen++] = RandBase();
+            i--;
+        } else if (e < delRate + insRate + mismatchRate) { // Deletion, do nothing
+        } else R[RLen++] = r[i];
+    }
+    R[RLen] = 0;
+    quals[RLen] = 0;
     fprintf(f, "%-60s\n+\n%-60s\n", R,quals);
-	quals[RLen] = 'I';
+    quals[RLen] = 'I';
 }
 
 // Can print both single and paired end reads, along with the header line
@@ -436,12 +436,12 @@ int main(int argc, char * argv[]) {
                 island = atof(argv[++i]);
             else if (strcmp(argv[i], "-rm") == 0)
                 mismatchRate = atof(argv[++i]);
-			else if (strcmp(argv[i], "-ri") == 0)
-				insRate = atof(argv[++i]);
-			else if (strcmp(argv[i], "-rd") == 0)
-				delRate = atof(argv[++i]);
-			else if (strcmp(argv[i], "-b") == 0)
-				bisSeq = true;
+            else if (strcmp(argv[i], "-ri") == 0)
+                insRate = atof(argv[++i]);
+            else if (strcmp(argv[i], "-rd") == 0)
+                delRate = atof(argv[++i]);
+            else if (strcmp(argv[i], "-b") == 0)
+                bisSeq = true;
             else if (strcmp(argv[i], "-s") == 0)
                 snp = atoi(argv[++i]);
             else if (strcmp(argv[i], "-l") == 0)
@@ -467,31 +467,31 @@ int main(int argc, char * argv[]) {
     }
     if (genomeFile == "") {
         cerr << "Arguments:" << endl <<
-				"-g     <reference genome, mandatory>" << endl <<
-				"-n     <number of simulated reads from whole genome, default=1000>" << endl <<
-			    "-l     <length of each read, default=100>" << endl << 
-				"-o     <fastq output file without extension, default=stdout>" << endl <<
-				"-m     (mask repeats)" << endl <<
-				"-rm    <sequencing mismatch rate, between 0 and 1, default=0>" << endl << 
-				"-ri    <sequencing insertion rate, between 0 and 1, default=0>" << endl <<
-				"-rd    <sequencing deletion rate, between 0 and 1, default=0>" << endl <<
-				"-s     <number of SNPs, default=0>" << endl <<		
-			    "-neg   (simulate reads from negative strand)" << endl <<  
-				"-p     (simulate PCR amplified reads)" << endl << endl <<
-				"Paired end arguments:" << endl <<
-				"-P     (produce paired-end reads)" << endl <<
-				"-Pmin  <min distance between a pair of reads,default=300>" << endl <<
-				"-Pmax  <max distance between a pair of reads, default=1000>" << endl << endl <<
-			    "Bisulfite-Sequencing arguments:" << endl <<
-				"-b     (produce bis-seq reads)" << endl <<
-				"-ni    <number of simulated reads from CpG-Islands, default=0>" << endl <<
-             	"-a     <genomic map of CpG-Islands, mandatory if -ni greater than 0>" << endl << 
-             	"-mi    <methylation ratio input file>" << endl <<
-				"-mo    <methylation ratio output file>" << endl << 
-				"-co    <count of reads covering each cytosine output file>" << endl <<
-             	"-ch    <methylation ratio of CH dinucleotides, default=0.01>" << endl << 
-				"-cg    <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
-             	"-i     <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1>" << endl;
+             "-g     <reference genome, mandatory>" << endl <<
+             "-n     <number of simulated reads from whole genome, default=1000>" << endl <<
+             "-l     <length of each read, default=100>" << endl <<
+             "-o     <fastq output file without extension, default=stdout>" << endl <<
+             "-m     (mask repeats)" << endl <<
+             "-rm    <sequencing mismatch rate, between 0 and 1, default=0>" << endl <<
+             "-ri    <sequencing insertion rate, between 0 and 1, default=0>" << endl <<
+             "-rd    <sequencing deletion rate, between 0 and 1, default=0>" << endl <<
+             "-s     <number of SNPs, default=0>" << endl <<
+             "-neg   (simulate reads from negative strand)" << endl <<
+             "-p     (simulate PCR amplified reads)" << endl << endl <<
+             "Paired end arguments:" << endl <<
+             "-P     (produce paired-end reads)" << endl <<
+             "-Pmin  <min distance between a pair of reads,default=300>" << endl <<
+             "-Pmax  <max distance between a pair of reads, default=1000>" << endl << endl <<
+             "Bisulfite-Sequencing arguments:" << endl <<
+             "-b     (produce bis-seq reads)" << endl <<
+             "-ni    <number of simulated reads from CpG-Islands, default=0>" << endl <<
+             "-a     <genomic map of CpG-Islands, mandatory if -ni greater than 0>" << endl <<
+             "-mi    <methylation ratio input file>" << endl <<
+             "-mo    <methylation ratio output file>" << endl <<
+             "-co    <count of reads covering each cytosine output file>" << endl <<
+             "-ch    <methylation ratio of CH dinucleotides, default=0.01>" << endl <<
+             "-cg    <methylation ratio of CG dinucleotides outside CpG-Islands, default=0.9>" << endl <<
+             "-i     <methylation ratio of CG dinucleotides in CpG-Islands, default=0.1>" << endl;
         exit(1);
     }
 
@@ -499,16 +499,16 @@ int main(int argc, char * argv[]) {
         cerr << "Error: Min distance between pair of reads should be a non-negative integer, smaller than max distance between them" << endl;
         exit(1);
     }
-	if (insRate + delRate + mismatchRate > 1) {
-		cerr << "Error: Sum of insertion, deletion and mismatch ratios should be between 0 and 1" << endl;
-		exit(1);
-	}
+    if (insRate + delRate + mismatchRate > 1) {
+        cerr << "Error: Sum of insertion, deletion and mismatch ratios should be between 0 and 1" << endl;
+        exit(1);
+    }
 // Reading input
     ReadGenome(genomeFile);
     ReadCpGIslands();
     ProcessSNPs();
-	if (bisSeq)
-	    AssignMethylationRatio(cpgIslandFile);
+    if (bisSeq)
+        AssignMethylationRatio(cpgIslandFile);
     if (outputFileName != "") {
         if (paired) {
             outputFile = fopen((outputFileName + "_1.fastq").c_str(), "w");
@@ -517,8 +517,8 @@ int main(int argc, char * argv[]) {
     }
     cerr << "Simulating reads..." << endl;
     SimulateReads();
-	if (bisSeq)
-	    WriteMethylationRatios();
+    if (bisSeq)
+        WriteMethylationRatios();
     WriteReadCounts();
     cerr << "Finished." << endl;
     delete [] genome;

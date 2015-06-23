@@ -293,7 +293,7 @@ int ReadGenome(char * genomeFile) {
             gs += n;
         }
     }
-    fclose(f);    
+    fclose(f);
     return 0;
 }
 

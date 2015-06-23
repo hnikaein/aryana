@@ -35,32 +35,32 @@ void Usage() {
     fprintf(stderr, "Aligning single or paired-end reads:\n");
     fprintf(stderr, "    aryana -x <reference genome index> {-i <single-end reads (fastq format)> | -1 <paired-end reads 1> -2 <paired-end reads 2>} [options]*\n\n");
     fprintf(stderr, "Optional arguments: \n");
-	fprintf(stderr, "    -o/--output                   output SAM file for the alignment results, default=standard output\n");
+    fprintf(stderr, "    -o/--output                   output SAM file for the alignment results, default=standard output\n");
     fprintf(stderr, "    -t/--threads <int>            the number of parallel threads, default=1\n");
-	fprintf(stderr, "    -s/--seed <int>               fixed length of the seed sequence, default=dynamically selected based on the length of each read\n");
-	fprintf(stderr, "    -l/--limit <int>              maximum number of mismatches allowed for each alignment, default=unlimited\n");
-    fprintf(stderr, "    -O/--order                    print the reads in output with the same order in the input.\n"); 	
+    fprintf(stderr, "    -s/--seed <int>               fixed length of the seed sequence, default=dynamically selected based on the length of each read\n");
+    fprintf(stderr, "    -l/--limit <int>              maximum number of mismatches allowed for each alignment, default=unlimited\n");
+    fprintf(stderr, "    -O/--order                    print the reads in output with the same order in the input.\n");
     fprintf(stderr, "    -B/--buffer <int>             size of output buffer. Increase it only when using -O/--order and program issues errors. default=100000\n");
-	fprintf(stderr, "    --mp <float>                  maximum mismatch penalty, default=5\n");
+    fprintf(stderr, "    --mp <float>                  maximum mismatch penalty, default=5\n");
     fprintf(stderr, "    --go <float>                  gap open penalty, default=5\n");
-	fprintf(stderr, "    --ge <float>                  gap extension penalty, default=3\n");
+    fprintf(stderr, "    --ge <float>                  gap extension penalty, default=3\n");
     fprintf(stderr, "    -r/--report-multi             report multiple alignment positions for each read\n");
     fprintf(stderr, "    -e/--exact-match              number of exact matches of each seed to check, increasing it might increase accuracy, default=50\n");
     fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
     fprintf(stderr, "    -D/--debug <int>              the level of printing debug info, default=0 (no debug info)\n\n");
-	fprintf(stderr, "Optional arguments for paired-end alignment:\n");
+    fprintf(stderr, "Optional arguments for paired-end alignment:\n");
     fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends. fr=forward-reverse, ff=forward-forward, rf=reverse-forward.\n");
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
-	fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
-	fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
+    fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
+    fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
     fprintf(stderr, "     -d/--no-discordant           do not print discordants reads, default=if a paired alignment is not found, the best hit for each read is reported.\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing (DNA Methylation assays) reads:\n");
-	fprintf(stderr, "     aryana -b <bisulfite reference genome index>  {-i <single-end reads (fastq format)> | -1 <paired-end reads 1> -2 <paired-end reads 2>} [options]*\n\n");
-	fprintf(stderr, "     Bisulfite reference genome index is created by prepare_genomes.sh, please refere to the manual for more details.\n");
-	fprintf(stderr, "     All optional arguments for normal reads can be used for bisulfite-sequencing reads too.\n\n");
-	fprintf(stderr, "Additional optional arguments for bisulfite-sequencing reads:\n");
-	fprintf(stderr, "     --ct                        ignore C->T mismatches. While using -b this argument is automatically set based on the type of converted genome\n");
-	fprintf(stderr, "     --ga                        ignore G->A mismatches. This argument is also automatically set with using -b. Either --ct or --ga can be used.\n");
+    fprintf(stderr, "     aryana -b <bisulfite reference genome index>  {-i <single-end reads (fastq format)> | -1 <paired-end reads 1> -2 <paired-end reads 2>} [options]*\n\n");
+    fprintf(stderr, "     Bisulfite reference genome index is created by prepare_genomes.sh, please refere to the manual for more details.\n");
+    fprintf(stderr, "     All optional arguments for normal reads can be used for bisulfite-sequencing reads too.\n\n");
+    fprintf(stderr, "Additional optional arguments for bisulfite-sequencing reads:\n");
+    fprintf(stderr, "     --ct                        ignore C->T mismatches. While using -b this argument is automatically set based on the type of converted genome\n");
+    fprintf(stderr, "     --ga                        ignore G->A mismatches. This argument is also automatically set with using -b. Either --ct or --ga can be used.\n");
     fprintf(stderr, "See README.md for more details.\n");
     exit(1);
 }
@@ -78,18 +78,18 @@ int main(int argc, char *argv[])
     args.order = 0;
     args.exactmatch_num = 50;
     args.report_multi = 0;
-	args.mismatch_limit = -1;
-	args.mismatch_penalty = 5;
-	args.gap_open_penalty = 5;
-	args.gap_ext_penalty = 3;
-	args.out_buffer_factor = 100000;
-	args.ignore = ignore_none;
-	args.orientation = orien_all;
-	args.min_dis = 0;
-	args.max_dis = 10000;
+    args.mismatch_limit = -1;
+    args.mismatch_penalty = 5;
+    args.gap_open_penalty = 5;
+    args.gap_ext_penalty = 3;
+    args.out_buffer_factor = 100000;
+    args.ignore = ignore_none;
+    args.orientation = orien_all;
+    args.min_dis = 0;
+    args.max_dis = 10000;
     char *refNames[5];	// Number of bisulfite-seq reference genomes
     bzero(refNames, sizeof(refNames));
-	ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
+    ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
     if (strcmp(argv[1], "index") == 0)  return bwa_index(argc-1, argv+1);
     if (strcmp(argv[1], "fa2bin") == 0) return fa2bin(argc-1, argv+1);
     static struct option long_options[] =
@@ -110,17 +110,17 @@ int main(int argc, char *argv[])
         {"factor", required_argument, 0, 'f'},
         {"bisulfite", required_argument, 0, 'b'},
         {"order", no_argument, 0, 'O'},
-		{"buffer", required_argument, 0, 'B'},
+        {"buffer", required_argument, 0, 'B'},
         {"debug", required_argument, 0, 'D'},
         {"no-discordant", no_argument, 0, 'd'},
         {"exact-match", required_argument, 0, 'e'},
         {"report-multi", no_argument, 0, 'r'},
-		{"limit", required_argument, 0, 'l'},
-		{"ct", no_argument, 0, 4},
-		{"ga", no_argument, 0, 5},
-		{"mp", required_argument, 0, 6},
-		{"go", required_argument, 0, 7},
-		{"ge", required_argument, 0, 8},
+        {"limit", required_argument, 0, 'l'},
+        {"ct", no_argument, 0, 4},
+        {"ga", no_argument, 0, 5},
+        {"mp", required_argument, 0, 6},
+        {"go", required_argument, 0, 7},
+        {"ge", required_argument, 0, 8},
     };
     char* output = NULL;
     char* inputFolder;
@@ -148,13 +148,13 @@ int main(int argc, char *argv[])
             args.read_file2 = strdup(optarg);
             break;
         case 1:
-			args.orientation = orien_fr;
+            args.orientation = orien_fr;
             break;
         case 2:
-			args.orientation = orien_rf;
+            args.orientation = orien_rf;
             break;
         case 3:
-			args.orientation = orien_ff;
+            args.orientation = orien_ff;
             break;
         case 'm':
             args.min_dis = atoi(optarg);
@@ -183,29 +183,29 @@ int main(int argc, char *argv[])
             refNames[0] = (char*) malloc(strlen(inputFolder)+50);
             strcpy(refNames[0], inputFolder);
             strcat(refNames[0], "originalGenome.fa");
-			ignore[0] = ignore_none;
+            ignore[0] = ignore_none;
             refNames[1] = (char*)malloc(strlen(inputFolder)+50);
             strcpy(refNames[1], inputFolder);
             strcat(refNames[1], "BisulfiteGenomeIslandConsideredCT.fa");
-			ignore[1] = ignore_CT;
+            ignore[1] = ignore_CT;
             // refNames[2] = (char*)malloc(strlen(inputFolder)+50);
             // strcpy(refNames[2], inputFolder);
             // strcat(refNames[2], "BisulfiteGenomeContextConsideredCT.fa");
             refNames[2] = (char*)malloc(strlen(inputFolder)+50);
             strcpy(refNames[2], inputFolder);
             strcat(refNames[2], "BisulfiteGenomeCompleteCT.fa");
-			ignore[2] = ignore_CT;
+            ignore[2] = ignore_CT;
             refNames[3] = (char*)malloc(strlen(inputFolder)+50);
             strcpy(refNames[3], inputFolder);
             strcat(refNames[3], "BisulfiteGenomeIslandConsideredGA.fa");
-			ignore[3] = ignore_GA;
+            ignore[3] = ignore_GA;
             // refNames[5] = (char*)malloc(strlen(inputFolder)+50);
             // strcpy(refNames[5], inputFolder);
             // strcat(refNames[5], "BisulfiteGenomeContextConsideredGA.fa");
             refNames[4] = (char*)malloc(strlen(inputFolder)+50);
             strcpy(refNames[4], inputFolder);
             strcat(refNames[4], "BisulfiteGenomeCompleteGA.fa");
-			ignore[4] = ignore_GA;
+            ignore[4] = ignore_GA;
             break;
         case 'e':
             args.exactmatch_num = atoi(optarg);
@@ -216,33 +216,33 @@ int main(int argc, char *argv[])
         case 'O':
             args.order = 1;
             break;
-		case 'B':
-			args.out_buffer_factor = atoi(optarg);
-			break;
+        case 'B':
+            args.out_buffer_factor = atoi(optarg);
+            break;
         case 'D':
             debug = atoi(optarg);
             break;
         case 'd':
             args.discordant=0;
             break;
-		case 'l':
-			args.mismatch_limit = atoi(optarg);
-			break;
-		case 4:
-			args.ignore = ignore_CT;
-			break;
-		case 5: 
-			args.ignore = ignore_GA;
-			break;
-		case 6:
-			args.mismatch_penalty = atof(optarg);
-			break;
-		case 7:
-			args.gap_open_penalty = atof(optarg);
-			break;
-		case 8:
-			args.gap_ext_penalty = atof(optarg);
-			break;
+        case 'l':
+            args.mismatch_limit = atoi(optarg);
+            break;
+        case 4:
+            args.ignore = ignore_CT;
+            break;
+        case 5:
+            args.ignore = ignore_GA;
+            break;
+        case 6:
+            args.mismatch_penalty = atof(optarg);
+            break;
+        case 7:
+            args.gap_open_penalty = atof(optarg);
+            break;
+        case 8:
+            args.gap_ext_penalty = atof(optarg);
+            break;
         default:
             fprintf(stderr, "Invalid argument: %c\n", c);
             exit(1);
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
             FILE *sam = fopen(output_temp, "w");
             stdout = sam;
             args.reference = refNames[i];
-			args.ignore = ignore[i];
+            args.ignore = ignore[i];
             bwa_aln_core2(&args);
             fclose(sam);
         }

@@ -91,8 +91,8 @@ void ReadGenome(string genomeFile) {
         while (start < n && fLineMain[start] <= ' ') start++;
         if (start >= n) continue;
         char * fLine = fLineMain + start;
-        n -= start;        
-		if (fLine[0] == '>') {
+        n -= start;
+        if (fLine[0] == '>') {
             chromPos.push_back(gs);
             if (chromNum > 0) {
                 chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);

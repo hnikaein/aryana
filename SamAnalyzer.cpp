@@ -39,13 +39,13 @@ void ReadGenome(string genomeFile) {
     }
     while (! feof(f)) {
         if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
-		int n = strlen(fLineMain), start = 0;
-		while (n > 0 && fLineMain[n-1] <= ' ') n--;
-		fLineMain[n] = 0;
-		while (start < n && fLineMain[start] <= ' ') start++;
-		if (start >= n) continue;
-		char * fLine = fLineMain + start;
-		n -= start;
+        int n = strlen(fLineMain), start = 0;
+        while (n > 0 && fLineMain[n-1] <= ' ') n--;
+        fLineMain[n] = 0;
+        while (start < n && fLineMain[start] <= ' ') start++;
+        if (start >= n) continue;
+        char * fLine = fLineMain + start;
+        n -= start;
 
         if (fLine[0] == '>') {
             chromPos.push_back(gs);
@@ -137,7 +137,7 @@ int CigarLen(string cigar) {
 int EditDistance(string a, string b, string cigar, char orig_base = '\0', char conv_base = '\0') {
     //cerr << "Edit distance, length(a): " << a.size() << ", length(b): " << b.size() << ", cigar: " << cigar << endl << "a: " << a << endl << "b: " << b << endl;
     unsigned int apos = 0, bpos = 0, cigarpos = 0;
-	int penalty = 0;
+    int penalty = 0;
     while (cigarpos < cigar.size()) {
         int num = 0;
         while (cigarpos < cigar.size() && cigar[cigarpos] >= '0' && cigar[cigarpos] <= '9') num = num * 10 + cigar[cigarpos++] - '0';
@@ -226,7 +226,7 @@ void ProcessSamFile(string samFileName) {
 //		cerr << "Position: " << rname << ":" << pos << endl;
         if (strcmp(rname, "*") == 0) {
             strcpy(rname, "NA");
-			strcpy(refSeq, "NA");
+            strcpy(refSeq, "NA");
             pos = 0;
         } else if (GetSequence(rname, pos, CigarLen(cigar), refSeq)) {
 //			cerr << "Flag: " << flag << ", Read: " << seq << ", Ref: " << refSeq << endl;

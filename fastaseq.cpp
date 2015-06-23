@@ -43,8 +43,8 @@ void ReadGenome(string genomeFile) {
         while (start < n && fLineMain[start] <= ' ') start++;
         if (start >= n) continue;
         char * fLine = fLineMain + start;
-        n -= start; 
-		if (fLine[0] == '>') {
+        n -= start;
+        if (fLine[0] == '>') {
             chromPos.push_back(gs);
             if (chromNum > 0) {
                 chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
@@ -147,7 +147,7 @@ int main(int argc, char * argv[]) {
         else if (strcmp(argv[i], "-c") == 0)
             inpType = chrLoc;
         else if ((i < argc - 1) && strcmp(argv[i], "-g") == 0)
-                genomeFile = argv[++i];
+            genomeFile = argv[++i];
         else {
             cerr << "Unrecognized argument or invalid usage: "<< argv[i] << endl;
             exit(1);
