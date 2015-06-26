@@ -37,12 +37,6 @@ void clean() {
     chromNum = 0;
 }
 
-struct Gene {
-    char name[20], refseq[20];
-    long tss, tts, chrom;
-    bool strand;
-};
-
 inline void ToLower(char * s) {
     for (unsigned int i = 0; i < strlen(s); i++)
         if (s[i] >= 'A' && s[i] <= 'Z') s[i] += 'a' - 'A';
@@ -235,7 +229,7 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
         cerr << "Error: CpG island locations file not found or could not be opened" << endl;
         exit(1);
     }
-    char fLine[10000], chrom[10];
+    char fLine[10000], chrom[10000];
     long long wStart, wEnd, chr;
 	string last;
     f.getline(fLine, sizeof(fLine)); // First row
