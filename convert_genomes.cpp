@@ -100,9 +100,6 @@ void ReadGenome(string genomeFile) {
             }
 
             string name = fLine;
-            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
-            else name = name.substr(1, name.size() - 1);
-            cerr << name;
             chromIndex[name] = chromNum;
             chromName[chromNum] = name;
             chromNum++;
