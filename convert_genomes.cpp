@@ -263,6 +263,10 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
 void WriteGenome(char * outputFile)
 {
     FILE * f = fopen(outputFile, "w");
+	if (! f) {
+		fprintf(stderr, "Error opening the output file: %s\n", outputFile);
+		exit(1);
+	}
     char tmp;
     for (int i = 0; i < chromNum; i++) {
         fprintf(f, "%s\n", fullName[i].c_str());
