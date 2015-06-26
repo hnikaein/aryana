@@ -1,13 +1,20 @@
 #! /bin/bash
 
 if [ "$#" -ne 3 ]; then
-    echo "Illegal number of parameters: <reference genome> <position of CpG islands file> <output folder>"
+    echo "Usage: prepare_genomes.sh <reference genome> <position of CpG islands file> <output folder>"
 	exit
 fi
 DIR=$(dirname $(readlink -f $0));
 mkdir "$3"
-echo "Start of convert_genomes"
+echo "Converting genomes..."
 "$DIR/convert_genomes" -g "$1" -a "$2" -o "$3"
+if [ $? -eq 0 ]; then
+    echo "Converting genomes finished succesfully."
+	echo "Creating index files..."
+else
+    echo "Converting genomes was FAILED. Please check the above errors and run the prepare_genome.sh again after fixing errors."
+	exit
+fi
 echo "End of convert_genomes"
 echo "Start of aryana"
 "$DIR/aryana" index "$3/originalGenome.fa" &
