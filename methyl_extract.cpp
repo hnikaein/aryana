@@ -21,12 +21,11 @@
 using namespace std;
 
 
-#define READ_SAM_BY 10
-#define maxReadLength 2000
+#define maxReadLength 10000
 #define BUFFER_SIZE (maxReadLength + 1) // Should be higher than maximum read length
-#define maxChrNameLength 50
-#define maxReadNameLength 100
-#define maxSamFileLineLength 10000
+#define maxChrNameLength 10000
+#define maxReadNameLength 10000
+#define maxSamFileLineLength 20000
 unsigned long long gs;
 long long amb = 0; // the number of ambiguous reads, for which CT conversions equals GA conversions
 

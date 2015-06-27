@@ -19,11 +19,9 @@
 using namespace std;
 
 #define numberOfGenomes 5
-#define maxReadLength 2000
-#define maxChrNameLength 100
-#define maxSamFileLineLength 10000
-//const long maxGenomeSize = 4e9;
-//const int maxChromosomeNum = 1000;
+#define maxReadLength 10000
+#define maxChrNameLength 10000
+#define maxSamFileLineLength 20000
 
 unsigned long long gs;
 vector <string> chromName;
@@ -449,8 +447,8 @@ int main(int argc, char *argv[]) {
         rname2[i] = new char[maxChrNameLength];
         cigar2[i] = new char[maxReadLength * 2];
     }
-    char qname[100], rnext[100], pnext[100], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
-    char qname2[100], rnext2[100], pnext2[100], seq_string2[maxReadLength], quality_string2[maxReadLength];
+    char qname[10000], rnext[10000], pnext[10000], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
+    char qname2[10000], rnext2[10000], pnext2[10000], seq_string2[maxReadLength], quality_string2[maxReadLength];
     int chosen[numberOfGenomes];
     int j=0;
     for (; j < numberOfGenomes; j++)

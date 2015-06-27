@@ -142,7 +142,7 @@ void ReadCpGIslands() {
 
 void AssignMethylationRatio(string cpgIslandFile) {
     unsigned short cpg1 = (unsigned short) (cpg * 100), noncpg1 = (unsigned short) (noncpg * 100), island1 = (unsigned short) (island * 100);
-    char chr[1000];
+    char chr[10000];
     long long position;
     double m;
     if (methInFile != "") {

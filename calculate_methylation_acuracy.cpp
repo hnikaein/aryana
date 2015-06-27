@@ -48,7 +48,7 @@ void calculate(char* original, char* computed) {
     FILE *orig_fp, *comp_fp;
     orig_fp = fopen(original, "r");
     comp_fp = fopen(computed, "r");
-    char chrom1[20], chrom2[20], temp[2];
+    char chrom1[10000], chrom2[10000], temp[10000];
     long position1, methylated, position2, count = 0;
     float ratio1, ratio2;
     while (! feof(comp_fp)) {
