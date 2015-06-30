@@ -9,7 +9,7 @@
 #include <sstream>
 using namespace std;
 
-const int maxChromosomeNum = 1000;
+const int maxChromosomeNum = 1000000;
 const int maxReadLen = 10000;
 const int maxSamLineLength = 3 * maxReadLen;
 bool strandSpecific = false, normalize = false, endPlusPlus = true;
@@ -186,4 +186,12 @@ int main(int argc, char * argv[]) {
     ProcessSamFile(samFileName);
     PrintOutput();
     cerr << "Finished." << endl;
+	chromIndex.clear();
+	cerr << 1 << endl;
+	chromName.clear();
+	cerr << 2 << endl;
+	if (strandSpecific) for (int i = 0; i < chromNum; i++) delete[] coverageNeg[i];
+	cerr << "Hello 3" << endl;
+	for (int i = 0; i < chromNum; i++) delete[] coveragePos[i];
+	cerr << "Hello 4" << endl;
 }

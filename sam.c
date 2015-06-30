@@ -160,14 +160,14 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
     return snprintf(buffer,sam_line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%"PRIu64"\t%lld\t%s\t%s\n",qname,flag,first.rname, first.pos, mapq, cigar,next.rname,next.pos,tlen,seq_string,quality_string);
 }
 
-int sam_headers(char * buffer, bwtint_t *  offset, int size) {
+int sam_headers(char * buffer, bwtint_t *  offset, int size, int buf_size) {
     int head=0;
     int i;
     //fprintf(stderr, "offset[size] = %llu, offset[size - 1] = %llu, last = %llu, size = %d\n", offset[size], offset[size - 1], offset[size] - offset[size - 1], size);
-    head+=snprintf(buffer,40,"@HD\tVN:1.0\tSO:unsorted\n");
+    head+=snprintf(buffer,buf_size - head,"@HD\tVN:1.0\tSO:unsorted\n");
     //fprintf(stderr, "buffer = %s offset[0] = %llu\n name[0] = %s\n", buffer, offset[0], name[0]);
     for(i=0; i<size; i++) { //TODO
-        head+=snprintf(buffer+head,40,"@SQ\tSN:%s\tLN:%"PRIu64"\n",name[i], offset[i + 1] - offset[i]); //TODO
+        head+=snprintf(buffer+head,buf_size - head,"@SQ\tSN:%s\tLN:%"PRIu64"\n",name[i], offset[i + 1] - offset[i]); //TODO
     }
     return head;
     //return buffer;

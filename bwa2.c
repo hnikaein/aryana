@@ -592,9 +592,9 @@ void bwa_aln_core2(aryana_args *args)
     }
 
     offset[offInd] = bwt->seq_len / 2;
-    char buffer[200000];
+    char buffer[max_sam_header_size];
     buffer[0] = '\0';
-    sam_headers(buffer,offset, offInd);
+    sam_headers(buffer,offset, offInd, max_sam_header_size);
     fputs(buffer, stdout);
 
     pthread_t *threads;
