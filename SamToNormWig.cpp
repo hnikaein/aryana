@@ -64,9 +64,13 @@ void ProcessSamRecord(int flag, string chr, long long pos, string cigar) {
         }
         switch (tolower(cigar[cigarpos++])) {
         case 'm':
-            for (p = pos; p < pos + num; p++)
-                if (! strandSpecific || (flag & 16) == 0) coveragePos[ch][p]++;
-                else coverageNeg[ch][p]++;
+            for (p = pos; p < pos + num; p++) {
+				if (p >= chromSize[ch]) cerr << "Err!\n";
+                else {
+					if (! strandSpecific || (flag & 16) == 0) coveragePos[ch][p]++;
+                	else coverageNeg[ch][p]++;
+					}
+			}
             pos += num;
             totalCoverage += num;
             break;

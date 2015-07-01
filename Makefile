@@ -21,19 +21,19 @@ debug:		CXXFLAGS += -DDEBUG -g3 -O0
 .cc.o:
 		$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
-all:	$(PROG) aryana convert-genomes align-bs methyl-extract read_simul SamAnalyzer fastaseq bwtcheck SamToNormWig
+all:	$(PROG) convert_genomes align_bs methyl_extract read_simul SamAnalyzer fastaseq bwtcheck SamToNormWig
 debug:	all
 
 aryana:$(OBJS) aryana_main.o
 		$(CC) $(CFLAGS) $(OBJS) aryana_main.o -o aryana $(LIBS)
 
-convert-genomes:
+convert_genomes:
 		$(CXX) $(CXXFLAGS) convert_genomes.cpp -o convert_genomes
 
-align-bs:
+align_bs:
 		$(CXX) $(CXXFLAGS)  align_bs.cpp -o align_bs 
 
-methyl-extract:
+methyl_extract:
 		$(CXX) $(CXXFLAGS) methyl_extract.cpp -o methyl_extract
 
 read_simul:	
@@ -74,5 +74,3 @@ aryana_main.o: aryana_main.h aryana_args.h bwt.h bwtaln.h kseq.h bwa2.h
 
 clean:
 		rm -f gmon.out *.o a.out $(PROG) *~ *.a aryana align_bs methyl_extract convert_genomes read_simul SamAnalyzer bwtcheck fastaseq SamToNormWig
-gen:
-	g++ readgen.cpp -Wall -O2 -o readgen
