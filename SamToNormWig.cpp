@@ -50,7 +50,7 @@ void ReadChromSizes(string chromSizesFile) {
 
 // Returns the total length of reference sequence pointed to by the given cigar sequence
 
-void ProcessSamRecord(int flag, string chr, long long pos, string cigar) {
+void ProcessSamRecord(string qname, int flag, string chr, long long pos, string cigar) {
     pos--;
     unsigned int cigarpos = 0;
     int ch = chromIndex[chr];
@@ -65,7 +65,10 @@ void ProcessSamRecord(int flag, string chr, long long pos, string cigar) {
         switch (tolower(cigar[cigarpos++])) {
         case 'm':
             for (p = pos; p < pos + num; p++) {
-				if (p >= chromSize[ch]) cerr << "Err!\n";
+				if (p >= chromSize[ch]) {
+					cerr << "Error: read " << qname << " mapping position is higher than the length of chromosome " << chr << endl;
+					return;
+				}
                 else {
 					if (! strandSpecific || (flag & 16) == 0) coveragePos[ch][p]++;
                 	else coverageNeg[ch][p]++;
@@ -136,7 +139,7 @@ void ProcessSamFile(string samFileName) {
 //		cerr << "SAM line: " << buf << endl;
         sscanf(buf,"%s\t%d\t%s\t%lld\t%d\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos, &mapq, cigar, rnext, pnext, &tlen, seq, quality_string);
 //		cerr << "Position: " << rname << ":" << pos << endl;
-        if (strcmp(rname, "*") != 0) ProcessSamRecord(flag, rname, pos, cigar);
+        if (strcmp(rname, "*") != 0) ProcessSamRecord(qname, flag, rname, pos, cigar);
     }
 }
 
@@ -191,11 +194,7 @@ int main(int argc, char * argv[]) {
     PrintOutput();
     cerr << "Finished." << endl;
 	chromIndex.clear();
-	cerr << 1 << endl;
 	chromName.clear();
-	cerr << 2 << endl;
 	if (strandSpecific) for (int i = 0; i < chromNum; i++) delete[] coverageNeg[i];
-	cerr << "Hello 3" << endl;
 	for (int i = 0; i < chromNum; i++) delete[] coveragePos[i];
-	cerr << "Hello 4" << endl;
 }

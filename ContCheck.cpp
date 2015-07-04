@@ -72,6 +72,7 @@ void ReadGenome(string genomeFile) {
     fclose(f);
 }
 
+
 void revcomp(char * a, long long l = 0) {
     if (! l) l = strlen(a);
     char * b = new char[l];
@@ -228,29 +229,31 @@ void ProcessSamFile(string samFileName) {
             strcpy(refSeq, "NA");
             pos = 0;
         } else if (GetSequence(rname, pos, CigarLen(cigar), refSeq)) {
+//			cerr << "Flag: " << flag << ", Read: " << seq << ", Ref: " << refSeq << endl;
+//			if (flag & 16) {
+//				revcomp(refSeq);
+//				cerr << "Converted Ref: " << refSeq << endl;
+//			}
             if (bisSeq)
                 penalty = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
             else
                 penalty = EditDistance(refSeq, seq, cigar);
         }
         if (realPos) {
+            // BisSimul simulated reads
             stringstream s(qname);
             getline(s, tmp, '|');
             getline(s, chr, ':');
             getline(s, start, '-');
             getline(s, end, '|');
             getline(s, type, ' ');
-			int len =  atoi(end.c_str()) - atoi(start.c_str()) + 1;
-            if (GetSequence(chr, atoi(start.c_str()), len, refSeq2)) {
+            if (GetSequence(chr, atoi(start.c_str()), atoi(end.c_str()) - atoi(start.c_str()) + 1, refSeq2)) {
                 startPos = atoi(start.c_str());
-				bool samRev = flag & 16, refRev = type == "-o" || type == "+p";
-				if (samRev != refRev) revcomp(refSeq2);
-				char tmpCigar[1000]; 
-				sprintf(tmpCigar, "%dm", len);
-				if (bisSeq)
-                	penalty2 = min(EditDistance(refSeq2, seq, tmpCigar, 'C', 'T'), EditDistance(refSeq2, seq, tmpCigar, 'G', 'A'));
-				else
-					penalty2 = EditDistance(refSeq2, seq, tmpCigar);
+                if (type == "-o" || type == "+p") {
+                    revcomp(refSeq2);
+                }
+                if (type[1] == 'o') penalty2 = EditDistance(refSeq2, seq, "100m", 'C', 'T');
+                else penalty2 = EditDistance(refSeq2, seq, "100m", 'G', 'A');
             }
         }
         PrintOutput(of, qname, rname, pos, penalty, chr, startPos, penalty2, seq, cigar, refSeq, refSeq2);
@@ -261,18 +264,6 @@ void ProcessSamFile(string samFileName) {
 int main(int argc, char * argv[]) {
 // Parsing Arugments
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-r") == 0) {
-            realPos = true;
-            continue;
-        }
-        if (strcmp(argv[i], "-b") == 0) {
-            bisSeq = true;
-            continue;
-        }
-        if (strcmp(argv[i], "-s") == 0) {
-            seqOutput = true;
-            continue;
-        }
         if (i < argc - 1) { // The paired arguments
             if (strcmp(argv[i], "-g") == 0)
                 genomeFile = argv[++i];
@@ -290,13 +281,8 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
     if (genomeFile == "") {
-        cerr << "Arguments:\n" << 
-			    "    -g <fasta file>              reference genome, mandatory\n" <<
-				"    -i <SAM file>                the input SAM file to be analyzed, default: standard input\n" <<
-				"    -o <result file>             the text file to which the results will be written, default: standard output\n" <<
-				"    -s                           print SAM, CIGAR and alignment sequences in output\n" << 
-                "    -b                           bisulfite-seq input, default: DNA-seq\n" << 
-				"    -r                           use only if reads are generated via read_simul, or correct read location is provided in the read name in a similar format\n";
+        cerr << "Arguments: -g <reference genome, mandatory> -i <alignment sam file> -o <result file> -S (print SAM, CIGAR and alignment sequences in output)" << endl \
+             << "-b (bisulfite-seq input, default: DNA-seq)  -s (use only if reads are generated via BisSimul or contain the true positions in a similar way)" << endl;
         exit(1);
     }
 
