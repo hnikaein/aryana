@@ -65,15 +65,15 @@ void ProcessSamRecord(string qname, int flag, string chr, long long pos, string 
         switch (tolower(cigar[cigarpos++])) {
         case 'm':
             for (p = pos; p < pos + num; p++) {
-				if (p >= chromSize[ch]) {
-					cerr << "Error: read " << qname << " mapping position is higher than the length of chromosome " << chr << endl;
-					return;
-				}
+                if (p >= chromSize[ch]) {
+                    cerr << "Error: read " << qname << " mapping position is higher than the length of chromosome " << chr << endl;
+                    return;
+                }
                 else {
-					if (! strandSpecific || (flag & 16) == 0) coveragePos[ch][p]++;
-                	else coverageNeg[ch][p]++;
-					}
-			}
+                    if (! strandSpecific || (flag & 16) == 0) coveragePos[ch][p]++;
+                    else coverageNeg[ch][p]++;
+                }
+            }
             pos += num;
             totalCoverage += num;
             break;
@@ -193,8 +193,8 @@ int main(int argc, char * argv[]) {
     ProcessSamFile(samFileName);
     PrintOutput();
     cerr << "Finished." << endl;
-	chromIndex.clear();
-	chromName.clear();
-	if (strandSpecific) for (int i = 0; i < chromNum; i++) delete[] coverageNeg[i];
-	for (int i = 0; i < chromNum; i++) delete[] coveragePos[i];
+    chromIndex.clear();
+    chromName.clear();
+    if (strandSpecific) for (int i = 0; i < chromNum; i++) delete[] coverageNeg[i];
+    for (int i = 0; i < chromNum; i++) delete[] coveragePos[i];
 }

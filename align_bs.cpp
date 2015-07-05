@@ -106,7 +106,7 @@ int ReadGenome(char * genomeFile) {
             string name = fLine;
             if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
             else name = name.substr(1, name.size() - 1);
-            cerr << name << endl;
+            //cerr << name << endl;
             ch.chrName = name;
             chrom.push_back(ch);
             chromNum++;
@@ -303,7 +303,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
 void WriteHeader() {
     // Printing header of original samfile to standard output
     char line[maxSamFileLineLength];
-	string header;
+    string header;
     FILE *samFile = fopen(samNames[0], "r");
     fgets(line, 10000, samFile);
     while (line[0] == '@') {
@@ -313,13 +313,13 @@ void WriteHeader() {
     fprintf(headerFile,"%s",header.c_str());
     fclose(samFile);
     if (headerFile != outputFile) fclose(headerFile);
-}	
+}
 
 bool ReadLine(char * line, int len, FILE * f) {
     do {
-		if(fgets(line, len, f) == NULL) return false;
-	} while (line[0] == '@');
-	return true;
+        if(fgets(line, len, f) == NULL) return false;
+    } while (line[0] == '@');
+    return true;
 }
 
 void Process() {
@@ -337,46 +337,46 @@ void Process() {
     }
     char qname[10000], rnext[10000], pnext[10000], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
     char qname2[10000], rnext2[10000], pnext2[10000], seq_string2[maxReadLength], quality_string2[maxReadLength];
-	bzero(chosen, sizeof(chosen));
+    bzero(chosen, sizeof(chosen));
 
     while (true) {
         for (int i = 0; i < numberOfGenomes; i++) {
-			if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
+            if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
             sscanf(line[i],"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
             if(index == -1) readPenalties[i] = maxPenalty;
-			else {
-	            int flag2 = 0;
-    	        if(i <=2) // if read has been aligned to first four genomes
-        	        flag2 = 1;
-            	if(i > 2) // if read has been aligned to last three genome
-                	flag2 = 0;
-	            readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
-			}
+            else {
+                int flag2 = 0;
+                if(i <=2) // if read has been aligned to first four genomes
+                    flag2 = 1;
+                if(i > 2) // if read has been aligned to last three genome
+                    flag2 = 0;
+                readCigar(cigar[i], pos[i]+chrom[index].chrStart-1, seq_string, i ,index,pos[i],flag[i],flag2);
+            }
 
             if (paired) {
-				if (! ReadLine(line2[i], maxSamFileLineLength, samFiles[i])) {
-					cerr << "Error: unexpected end of input SAM file while reading the paired end.\n";
-					return;
-				}
+                if (! ReadLine(line2[i], maxSamFileLineLength, samFiles[i])) {
+                    cerr << "Error: unexpected end of input SAM file while reading the paired end.\n";
+                    return;
+                }
                 sscanf(line2[i],"%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, &flagTwo[i], rname2[i], &pos2[i],&mapq2[i], cigar2[i],rnext2,pnext2, &tlen2,seq_string2,quality_string2);
                 index = ChromIndex(rname2[i]);
                 if(index == -1) readPenalties[i] = maxPenalty;
-				else {
-	                int flag2 = 0;
-    	            if(i <=2) // if read has been aligned to first four genomes
-        	            flag2 = 1;
-            	    if(i > 2) // if read has been aligned to last three genome
-                	    flag2 = 0;
-	                readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
-				}
+                else {
+                    int flag2 = 0;
+                    if(i <=2) // if read has been aligned to first four genomes
+                        flag2 = 1;
+                    if(i > 2) // if read has been aligned to last three genome
+                        flag2 = 0;
+                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
+                }
             }
         }
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
-		fprintf(outputFile, "%s", line[min]);
-		if (paired) fprintf(outputFile, "%s", line2[min]);
-		bzero(readPenalties, sizeof(readPenalties));
+        fprintf(outputFile, "%s", line[min]);
+        if (paired) fprintf(outputFile, "%s", line2[min]);
+        bzero(readPenalties, sizeof(readPenalties));
     }
 }
 
@@ -441,8 +441,8 @@ int main(int argc, char *argv[]) {
     }
     ReadGenome(referenceName);
     ReadCpGIslands(annotationFile);
-	WriteHeader();
-	Process();
+    WriteHeader();
+    Process();
     for (int j=0; j < numberOfGenomes; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
 

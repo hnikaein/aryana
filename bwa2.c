@@ -383,7 +383,7 @@ void multiAligner(global_vars * g) {
             cigar2[j]=(char *) malloc(MAX_CIGAR_SIZE*(sizeof (char)));
     }
 
-    fprintf(stderr, "Thread %d starting...\n", g->tid);
+//    fprintf(stderr, "Thread %d starting...\n", g->tid);
 
     // The thread body
     while(true) {
@@ -451,7 +451,7 @@ void multiAligner(global_vars * g) {
     free(d);
     free(arr);
     free(tmp_cigar);
-    fprintf(stderr, "Thread %d finished.\n", g->tid);
+//    fprintf(stderr, "Thread %d finished.\n", g->tid);
 }
 
 void *worker2(void *data) {

@@ -93,12 +93,12 @@ void ReadGenome(string genomeFile) {
                 cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
             }
             string name = fLine;
-			if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
-			else name = name.substr(1, name.size() - 1);
-			cerr << name;
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            else name = name.substr(1, name.size() - 1);
+            cerr << name;
             chromIndex[name] = chromNum;
             chromName[chromNum] = name;
-			fullName[chromNum] = fLine;
+            fullName[chromNum] = fLine;
             chromNum++;
         } else {
             memcpy(genome+gs, fLine, n);
@@ -174,9 +174,9 @@ bool GetSequence(long chr, bool strand, long wStart, long wEnd, char * seq) {
 bool ConvertSequence(long chr, long wStart, long wEnd, int CT) {
     //pos--; // Converting 1 base position to 0 base
     if (wStart < 1 || wStart + chromPos[chr] - 1 >= chromPos[chr + 1]) {
-		cerr << "Warning: the location of CpG island [" << wStart << ", " << wEnd << "] does not match the length of the chromosome " << chr << endl;
-		return false;
-	}
+        cerr << "Warning: the location of CpG island [" << wStart << ", " << wEnd << "] does not match the length of the chromosome " << chr << endl;
+        return false;
+    }
     //cout << chr << "\t" << wStart << "\t" << wEnd << endl;
     for (unsigned long i = wStart + chromPos[chr] - 1; i < (unsigned) (wEnd + chromPos[chr]); i++) {
         //cout << genome[i];
@@ -222,7 +222,7 @@ void ConvertAll(int CT) {
 
 
 void ProcessCpGIslands(char * annotationFile, int CT) {
-	bool failed = false;
+    bool failed = false;
     cerr << "Processing CpG island locations from file: " <<  annotationFile << endl;
     ifstream f(annotationFile);
     if (! f.is_open()) {
@@ -231,7 +231,7 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
     }
     char fLine[10000], chrom[10000];
     long long wStart, wEnd, chr;
-	string last;
+    string last;
     f.getline(fLine, sizeof(fLine)); // First row
     while (!f.eof()) {
         fLine[0] = 0;
@@ -242,25 +242,25 @@ void ProcessCpGIslands(char * annotationFile, int CT) {
         sscanf(fLine, "%s %lld %lld", chrom, &wStart, &wEnd);
         if (! wStart) continue;
         // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
-		if (chromIndex.find(chrom) == chromIndex.end()) {
-			if (last != chrom) cerr << "Error: chromosome name " << chrom << " does not exist in the reference genome.\nCheck the reference genome FASTA file and make sure the chromosome names match the CpG-islands file.\n";
-			last = chrom;
-			failed = true;
-		}
+        if (chromIndex.find(chrom) == chromIndex.end()) {
+            if (last != chrom) cerr << "Error: chromosome name " << chrom << " does not exist in the reference genome.\nCheck the reference genome FASTA file and make sure the chromosome names match the CpG-islands file.\n";
+            last = chrom;
+            failed = true;
+        }
         chr = chromIndex[chrom];
         islands.push_back(window(chr, wStart, wEnd));
         ConvertSequence(chr, wStart, wEnd, CT);
     }
-	if (failed) exit(1);
+    if (failed) exit(1);
 }
 
 void WriteGenome(char * outputFile)
 {
     FILE * f = fopen(outputFile, "w");
-	if (! f) {
-		fprintf(stderr, "Error opening the output file: %s\n", outputFile);
-		exit(1);
-	}
+    if (! f) {
+        fprintf(stderr, "Error opening the output file: %s\n", outputFile);
+        exit(1);
+    }
     char tmp;
     for (int i = 0; i < chromNum; i++) {
         fprintf(f, "%s\n", fullName[i].c_str());

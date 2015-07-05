@@ -20,7 +20,7 @@
 #include <vector>
 using namespace std;
 
-
+#define max(a,b) (((a)>(b))?(a):(b))
 #define maxReadLength 10000
 #define BUFFER_SIZE (2 * maxReadLength + 1) // Should be higher than maximum read length
 #define maxChrNameLength 10000
@@ -29,8 +29,8 @@ using namespace std;
 unsigned long long gs;
 long long amb = 0; // the number of ambiguous reads, for which CT conversions equals GA conversions
 
-int chromNum;
-int debug=0, lastIndex = 0;
+int chromNum, debug = 0, lastChr = 0;
+long long lastIndex = 0, maxChrPos = 0;
 
 char * genome;
 FILE *samFile;
@@ -87,11 +87,12 @@ int checkGAorCT() {
 // Prints the information of one base stored in the queue[index].
 
 void PrintOutput(int index) {
-    long long pos = (signed) queue[index].pos;                       // Location in the whole genome
-    if (pos < 0) return;
+    if (queue[index].count[0] + queue[index].count[1] == 0) return;
+    long long chrPos = (signed) queue[index].pos;                       // Location in the whole genome
+    if (chrPos <= 0) return;
     int chrNum = queue[index].chr;
     string chrName = chrom[chrNum].chrName;
-    long long chrPos = pos - chrom[chrNum].chrStart;	// Location in the chromosome
+    long long pos = chrPos + chrom[chrNum].chrStart;	// Location in the chromosome
     char base = toupper(genome[pos - 1]);	// Main base
     char next = 0;
     if (base == 'C') next = ((signed) gs > pos) ? toupper(genome[pos]) : '$';
@@ -103,11 +104,28 @@ void PrintOutput(int index) {
     if (! cpg) context[1] = 'H';
     int total = queue[index].count[0] + queue[index].count[1];
     int meth = queue[index].count[0];
-    if (allCytosines || cpg || meth > 0) 
+    if (allCytosines || cpg || meth > 0)
         fprintf(stdout, "%s\t%lld\t%c\t%d\t%d\t%.4f\t%s\n", chrName.c_str(), chrPos, strand,total, meth, (double) meth / total, context);
 }
 
+void FlushReads(int chr, long long index) {
+    if (lastChr != chr) index = maxChrPos + 1;
+    for (; lastIndex < index; lastIndex++) {
+        int ind = lastIndex % BUFFER_SIZE;
+        if (queue[ind].pos == lastIndex) {
+            PrintOutput(ind);
+            queue[ind].pos = -1;
+        }
+    }
+    if (lastChr != chr) {
+        lastIndex = 0;
+        lastChr = chr;
+        maxChrPos = 0;
+    }
+}
+
 void ProcessMethylation() {
+//	cerr << "Processing read " << line.chr << " " << line.pos << endl;
     char methyl='C', unmethyl='T';
     int chrNum = ChromIndex(line.chr);
     long long refPos = chrom[chrNum].chrStart + line.pos-1;
@@ -116,24 +134,20 @@ void ProcessMethylation() {
         methyl='G';
         unmethyl='A';
     }
+    FlushReads(chrNum, line.pos);
     for (unsigned int i=0; i < line.seq_string.size() ; i++)
         if(toupper(genome[refPos+i]) == methyl) { // It's a cytosine either in + or - strands
-            long long pos = refPos+i;
+            long long pos = line.pos+i;
             int index = (pos)%BUFFER_SIZE;
-            if(queue[index].pos > -1 && (queue[index].chr != chrNum || queue[index].pos != pos + 1))  // A different genomic location, the process of which is already finished
-				while (lastIndex != index) {
-	                if (queue[lastIndex].pos > -1 && queue[lastIndex].count[0] + queue[lastIndex].count[1] > 0)
-					{
-						cerr << "Index: " << index << ", i: " << i << " " << queue[lastIndex].chr << " " << queue[lastIndex].pos << endl;
-            	        PrintOutput(lastIndex);
-						queue[lastIndex].pos = -1;
-					}
-					lastIndex = (lastIndex + 1) % BUFFER_SIZE;
-				}
-			if (queue[index].pos == -1) {
+            if(queue[index].pos > -1 && (queue[index].chr != chrNum || queue[index].pos != pos))  // A different genomic location, the process of which is already finished
+            {
+                cerr << "Error! possibly SAM file is not sorted, index: " << index << ", old: " << queue[index].pos << ", new: " << line.chr << ":" << line.pos<< " " << pos << endl;
+                exit(1);
+            }
+            if (queue[index].pos == -1) {
                 queue[index].count[0] = 0;
                 queue[index].count[1] = 0;
-                queue[index].pos = pos +1;
+                queue[index].pos = pos;
                 queue[index].chr = chrNum;
             }
             if (toupper(line.seq_string[i]) == methyl)
@@ -141,6 +155,7 @@ void ProcessMethylation() {
             else if(toupper(line.seq_string[i]) == unmethyl)
                 queue[index].count[1]++;
         }
+    maxChrPos = max(maxChrPos, line.pos + line.seq_string.size() - 1);
 }
 
 // Handles mismatches and inserts in cigar by converting reads
@@ -291,7 +306,7 @@ int ReadGenome(char * genomeFile) {
             string name = fLine;
             if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
             else name = name.substr(1, name.size() - 1);
-            cerr << name << endl;
+            //cerr << name << endl;
             ch.chrName = name;
             chrom.push_back(ch);
             chromNum++;
@@ -353,18 +368,7 @@ int main(int argc, char *argv[]) {
     if (ambName) ambFile = fopen(ambName, "w");
     // Main process starts here
     ProcessSamFile(samFile, ambFile);
-
-        int index = lastIndex;
-//        cerr << "Index: " << index << endl;
-                do {
-                    if (queue[lastIndex].pos > -1 && queue[lastIndex].count[0] + queue[lastIndex].count[1] > 0)
-                    {
- //                       cerr << "LastIndex: " << lastIndex  << " " << queue[lastIndex].chr << " " << queue[lastIndex].pos << endl;
-                        PrintOutput(lastIndex);
-                        queue[lastIndex].pos = -1;
-                    }
-                    lastIndex = (lastIndex + 1) % BUFFER_SIZE;
-                } while (lastIndex != index);	
+    FlushReads(-1, 0); // To ensure all reads are flushed
     if (samFile) fclose(samFile);
     if (ambFile) fclose(ambFile);
     fprintf(stderr, "There were %lld ambiguous reads, with equal C->T and G->A conversions.\n", amb);

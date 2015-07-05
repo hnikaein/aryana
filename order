@@ -1,0 +1,23 @@
+aligner.c:	if (args->seed_length==-1)
+aligner.c:		k=args->seed_length;
+aligner.c:	if (args->best_factor!=-1)
+aligner.c:			if (best[i]<best[best_size-1]/args->best_factor)
+bwa2.c:	char *prefix = args->reference;
+bwa2.c:	char *fn_fa = args->read_file;
+bwa2.c:	char *fn_fa1 = args->read_file1;
+bwa2.c:	char *fn_fa2 = args->read_file2;
+bwa2.c:/*	if (args->paired==0)
+bwa2.c:	if (args->paired==0)
+bwa2.c:		if (args->paired==0)
+bwa2.c:			if (args->paired==0)
+bwa2.c:	threads = (pthread_t*)calloc(args->threads, sizeof(pthread_t));
+bwa2.c:	data = (thread_args*)calloc(args->threads, sizeof(thread_args));
+bwa2.c:	for(j=0;j<args->threads;j++){
+bwa2.c:	running_threads_num = args->threads;
+bwa2.c:	if (args->order) {
+bwa2.c:		outBufLen = 10 * args->threads * seq_num_per_read;
+bwa2.c:	for (j = 0; j < args->threads; j++)
+bwa2.c:	if (! args->order) // Each threads writes own results in the SAM file
+bwa2.c:		for (j = 0; j < args->threads; ++j)
+bwa2.c:	if (args->order) free(outBuf);
+bwa2.c:	if (args->paired==0)
