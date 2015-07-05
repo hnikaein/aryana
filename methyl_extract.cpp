@@ -155,7 +155,7 @@ void ProcessMethylation() {
             else if(toupper(line.seq_string[i]) == unmethyl)
                 queue[index].count[1]++;
         }
-    maxChrPos = max(maxChrPos, line.pos + line.seq_string.size() - 1);
+    maxChrPos = max(maxChrPos, (signed) (line.pos + line.seq_string.size() - 1));
 }
 
 // Handles mismatches and inserts in cigar by converting reads
