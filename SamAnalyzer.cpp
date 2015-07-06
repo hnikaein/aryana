@@ -111,8 +111,9 @@ bool GetSequence(string chr, long long start, long long length, char *seq) {
 
 // Returns the total length of reference sequence pointed to by the given cigar sequence
 
-int CigarLen(string cigar) {
+int CigarLen(string cigar, int & gapOpen, int & gapExt) {
     unsigned int cigarpos = 0, len = 0;
+	gapOpen = gapExt = 0;
     while (cigarpos < cigar.size()) {
         int num = 0;
         while (cigarpos < cigar.size() && cigar[cigarpos] >= '0' && cigar[cigarpos] <= '9') num = num * 10 + cigar[cigarpos++] - '0';
@@ -121,9 +122,9 @@ int CigarLen(string cigar) {
             return -1;
         }
         switch (tolower(cigar[cigarpos++])) {
-        case 'm':
-        case 'd':
-            len += num;
+        case 'm': len += num; break;
+        case 'd': len += num; gapOpen++; gapExt += num - 1; break;
+		case 'i': gapOpen++; gapExt += num - 1; break;
         }
     }
     return len;
@@ -180,21 +181,19 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
     return penalty;
 }
 
-void PrintOutput(FILE * f, string name = "NA", string chr1 = "NA", long long pos1 = 0, int penalty1 = 0, string chr2 = "NA", long long pos2 = 0, int penalty2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char* seq2 = NULL) {
-    if (! realPos) {
-        fprintf(f, "%s\t%s\t%lld\t%d", name.c_str(), chr1.c_str(), pos1, penalty1);
-        if (seqOutput) fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
-    }
-    else {
-        fprintf(f, "%s\t%s\t%lld\t%d\t%s\t%lld\t%d", name.c_str(), chr1.c_str(), pos1, penalty1, chr2.c_str(), pos2, penalty2);
-        if (seqOutput) fprintf(f, "\t%s\t%s\t%s\t%s", samSeq, cigar, seq1, seq2);
+void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char* seq2 = NULL) {
+	fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
+	if (realPos) fprintf(f, "\t%s\t%lld\t%d", chr2.c_str(), pos2, mismatch2); 
+    if (seqOutput) {
+		fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
+        if (realPos) fprintf(f, "\t%s", seq2);
     }
     fprintf(f, "\n");
 }
 
 void ProcessSamFile(string samFileName) {
     long long int tlen, pos;
-    int flag, mapq, penalty, penalty2, startPos;
+    int flag, mapq, mismatch, mismatch2, gapOpen, gapOpen2, gapExt, gapExt2, startPos;
     char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], cigar[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
     FILE * f = stdin, * of = stdout;
     if (samFileName != "") f = fopen(samFileName.c_str(), "r");
@@ -204,18 +203,17 @@ void ProcessSamFile(string samFileName) {
         exit(-1);
     }
     char buf[maxSamLineLength];
-    if (realPos) {
-        fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen\tRealChr\tRealPos\tRealPen");
-        if (seqOutput) fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq\tRealSeq");
-    }
-    else {
-        fprintf(of, "ReadName\tAlnChr\tAlnPos\tAlnPen");
-        if (seqOutput) fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq");
-    }
+	fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
+    if (realPos) fprintf(of, "\tRealChr\tRealPos\tRealMismatch");
+   	if (seqOutput) {
+		fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq");
+		if (realPos) fprintf(of, "\tRealSeq");
+	}
     fprintf(of, "\n");
     while (! feof(f)) {
         buf[0] = 0;
-        penalty = penalty2 = 1000000;
+		bool aligned = true;
+        mismatch = mismatch2 = gapOpen = gapOpen2 = gapExt = gapExt2 = 0;
         startPos = 0;
         string tmp, chr = "NA", start, end, type;
         if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
@@ -223,15 +221,16 @@ void ProcessSamFile(string samFileName) {
 //		cerr << "SAM line: " << buf << endl;
         sscanf(buf,"%s\t%d\t%s\t%lld\t%d\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos, &mapq, cigar, rnext, pnext, &tlen, seq, quality_string);
 //		cerr << "Position: " << rname << ":" << pos << endl;
-        if (strcmp(rname, "*") == 0) {
+        if ((flag & 4) || strcmp(cigar, "*") == 0 || strcmp(rname, "*") == 0) {
             strcpy(rname, "NA");
             strcpy(refSeq, "NA");
             pos = 0;
-        } else if (GetSequence(rname, pos, CigarLen(cigar), refSeq)) {
+			aligned = false;
+        } else if (GetSequence(rname, pos, CigarLen(cigar, gapOpen, gapExt), refSeq)) {
             if (bisSeq)
-                penalty = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
+                mismatch = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
             else
-                penalty = EditDistance(refSeq, seq, cigar);
+                mismatch = EditDistance(refSeq, seq, cigar);
         }
         if (realPos) {
             stringstream s(qname);
@@ -248,12 +247,12 @@ void ProcessSamFile(string samFileName) {
                 char tmpCigar[1000];
                 sprintf(tmpCigar, "%dm", len);
                 if (bisSeq)
-                    penalty2 = min(EditDistance(refSeq2, seq, tmpCigar, 'C', 'T'), EditDistance(refSeq2, seq, tmpCigar, 'G', 'A'));
+                    mismatch2 = min(EditDistance(refSeq2, seq, tmpCigar, 'C', 'T'), EditDistance(refSeq2, seq, tmpCigar, 'G', 'A'));
                 else
-                    penalty2 = EditDistance(refSeq2, seq, tmpCigar);
+                    mismatch2 = EditDistance(refSeq2, seq, tmpCigar);
             }
         }
-        PrintOutput(of, qname, rname, pos, penalty, chr, startPos, penalty2, seq, cigar, refSeq, refSeq2);
+        PrintOutput(of, qname, aligned, rname, pos, mismatch, gapOpen, gapExt, chr, startPos, mismatch2, gapOpen2, gapExt2, seq, cigar, refSeq, refSeq2);
     }
 }
 
