@@ -119,3 +119,33 @@ If -i and -o arguments are not used, the standard input and standard output will
     	-s 		(use this argument if the reads are generated via BisSimul, or the read names include the true position in a similar way)
 </code>
 
+Here is a description about the SamAnalyzer results:
+
+
+ReadName: name of read, as appears in FASTQ and/or SAM file
+Aligned: shows wether the read is aligned to the reference genome (1) or not (0)
+AlnChr: The chromosome to which the read is aligned, or NA if the read is not aligned
+AlnPos: The position in the chromosome to which the read is aligned
+AlnMismatch: The number of mismatches between the read sequence and alignment position
+AlnGapOpen: The number of gap intervals between the read and the alignment position. 
+                       Any number of consecutive insertions in read or reference are considered as one gap interval.
+AlnGapExt: The total number of nucleotides extending the gaps. For an interval of N insertions, the gap extension number is N-1. 
+
+
+The following columns are reported if the reads are simulated using the read_simul of aryana:
+RealChr: The true chromosome from which the read is simulated
+RealPos: The true position in the chromosome from which the read is simulated
+RealMismatch: The number of mismatches between the true genomic sequence and the simulated read, possibly due to simulated SNPs or sequencing error
+
+The following columns are added if -s argument is used:
+SamSeq: The nucleotide sequence reported in SAM file
+CIGAR: The CIGAR sequence reported in SAM file, that tells how 
+AlnSeq: The genomic sequence to which the read is aligned (i.e. located in AlnChr,AlnPos)
+
+
+The following columns are added if -s argument is used and the reads are simulated using read_simul:
+RealSeq: The genomic sequence from which the read is simulated
+
+To find out how good each read is aligned we might use Aligned, AlnMismatch, AlnGapOpen and AlnGapExt columns. We can define a penalty, for instance Penalty = 5 * (AlnMismatch + AlnGapOpen) + 3 * AlnGapExt. This will make higher penalty for mismatches and start of the gaps, but lower penalty for gap extensions, since it's more likely for an opened gap to be extended.
+
+A simpler approach would be just to consider AlnMismatch.
