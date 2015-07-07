@@ -31,7 +31,7 @@ struct window {
     }
 };
 
-enum orientation_t {ff, fr, rf} orientation = fr;
+enum orientation_t {ff, fr, rf} orientation = ff;
 
 vector <window> islands;
 long long int n = 1000, ni = 0, snp = 0, readl = 100;
@@ -98,6 +98,10 @@ void ReadGenome(string genomeFile) {
 //		cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
     cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
     fclose(f);
+	if (! gs || ! chromNum) {
+		cerr << "Error: Either size or number of chromosomes of the reference genome is zero. \nIt should be FASTA format with chromosome names provided.\n";
+		exit(1);
+	}
 }
 
 // Returns the chromosome number (zero based) if the given genome-wide location is completely inside a chromosome, or -1 otherwise
@@ -274,16 +278,19 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
 // Can print both single and paired end reads, along with the header line
 
 void PrintRead(int readNumber, int chr, long long p, char *quals, long long pairDis) {
-    char strand = '+', strand2, original='o';
-	FILE * of = outputFile, *of2 = outputFile2;
-    if (neg && (double) rand() / RAND_MAX < 0.5) {
-		strand='-';
-		of2 = outputFile;
-		if (paired) of = outputFile2;
-	}
-	if (orientation == ff) strand2 = strand;
-	else strand2= (strand == '+')?'-':'+';
+    char strand = '+', strand2='+', original='o';
+	FILE * of=outputFile, *of2 = (paired)?outputFile2:outputFile;
+	//if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
     if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
+    if (paired && orientation==fr) strand2 = '-';
+	if (paired && orientation==rf) strand='-';
+    if ((! paired || orientation == ff) && neg && (double) rand() / RAND_MAX < 0.5) strand=strand2='-';
+	if (original == 'p') {
+		swap(of, of2);
+		swap(strand, strand2);
+	}
+	if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
+
 	long long off = p - chromPos[chr];
     if (! paired) fprintf(of, "@%d|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
     else {
@@ -339,9 +346,7 @@ void SimulateReads() {
             }
             p = lrand() % gs;
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
-			cerr << "Checking " << p << "\t" << readl << "\t" << pairDis << "\t" << pairMinDis << "\t" << pairMaxDis<< endl;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
-			cerr << chr << endl;
         } while (true);
         PrintRead(i, chr, p, quals, pairDis);
     }
@@ -426,7 +431,7 @@ void Usage() {
              "     -P/--paired                     simulate paired-end reads" << endl <<
              "     -d/--mind      int              minimum distance between a pair of reads, default=300" << endl <<
              "     -D/--maxd      int              maximum distance between a pair of reads, default=1000" << endl <<
-             "     --fr/--ff                       the relative orientation of the paired reads, default=fr (forward/reverse)" << endl <<endl <<
+             "     --ff/--fr/--rf                  the relative orientation of the paired reads, default=ff (forward/forward). fr and rf turn --neg on." << endl <<endl <<
              "Bisulfite-Sequencing arguments:" << endl <<
              "     -b/--bis                        simulate bisulfite-sequencing reads)" << endl <<
              "     --ni           int              number of additional simulated reads from CpG-Islands, default=0" << endl <<
@@ -479,8 +484,8 @@ int main(int argc, char * argv[]) {
 			case 'p':  pcr = true; break;
 			case 'P':  paired=true; break;
 			case 1: orientation = ff; break;
-			case 2: orientation = fr; break;
-			case 3: orientation = rf; break;
+			case 2: orientation = fr; neg = true; break;
+			case 3: orientation = rf; neg = true; break;
 			case 'g': genomeFile = strdup(optarg); break;
 			case 'i': cpgIslandFile = strdup(optarg); break;
 			case 'o': outputFileName = strdup(optarg); break; 
