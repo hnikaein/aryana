@@ -113,7 +113,7 @@ bool GetSequence(string chr, long long start, long long length, char *seq) {
 
 int CigarLen(string cigar, int & gapOpen, int & gapExt) {
     unsigned int cigarpos = 0, len = 0;
-	gapOpen = gapExt = 0;
+    gapOpen = gapExt = 0;
     while (cigarpos < cigar.size()) {
         int num = 0;
         while (cigarpos < cigar.size() && cigar[cigarpos] >= '0' && cigar[cigarpos] <= '9') num = num * 10 + cigar[cigarpos++] - '0';
@@ -122,14 +122,49 @@ int CigarLen(string cigar, int & gapOpen, int & gapExt) {
             return -1;
         }
         switch (tolower(cigar[cigarpos++])) {
-        case 'm': len += num; break;
-        case 'd': len += num; gapOpen++; gapExt += num - 1; break;
-		case 'i': gapOpen++; gapExt += num - 1; break;
+        case 'm':
+            len += num;
+            break;
+        case 'd':
+            len += num;
+            gapOpen++;
+            gapExt += num - 1;
+            break;
+        case 'i':
+            gapOpen++;
+            gapExt += num - 1;
+            break;
         }
     }
     return len;
 }
 
+string reverse_cigar(string cigar)
+{
+    int i=0, cigar_size = cigar.size();
+    char cigar_tmp[cigar_size + 50];
+    int num=0;
+    char type=cigar[cigar_size-1];
+    int offset=1;
+    int lasttmpsize=0;
+    for (i=cigar_size-2; i>=0; i--)
+    {
+        if (cigar[i]>='0' && cigar[i]<='9' )
+        {
+            num+=offset*(cigar[i]-'0');
+            offset*=10;
+        }
+        else
+        {
+            lasttmpsize += snprintf(cigar_tmp + lasttmpsize, 10, "%d%c", num,type);
+            type=cigar[i];
+            num=0;
+            offset=1;
+        }
+    }
+    lasttmpsize += snprintf(cigar_tmp + lasttmpsize, 10, "%d%c", num,type);
+    return cigar_tmp;
+}
 
 // Finds the best alignment between a (reference) and b (query).
 // Permits conversions from orig_base inside a to conv_base inside b with 0 penalty. returns the edit distance
@@ -181,12 +216,12 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
     return penalty;
 }
 
-void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char* seq2 = NULL) {
-	fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
-	if (realPos) fprintf(f, "\t%s\t%lld\t%d", chr2.c_str(), pos2, mismatch2); 
+void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
+    fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
+    if (realPos) fprintf(f, "\t%s\t%lld\t%d\t%d\t%d", chr2.c_str(), pos2, mismatch2, gapOpen2, gapExt2);
     if (seqOutput) {
-		fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
-        if (realPos) fprintf(f, "\t%s", seq2);
+        fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
+        if (realPos) fprintf(f, "\t%s\t%s", cigar2, seq2);
     }
     fprintf(f, "\n");
 }
@@ -203,19 +238,19 @@ void ProcessSamFile(string samFileName) {
         exit(-1);
     }
     char buf[maxSamLineLength];
-	fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
-    if (realPos) fprintf(of, "\tRealChr\tRealPos\tRealMismatch");
-   	if (seqOutput) {
-		fprintf(of, "\tSamSeq\tCIGAR\tAlnSeq");
-		if (realPos) fprintf(of, "\tRealSeq");
-	}
+    fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
+    if (realPos) fprintf(of, "\tRealChr\tRealPos\tRealMismatch\tRealGapOpen\tRealGapExt");
+    if (seqOutput) {
+        fprintf(of, "\tSamSeq\tAlnCIGAR\tAlnSeq");
+        if (realPos) fprintf(of, "\tRealCIGAR\tRealSeq");
+    }
     fprintf(of, "\n");
     while (! feof(f)) {
         buf[0] = 0;
-		bool aligned = true;
+        bool aligned = true;
         mismatch = mismatch2 = gapOpen = gapOpen2 = gapExt = gapExt2 = 0;
         startPos = 0;
-        string tmp, chr = "NA", start, end, type;
+        string tmp, chr = "NA", start, end, type, cigar2;
         if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
         if (buf[0] == '@') continue;
 //		cerr << "SAM line: " << buf << endl;
@@ -225,7 +260,7 @@ void ProcessSamFile(string samFileName) {
             strcpy(rname, "NA");
             strcpy(refSeq, "NA");
             pos = 0;
-			aligned = false;
+            aligned = false;
         } else if (GetSequence(rname, pos, CigarLen(cigar, gapOpen, gapExt), refSeq)) {
             if (bisSeq)
                 mismatch = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
@@ -238,21 +273,20 @@ void ProcessSamFile(string samFileName) {
             getline(s, chr, ':');
             getline(s, start, '-');
             getline(s, end, '|');
-            getline(s, type, ' ');
-            int len =  atoi(end.c_str()) - atoi(start.c_str()) + 1;
-            if (GetSequence(chr, atoi(start.c_str()), len, refSeq2)) {
-                startPos = atoi(start.c_str());
+            getline(s, type, '|');
+            getline(s, cigar2, ' ');
+            startPos = atoi(start.c_str());
+            if (GetSequence(chr, startPos, CigarLen(cigar2, gapOpen2, gapExt2), refSeq2)) {
                 bool samRev = flag & 16, refRev = type == "-o" || type == "+p";
                 if (samRev != refRev) revcomp(refSeq2);
-                char tmpCigar[1000];
-                sprintf(tmpCigar, "%dm", len);
+                if (samRev && refRev) cigar2 = reverse_cigar(cigar2);
                 if (bisSeq)
-                    mismatch2 = min(EditDistance(refSeq2, seq, tmpCigar, 'C', 'T'), EditDistance(refSeq2, seq, tmpCigar, 'G', 'A'));
+                    mismatch2 = min(EditDistance(refSeq2, seq, cigar2.c_str(), 'C', 'T'), EditDistance(refSeq2, seq, cigar2.c_str(), 'G', 'A'));
                 else
-                    mismatch2 = EditDistance(refSeq2, seq, tmpCigar);
+                    mismatch2 = EditDistance(refSeq2, seq, cigar2.c_str());
             }
         }
-        PrintOutput(of, qname, aligned, rname, pos, mismatch, gapOpen, gapExt, chr, startPos, mismatch2, gapOpen2, gapExt2, seq, cigar, refSeq, refSeq2);
+        PrintOutput(of, qname, aligned, rname, pos, mismatch, gapOpen, gapExt, chr, startPos, mismatch2, gapOpen2, gapExt2, seq, cigar, refSeq, (char *) cigar2.c_str(), refSeq2);
     }
 }
 

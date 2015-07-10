@@ -14,12 +14,13 @@ int max(int q , int p)
 
 int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore)
 {
-//	fprintf(stderr,"read: %llu - %llu, ref: %llu - %llu\n",match_start,match_end,index_start,index_end);
+    if (index_end-index_start==0 && match_end-match_start==0) return head;
+
     int off=max(2*(abs((signed)(index_end-index_start)-(signed)(match_end-match_start))),10);
-    assert(off <= 98);
+    //assert(off <= 98);
     if (off > 98)
     {
-        fprintf(stderr,"off too long\n");
+        //fprintf(stderr,"off too long\n");
         head+=snprintf(cigar+head,10,"%d",abs((signed)(index_end-index_start)-(signed)(match_end-match_start)));
         if (match_end-match_start > index_end-index_start)
         {
@@ -36,7 +37,6 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
     off*=2;
     if (off>98)
         off=100;
-//	off=200;
 
 
     long long i=0,j=0;
@@ -48,8 +48,6 @@ int smith_waterman(uint64_t match_start, uint64_t match_end, uint64_t index_star
             d[0][i]=i-off/2;
     }
 
-    if (index_end-index_start==0 && match_end-match_start==0)
-        return head;
 
     //char atomic[4] = { 'A' , 'C' , 'G' , 'T'};
     for (i=1; i<=match_end-match_start; i++)

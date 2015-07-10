@@ -77,13 +77,13 @@ void ReadGenome(string genomeFile) {
             chromPos.push_back(gs);
             if (chromNum > 0) {
                 chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
-                cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
+                //cerr << " Length: " << chromLen[chromNum - 1] <<  endl;
             }
 
             string name = fLine;
             if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
             else name = name.substr(1, name.size() - 1);
-            cerr << name;
+            //cerr << name;
             chromIndex[name] = chromNum;
             chromName[chromNum] = name;
             chromNum++;
@@ -96,12 +96,12 @@ void ReadGenome(string genomeFile) {
     chromLen.push_back(chromPos[chromNum] - chromPos[chromNum - 1]);
 //	for (int i = 0; i < chromNum; i++)
 //		cerr << "ChromPos: " << chromPos[i] << " ChromLen: " << chromLen[i] << endl;
-    cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
+    //cerr << " Length: " << chromPos[chromNum] - chromPos[chromNum - 1] <<  endl;
     fclose(f);
-	if (! gs || ! chromNum) {
-		cerr << "Error: Either size or number of chromosomes of the reference genome is zero. \nIt should be FASTA format with chromosome names provided.\n";
-		exit(1);
-	}
+    if (! gs || ! chromNum) {
+        cerr << "Error: Either size or number of chromosomes of the reference genome is zero. \nIt should be FASTA format with chromosome names provided.\n";
+        exit(1);
+    }
 }
 
 // Returns the chromosome number (zero based) if the given genome-wide location is completely inside a chromosome, or -1 otherwise
@@ -237,6 +237,15 @@ char RandBase() {
     return bases[rand() % 4];
 }
 
+void AddCigar(char * cigar, int & num, char & last, char a) {
+    if (a == last) num++;
+    else {
+        if (num > 0) sprintf(cigar + strlen(cigar), "%d%c", num, last);
+        last = a;
+        num = 1;
+    }
+}
+
 // Just generates a single read, without header line but with quality line
 
 void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char original) {
@@ -259,19 +268,30 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
             }
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
-    int RLen = 0;
+    int RLen = 0, num = 0;
+    char cigar[1000] = "";
+    char last = 0;
     for (int i = 0; i < readl; i++) {
         double e = (double) rand() / RAND_MAX;
-        if (e < mismatchRate) R[RLen++] = Mutate(r[i]); // Mutation
+        if (e < mismatchRate) {
+            R[RLen++] = Mutate(r[i]); // Mutation
+            AddCigar(cigar, num, last, 'm');
+        }
         else if (e < insRate + mismatchRate) { // Insertion
             R[RLen++] = RandBase();
             i--;
-        } else if (e < delRate + insRate + mismatchRate) { // Deletion, do nothing
-        } else R[RLen++] = r[i];
+            AddCigar(cigar, num, last, 'i');
+        } else if (e < delRate + insRate + mismatchRate) { // Deletion
+            AddCigar(cigar, num, last, 'd');
+        } else { // Match
+            R[RLen++] = r[i];
+            AddCigar(cigar, num, last, 'm');
+        }
     }
+    AddCigar(cigar, num, last, 0);
     R[RLen] = 0;
     quals[RLen] = 0;
-    fprintf(f, "%-60s\n+\n%-60s\n", R,quals);
+    fprintf(f, "%s\n%-60s\n+\n%-60s\n", cigar, R,quals);
     quals[RLen] = 'I';
 }
 
@@ -279,23 +299,23 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
 
 void PrintRead(int readNumber, int chr, long long p, char *quals, long long pairDis) {
     char strand = '+', strand2='+', original='o';
-	FILE * of=outputFile, *of2 = (paired)?outputFile2:outputFile;
-	//if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
+    FILE * of=outputFile, *of2 = (paired)?outputFile2:outputFile;
+    //if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
     if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
     if (paired && orientation==fr) strand2 = '-';
-	if (paired && orientation==rf) strand='-';
+    if (paired && orientation==rf) strand='-';
     if ((! paired || orientation == ff) && neg && (double) rand() / RAND_MAX < 0.5) strand=strand2='-';
-	if (original == 'p') {
-		swap(of, of2);
-		swap(strand, strand2);
-	}
-	if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
+    if (original == 'p') {
+        swap(of, of2);
+        swap(strand, strand2);
+    }
+    if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
 
-	long long off = p - chromPos[chr];
-    if (! paired) fprintf(of, "@%d|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
+    long long off = p - chromPos[chr];
+    if (! paired) fprintf(of, "@%d|%s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
     else {
-	     fprintf(of, "@%d_1|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
-    	 fprintf(of2, "@%d_2|%s:%llu-%llu|%c%c\n", readNumber+1, chromName[chr].c_str(), off+readl+pairDis+1, off + 2 * readl + pairDis, strand2, original);
+        fprintf(of, "@%d_1|%s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
+        fprintf(of2, "@%d_2|%s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+readl+pairDis+1, off + 2 * readl + pairDis, strand2, original);
     }
     PrintSingleRead(of, p, quals, strand, original);
     if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original);
@@ -329,7 +349,7 @@ int CheckPosition(long long p, long long pairDis) {
 void SimulateReads() {
     char quals[maxReadSize];
     memset(quals, 'I', sizeof(quals));
-    long long p, pairDis;
+    long long p, pairDis = 0;
     int chr;
     if (! gs) {
         cerr << "Error: the length of genome is zero." << endl;
@@ -415,99 +435,153 @@ void WriteReadCounts() {
 }
 
 void Usage() {
-        cerr << "Arguments:" << endl <<
-             "     -g/--genome    file             reference genome in FASTA format, mandatory" << endl <<
-             "     -n/--number    int              number of simulated reads from whole genome, default=1000" << endl <<
-             "     -l/--length    int              length of each read, default=100" << endl <<
-             "     -o/--output    file             output file name without extension, in FASTQ format, default=stdout" << endl <<
-             "     -m/--mask                       mask repeats (the lower-case letters in genome file)" << endl <<
-             "     --rm           int              sequencing mismatch rate, between 0 and 1, default=0" << endl <<
-             "     --ri           int              sequencing insertion rate, between 0 and 1, default=0" << endl <<
-             "     --rd           int              sequencing deletion rate, between 0 and 1, default=0" << endl <<
-             "     -s/--snp       int              number of SNPs to be introduced to the reference genome, default=0" << endl <<
-             "     -N/--neg                        simulate reads from the negative strand" << endl <<
-             "     -p/--pcr                        simulate PCR amplified reads" << endl << endl <<
-             "Paired end arguments:" << endl <<
-             "     -P/--paired                     simulate paired-end reads" << endl <<
-             "     -d/--mind      int              minimum distance between a pair of reads, default=300" << endl <<
-             "     -D/--maxd      int              maximum distance between a pair of reads, default=1000" << endl <<
-             "     --ff/--fr/--rf                  the relative orientation of the paired reads, default=ff (forward/forward). fr and rf turn --neg on." << endl <<endl <<
-             "Bisulfite-Sequencing arguments:" << endl <<
-             "     -b/--bis                        simulate bisulfite-sequencing reads)" << endl <<
-             "     --ni           int              number of additional simulated reads from CpG-Islands, default=0" << endl <<
-             "     -i/--island    file             genomic map of CpG-Islands, mandatory if --ni is greater than 0" << endl <<
-             "     --mi           file             methylation ratio input file" << endl <<
-             "     --mo           file             methylation ratio output file" << endl <<
-             "     --co           file             count of reads covering each cytosine output file" << endl <<
-             "     --ch           float            methylation ratio of CH dinucleotides, between 0 and 1, default=0.01" << endl <<
-             "     --cg           float            methylation ratio of CG dinucleotides outside CpG-Islands, between 0 and 1, default=0.9" << endl <<
-             "     --ci           float            methylation ratio of CG dinucleotides in CpG-Islands, between 0 and 1, default=0.1" << endl;
-	exit(1);
+    cerr << "Arguments:" << endl <<
+         "     -g/--genome    file             reference genome in FASTA format, mandatory" << endl <<
+         "     -n/--number    int              number of simulated reads from whole genome, default=1000" << endl <<
+         "     -l/--length    int              length of each read, default=100" << endl <<
+         "     -o/--output    file             output file name without extension, in FASTQ format, default=stdout" << endl <<
+         "     -m/--mask                       mask repeats (the lower-case letters in genome file)" << endl <<
+         "     --rm           int              sequencing mismatch rate, between 0 and 1, default=0" << endl <<
+         "     --ri           int              sequencing insertion rate, between 0 and 1, default=0" << endl <<
+         "     --rd           int              sequencing deletion rate, between 0 and 1, default=0" << endl <<
+         "     -s/--snp       int              number of SNPs to be introduced to the reference genome, default=0" << endl <<
+         "     -N/--neg                        simulate reads from the negative strand" << endl <<
+         "     -p/--pcr                        simulate PCR amplified reads" << endl << endl <<
+         "Paired end arguments:" << endl <<
+         "     -P/--paired                     simulate paired-end reads" << endl <<
+         "     -d/--mind      int              minimum distance between a pair of reads, default=300" << endl <<
+         "     -D/--maxd      int              maximum distance between a pair of reads, default=1000" << endl <<
+         "     --ff/--fr/--rf                  the relative orientation of the paired reads, default=ff (forward/forward). fr and rf turn --neg on." << endl <<endl <<
+         "Bisulfite-Sequencing arguments:" << endl <<
+         "     -b/--bis                        simulate bisulfite-sequencing reads)" << endl <<
+         "     --ni           int              number of additional simulated reads from CpG-Islands, default=0" << endl <<
+         "     -i/--island    file             genomic map of CpG-Islands, mandatory if --ni is greater than 0" << endl <<
+         "     --mi           file             methylation ratio input file" << endl <<
+         "     --mo           file             methylation ratio output file" << endl <<
+         "     --co           file             count of reads covering each cytosine output file" << endl <<
+         "     --ch           float            methylation ratio of CH dinucleotides, between 0 and 1, default=0.01" << endl <<
+         "     --cg           float            methylation ratio of CG dinucleotides outside CpG-Islands, between 0 and 1, default=0.9" << endl <<
+         "     --ci           float            methylation ratio of CG dinucleotides in CpG-Islands, between 0 and 1, default=0.1" << endl;
+    exit(1);
 }
 
 int main(int argc, char * argv[]) {
 // Parsing Arugments
     int option_index = 0;
     static struct option long_options[] = {
-		{"mask", no_argument, 0, 'm'},
-       {"neg", no_argument, 0, 'N'},
-	   {"pcr", no_argument, 0, 'p'},
-		{"paired", no_argument, 0, 'P'},
-		{"ff", no_argument, 0, 1},
-		{"fr", no_argument, 0, 2},
-		{"rf", no_argument, 0, 3},
-		{"genome", required_argument, 0, 'g'},
-		{"island",  required_argument, 0, 'i'},
-		{"output", required_argument, 0, 'o'},
-		{"number",  required_argument, 0, 'n'},
-		{"ni",  required_argument, 0, 4},
-		{"ch", required_argument, 0, 5},
-		{"cg", required_argument, 0, 6},
-		{"ci", required_argument, 0,7},
-		{"rm", required_argument, 0,8}, 
-		{"ri", required_argument, 0,9},
-		{"rd", required_argument, 0,10},
-		{"bis", no_argument, 0,'b'},
-		{"snp", required_argument, 0,'s'},
-		{"length",required_argument, 0, 'l'},
-		{"mi", required_argument, 0, 11},
-		{"mo", required_argument, 0, 12},
-		{"co", required_argument, 0, 13},
-		{"mind", required_argument, 0, 'd'},
-		{"maxd", required_argument, 0, 'D'}
-	};
-	int c;
-    while((c = getopt_long(argc, argv, "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:", long_options, &option_index)) >= 0) 
-		switch(c) {
-			case 'm':  repeatMask = true; break;
-			case 'N':  neg = true; break;
-			case 'p':  pcr = true; break;
-			case 'P':  paired=true; break;
-			case 1: orientation = ff; break;
-			case 2: orientation = fr; neg = true; break;
-			case 3: orientation = rf; neg = true; break;
-			case 'g': genomeFile = strdup(optarg); break;
-			case 'i': cpgIslandFile = strdup(optarg); break;
-			case 'o': outputFileName = strdup(optarg); break; 
-			case 'n': n = atoi(optarg); break;
-			case 4: ni = atoi(optarg); break;
-			case 5: noncpg = atof(optarg); break;
-			case 6: cpg = atof(optarg); break;
-			case 7: island = atof(optarg); break;
-			case 8: mismatchRate = atof(optarg); break;
-			case 9: insRate = atof(optarg); break;
-			case 10: delRate = atof(optarg); break;
-			case 'b': bisSeq = true; break;
-			case 's': snp = atoi(optarg); break;
-			case 'l': readl = atoi(optarg); break;
-			case 11: methInFile = strdup(optarg); break;
-			case 12: methOutFile = strdup(optarg); break;
-			case 13: countOutFile = strdup(optarg); break;
-			case 'd':  pairMinDis = atoi(optarg); break;
-			case 'D': pairMaxDis = atoi(optarg); break; 
-			        default:
-					            fprintf(stderr, "Invalid argument: %c\n", c);
-								            exit(1);
+        {"mask", no_argument, 0, 'm'},
+        {"neg", no_argument, 0, 'N'},
+        {"pcr", no_argument, 0, 'p'},
+        {"paired", no_argument, 0, 'P'},
+        {"ff", no_argument, 0, 1},
+        {"fr", no_argument, 0, 2},
+        {"rf", no_argument, 0, 3},
+        {"genome", required_argument, 0, 'g'},
+        {"island",  required_argument, 0, 'i'},
+        {"output", required_argument, 0, 'o'},
+        {"number",  required_argument, 0, 'n'},
+        {"ni",  required_argument, 0, 4},
+        {"ch", required_argument, 0, 5},
+        {"cg", required_argument, 0, 6},
+        {"ci", required_argument, 0,7},
+        {"rm", required_argument, 0,8},
+        {"ri", required_argument, 0,9},
+        {"rd", required_argument, 0,10},
+        {"bis", no_argument, 0,'b'},
+        {"snp", required_argument, 0,'s'},
+        {"length",required_argument, 0, 'l'},
+        {"mi", required_argument, 0, 11},
+        {"mo", required_argument, 0, 12},
+        {"co", required_argument, 0, 13},
+        {"mind", required_argument, 0, 'd'},
+        {"maxd", required_argument, 0, 'D'}
+    };
+    int c;
+    while((c = getopt_long(argc, argv, "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:", long_options, &option_index)) >= 0)
+        switch(c) {
+        case 'm':
+            repeatMask = true;
+            break;
+        case 'N':
+            neg = true;
+            break;
+        case 'p':
+            pcr = true;
+            break;
+        case 'P':
+            paired=true;
+            break;
+        case 1:
+            orientation = ff;
+            break;
+        case 2:
+            orientation = fr;
+            neg = true;
+            break;
+        case 3:
+            orientation = rf;
+            neg = true;
+            break;
+        case 'g':
+            genomeFile = strdup(optarg);
+            break;
+        case 'i':
+            cpgIslandFile = strdup(optarg);
+            break;
+        case 'o':
+            outputFileName = strdup(optarg);
+            break;
+        case 'n':
+            n = atoi(optarg);
+            break;
+        case 4:
+            ni = atoi(optarg);
+            break;
+        case 5:
+            noncpg = atof(optarg);
+            break;
+        case 6:
+            cpg = atof(optarg);
+            break;
+        case 7:
+            island = atof(optarg);
+            break;
+        case 8:
+            mismatchRate = atof(optarg);
+            break;
+        case 9:
+            insRate = atof(optarg);
+            break;
+        case 10:
+            delRate = atof(optarg);
+            break;
+        case 'b':
+            bisSeq = true;
+            break;
+        case 's':
+            snp = atoi(optarg);
+            break;
+        case 'l':
+            readl = atoi(optarg);
+            break;
+        case 11:
+            methInFile = strdup(optarg);
+            break;
+        case 12:
+            methOutFile = strdup(optarg);
+            break;
+        case 13:
+            countOutFile = strdup(optarg);
+            break;
+        case 'd':
+            pairMinDis = atoi(optarg);
+            break;
+        case 'D':
+            pairMaxDis = atoi(optarg);
+            break;
+        default:
+            fprintf(stderr, "Invalid argument: %c\n", optopt);
+            exit(1);
         }
     if (genomeFile == "") Usage();
 

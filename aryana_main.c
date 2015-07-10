@@ -49,7 +49,7 @@ void Usage() {
     fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
     fprintf(stderr, "    -D/--debug <int>              the level of printing debug info, default=0 (no debug info)\n\n");
     fprintf(stderr, "Optional arguments for paired-end alignment:\n");
-    fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends. fr=forward-reverse, ff=forward-forward, rf=reverse-forward.\n");
+    fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends, default: no restriction on orientation. f=forward, r=reverse.\n");
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
     fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
     fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");

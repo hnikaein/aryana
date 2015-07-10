@@ -2,7 +2,7 @@
 # The methyl_extract is set here to report only (methylated Cytosines) or (Cytosines followed by a Guanine). 
 # If you need the mehylation ratio for all cytosines covered by the bisulfite sequencing, add "-all" argument to the end of the line started with "$DIR/methyl_extract" below.
 
-if [ "$#" -lt 6 ]; then
+if [ "$#" -lt 7 ]; then
     echo 'Usage: aryana_bsp <reference genome> <reference index folder> <CpG islands file> <input fastq file 1> <input fastq file 2> <output file, without extensions> <number of threads to run aryana> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
     exit
 fi
@@ -32,6 +32,6 @@ if [ "$#" -gt 7 ]; then
 	declare "${*:8}"
 fi
 
-Echo "Aliging reads using aryana with $6 threads (additional arguments: $ar)"
+Echo "Aliging reads using aryana with $7 threads (additional arguments: $ar)"
 "$DIR/aryana" -b "$2" -1 "$4" -2 "$5" -o "$4_out/temp.sam" -O -t $7 "$ar"
 PostAlignment "$@" &
