@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <math.h>
+#include <cmath>
 #include <limits.h>
 #include <ctype.h>
 #include <libgen.h>
@@ -22,16 +23,19 @@ using namespace std;
 #define maxReadLength 10000
 #define maxChrNameLength 10000
 #define maxSamFileLineLength 20000
-const int maxPenalty = 1000000;
+const int unalignedPenalty = 1000000;
+const int discordPenalty = 100000;
 unsigned long long gs;
 vector <string> chromName;
 char * genome;
-int chromNum;
+int chromNum, minD = 0, maxD = 10000, limit = 5;
 char * genomeFile, *annotationFile, *samFilePath, *referenceName;
 FILE * outputFile = NULL, * headerFile = NULL;
 bool paired = false;
 int chosen[numberOfGenomes];
 char line[numberOfGenomes][maxSamFileLineLength], line2[numberOfGenomes][maxSamFileLineLength];
+
+enum orientation_t {fr, rf, ff, all} orientation = all;
 
 struct Island {
     int chr;
@@ -287,7 +291,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
                 }
             }
             else if(cigar[pos]=='*') {
-                readPenalties[readNum] = maxPenalty;     // maximum penalty for not aligned reads
+                readPenalties[readNum] += unalignedPenalty;     // maximum penalty for not aligned reads
                 break;
             }
             if (cigar[pos] == 0)
@@ -341,10 +345,11 @@ void Process() {
 
     while (true) {
         for (int i = 0; i < numberOfGenomes; i++) {
+			readPenalties[i] = 0;
             if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
             sscanf(line[i],"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
-            if(index == -1) readPenalties[i] = maxPenalty;
+            if(index == -1) readPenalties[i] += unalignedPenalty;
             else {
                 int flag2 = 0;
                 if(i <=2) // if read has been aligned to first four genomes
@@ -360,30 +365,37 @@ void Process() {
                     return;
                 }
                 sscanf(line2[i],"%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname2, &flagTwo[i], rname2[i], &pos2[i],&mapq2[i], cigar2[i],rnext2,pnext2, &tlen2,seq_string2,quality_string2);
-                index = ChromIndex(rname2[i]);
-                if(index == -1) readPenalties[i] = maxPenalty;
+                int index2 = ChromIndex(rname2[i]);
+                if(index2 == -1) readPenalties[i] += unalignedPenalty;
                 else {
                     int flag2 = 0;
                     if(i <=2) // if read has been aligned to first four genomes
                         flag2 = 1;
                     if(i > 2) // if read has been aligned to last three genome
                         flag2 = 0;
-                    readCigar(cigar2[i], pos2[i]+chrom[index].chrStart-1, seq_string2, i ,index,pos2[i],flagTwo[i],flag2);
+                    readCigar(cigar2[i], pos2[i]+chrom[index2].chrStart-1, seq_string2, i ,index2,pos2[i],flagTwo[i],flag2);
                 }
+				orientation_t orien;
+				if (index >= 0 && index2 >= 0) {
+					if (flag[i] & 16 == flagTwo[i] & 16) orien = ff;
+					else if (flag[i] & 16 == 0 && pos[i] < pos2[i] || flag[i] & 16 != 0 && pos[i] > pos2[i]) orien = fr;
+					else orien = rf;
+					if (index != index2 || abs(pos[i] - pos2[i]) < minD || abs(pos[i] - pos2[i]) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
+				}
             }
         }
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
         fprintf(outputFile, "%s", line[min]);
         if (paired) fprintf(outputFile, "%s", line2[min]);
-        bzero(readPenalties, sizeof(readPenalties));
     }
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 6) {
-        fprintf(stderr, "Usage: align_bs -x <reference genome> -s <input sam files> -c <CpG-island map> -p <penalties> [-o <output SAM file>] [-h <SAM header file>]\n");
-        fprintf(stderr, "Use -P (upper case) for paired end reads.\n");
+        fprintf(stderr, "Usage: align_bs -x <reference genome> -s <input sam files> -c <CpG-island map> -p <penalties> [-o <output SAM file>] [-h <SAM header file>] [-l/--limit <maximum allowed mismatches>]\n");
+        fprintf(stderr, "Additional arguments for paired-end reads:\n");
+		fprintf(stderr, "    -P to consider the input as paired-end, -m/--min for minimum and -M/--max for maximum distance, and --fr/rf/ff for orientation.\n");
         return -1;
     }
     static struct option long_options[] = {
@@ -393,12 +405,18 @@ int main(int argc, char *argv[]) {
         { "penalties", required_argument, 0, 'p' },
         { "output", required_argument, 0, 'o' },
         { "header", required_argument, 0, 'h' },
-        { "paired-end", no_argument, 0, 'U' }
+        { "paired-end", no_argument, 0, 'U' },
+		{ "min", required_argument, 0, 'm'},
+		{ "max", required_argument, 0, 'M'},
+		{ "fr", no_argument, 0, 1},
+		{ "rf", no_argument, 0, 2},
+		{ "ff", no_argument, 0, 3},
+		{ "limit", required_argument, 0, 'l'}
     };
     int option_index = 0;
     char* samFileName = 0, *tmp, c;
     outputFile = stdout;
-    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:P", long_options, &option_index)) >= 0) {
+    while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:Pm:M:123l:", long_options, &option_index)) >= 0) {
         switch (c) {
         case 'x':
             referenceName = strdup(optarg);
@@ -431,6 +449,24 @@ int main(int argc, char *argv[]) {
         case 'P':
             paired = true;
             break;
+		case 'm': 
+			minD = atoi(optarg);
+			break;
+		case 'M': 
+			maxD = atoi(optarg); 
+			break;
+		case 1:
+			orientation = fr;
+			break;
+		case 2:
+			orientation = rf;
+			break;
+		case 3:
+			orientation = ff;
+			break;
+		case 'l':
+			limit = atoi(optarg);
+			break;
         }
     }
     if (! headerFile) headerFile = outputFile;
