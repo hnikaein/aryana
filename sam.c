@@ -67,7 +67,7 @@ void reverse_cigar(char *cigar)
         }
     }
     lasttmpsize += snprintf(cigar_tmp + lasttmpsize, 10, "%d%c", num,type);
-	memcpy(cigar, cigar_tmp, cigar_size);
+    memcpy(cigar, cigar_tmp, cigar_size);
 }
 
 int binary_search(int bot, int top, uint64_t * a, uint64_t key) {
@@ -175,10 +175,10 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
                     seq_string[len - i - 1]='N';
                 quality_string[len - i - 1]=quality[i];
             }
-			reverse_cigar(cigar);
+            reverse_cigar(cigar);
         }
     }
-	if (flag & sf_unmapped) cigar = star;
+    if (flag & sf_unmapped) cigar = star;
     return snprintf(buffer,sam_line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%"PRIu64"\t%lld\t%s\t%s\n",qname,flag,first.rname, first.pos, mapq, cigar,next.rname,next.pos,tlen,seq_string,quality_string);
 }
 

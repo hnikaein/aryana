@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     args.discordant=1;
     args.threads=1;
     args.potents=10;
-	args.debug = 0;
+    args.debug = 0;
     args.seed_length = -1;
     args.best_factor = -1;
     args.bisulfite = 0;

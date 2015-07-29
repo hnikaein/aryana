@@ -26,26 +26,6 @@ extern void GetRefSeq(unsigned long long, unsigned long long, unsigned long long
 const char atom[4]= {'A','C','G','T'};
 extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
-// Adds one letter *edit* to the cigar sequence *tmp_cigar* and updates the mismatch/gap open/gap extension numbers
-
-void extend_cigar(char * tmp_cigar, char edit, char *last, int * tail, penalty_t * penalty) {
-    switch (edit) {
-    case 'm':
-        break;
-    case 'M':
-        edit = 'm';
-        penalty->mismatch_num++;
-        break;
-    case 'd':
-    case 'i':
-        if (edit != *last) penalty->gap_open_num++;
-        else penalty->gap_ext_num++;
-        break;
-    }
-    *last = edit;
-    tmp_cigar[(*tail)++] = edit;
-}
-
 void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
     penalty->mismatch_num = 0;
@@ -99,7 +79,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
                 PrintSeq(seq+head_match,  best->match_start[i] - head_match, 1);
                 PrintRefSeq(reference, head_index, best->match_index[i]-1, seq_len, 1);
             }
-            print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",best->matched[i],'m');
+            print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",best->matched[i],'M');
             head_match=best->match_start[i]+best->matched[i];
             head_index=best->match_index[i]+best->matched[i];
         }
@@ -108,16 +88,16 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             bwtint_t end = head_index+len-head_match+slack;
             if (end >= seq_len) end = seq_len -1;
             if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
-                print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'i');
-            else{
+                print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'I');
+            else {
                 print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
-            //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
-            if (args->debug > 1) {
-                fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);
-                PrintSeq(seq+head_match, len - head_match, 1);
-                PrintRefSeq(reference, head_index, end-1, seq_len, 1);
+                //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
+                if (args->debug > 1) {
+                    fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);
+                    PrintSeq(seq+head_match, len - head_match, 1);
+                    PrintRefSeq(reference, head_index, end-1, seq_len, 1);
+                }
             }
-			}
             break;
         }
     }
@@ -125,7 +105,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     //refining cigar
     int firstblood=1;
     int last_size=0;
-    char last_char='m';
+    char last_char='M';
     print_head=0;
 
     for (i=0; cigar[i]; i++)
@@ -140,7 +120,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
         {
             last_size=num;
             last_char=cigar[i];
-            if (cigar[i]=='d')
+            if (cigar[i]=='D')
             {
                 last_size=0;
                 slack_index+=num;
@@ -156,7 +136,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
         {
             if (last_size>0) {
                 print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
-                if (last_char == 'i' || last_char == 'd') {
+                if (last_char == 'I' || last_char == 'D') {
                     penalty->gap_open_num++;
                     penalty->gap_ext_num += last_size - 1;
                 }
@@ -165,10 +145,10 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             last_char=cigar[i];
         }
     }
-    if (last_char!='d') {
+    if (last_char!='D') {
         if (last_size > 0)
             print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
-        if (last_char == 'i') {
+        if (last_char == 'I') {
             penalty->gap_open_num++;
             penalty->gap_ext_num += last_size - 1;
         }
