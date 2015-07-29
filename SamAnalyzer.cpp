@@ -125,12 +125,14 @@ int CigarLen(string cigar, int & gapOpen, int & gapExt) {
         case 'm':
             len += num;
             break;
-        case 'd': 
+        case 'd':
             len += num;
             gapOpen++;
             gapExt += num - 1;
             break;
-        case 'i': case 's': case 'h':
+        case 'i':
+        case 's':
+        case 'h':
             gapOpen++;
             gapExt += num - 1;
             break;
@@ -194,13 +196,14 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
             apos += num;
             bpos += num;
             break;
-        case 'i': case 'h': case 's':
+        case 'i':
+        case 'h':
+        case 's':
             if (bpos + num > b.size()) {
                 cerr << "Invalid cigar length compared to the sequences " << cigar << endl;
                 return -1;
             }
             bpos += num;
-            penalty += num;
             break;
         case 'd':
             if (apos + num > a.size()) {
@@ -208,7 +211,6 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
                 return -1;
             }
             apos += num;
-            penalty += num;
             break;
         }
     }
@@ -217,18 +219,18 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
 }
 
 void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
-	bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
+    bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
         fprintf(f, "%d\t%d\t%d\t%d", aligned, mismatch1, gapOpen1, gapExt1);
         if (realPos) fprintf(f, "\t%d\t%d\t%d\t%d", matchTogether, mismatch2, gapOpen2, gapExt2);
     } else {
-	    fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
-    	if (realPos) fprintf(f, "\t%s\t%lld\t%d\t%d\t%d\t%d", chr2.c_str(), pos2, matchTogether, mismatch2, gapOpen2, gapExt2);
-	    if (seqOutput) {
-    	    fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
-        	if (realPos) fprintf(f, "\t%s\t%s", cigar2, seq2);
-	    }
-	}
+        fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
+        if (realPos) fprintf(f, "\t%s\t%lld\t%d\t%d\t%d\t%d", chr2.c_str(), pos2, matchTogether, mismatch2, gapOpen2, gapExt2);
+        if (seqOutput) {
+            fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
+            if (realPos) fprintf(f, "\t%s\t%s", cigar2, seq2);
+        }
+    }
     fprintf(f, "\n");
 }
 
@@ -267,21 +269,21 @@ void ProcessSamFile(string samFileName) {
 //		cerr << "SAM line: " << buf << endl;
         sscanf(buf,"%s\t%d\t%s\t%lld\t%d\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos, &mapq, cigar, rnext, pnext, &tlen, seq, quality_string);
 //		cerr << "Position: " << rname << ":" << pos << endl;
-		if (! keepSecondary && (flag & (2048 + 256))) continue;
+        if (! keepSecondary && (flag & (2048 + 256))) continue;
         if ((flag & 4) || strcmp(cigar, "*") == 0 || strcmp(rname, "*") == 0) {
             strcpy(rname, "NA");
             strcpy(refSeq, "NA");
             pos = 0;
             aligned = false;
         } else {
-			int cigLen = CigarLen(cigar, gapOpen, gapExt);
-			if (cigLen <= 0) continue;
-			if (! GetSequence(rname, pos, cigLen, refSeq)) continue;
+            int cigLen = CigarLen(cigar, gapOpen, gapExt);
+            if (cigLen <= 0) continue;
+            if (! GetSequence(rname, pos, cigLen, refSeq)) continue;
             if (bisSeq)
                 mismatch = min(EditDistance(refSeq, seq, cigar, 'C', 'T'), EditDistance(refSeq, seq, cigar, 'G', 'A'));
             else
                 mismatch = EditDistance(refSeq, seq, cigar);
-			if (mismatch < 0) continue;
+            if (mismatch < 0) continue;
         }
         if (realPos) {
             stringstream s(qname);
@@ -326,10 +328,10 @@ int main(int argc, char * argv[]) {
             onlyPenalties = true;
             continue;
         }
-		if (strcmp(argv[i], "-k") == 0) {
-			keepSecondary = true;
-			continue;
-		}
+        if (strcmp(argv[i], "-k") == 0) {
+            keepSecondary = true;
+            continue;
+        }
         if (i < argc - 1) { // The paired arguments
             if (strcmp(argv[i], "-g") == 0)
                 genomeFile = argv[++i];
@@ -355,7 +357,7 @@ int main(int argc, char * argv[]) {
              "    -b                           bisulfite-seq input, default: DNA-seq\n" <<
              "    -r                           use only if reads are generated via read_simul, or correct read location is provided in the read name in a similar format\n" <<
              "    -p                           only print the penalties (number of mismatchs, gap openings and gap extensions)\n" <<
-			 "    -k                           keep non-primary alignments and report them in the output\n";
+             "    -k                           keep non-primary alignments and report them in the output\n";
         exit(1);
     }
 

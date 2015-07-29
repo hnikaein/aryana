@@ -7,7 +7,6 @@
 #include "bwa2.h"
 #include "main.h"
 #define aryana_version "0.1"
-int debug = 0;
 void bwa_print_sam_PG()
 {
     printf("@PG\tID:bwa\tPN:bwa\tVN:%s\n", aryana_version);
@@ -41,9 +40,9 @@ void Usage() {
     fprintf(stderr, "    -l/--limit <int>              maximum number of mismatches allowed for each alignment, default=unlimited\n");
     fprintf(stderr, "    -O/--order                    print the reads in output with the same order in the input.\n");
     fprintf(stderr, "    -B/--buffer <int>             size of output buffer. Increase it only when using -O/--order and program issues errors. default=100000\n");
-    fprintf(stderr, "    --mp <float>                  maximum mismatch penalty, default=5\n");
-    fprintf(stderr, "    --go <float>                  gap open penalty, default=5\n");
-    fprintf(stderr, "    --ge <float>                  gap extension penalty, default=3\n");
+    fprintf(stderr, "    --mp <int>                    maximum mismatch penalty, default=5\n");
+    fprintf(stderr, "    --go <int>                    gap open penalty, default=5\n");
+    fprintf(stderr, "    --ge <int>                    gap extension penalty, default=3\n");
     fprintf(stderr, "    -r/--report-multi             report multiple alignment positions for each read\n");
     fprintf(stderr, "    -e/--exact-match              number of exact matches of each seed to check, increasing it might increase accuracy, default=50\n");
     fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
@@ -72,6 +71,7 @@ int main(int argc, char *argv[])
     args.discordant=1;
     args.threads=1;
     args.potents=10;
+	args.debug = 0;
     args.seed_length = -1;
     args.best_factor = -1;
     args.bisulfite = 0;
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
             args.out_buffer_factor = atoi(optarg);
             break;
         case 'D':
-            debug = atoi(optarg);
+            args.debug = atoi(optarg);
             break;
         case 'd':
             args.discordant=0;
@@ -235,13 +235,13 @@ int main(int argc, char *argv[])
             args.ignore = ignore_GA;
             break;
         case 6:
-            args.mismatch_penalty = atof(optarg);
+            args.mismatch_penalty = atoi(optarg);
             break;
         case 7:
-            args.gap_open_penalty = atof(optarg);
+            args.gap_open_penalty = atoi(optarg);
             break;
         case 8:
-            args.gap_ext_penalty = atof(optarg);
+            args.gap_ext_penalty = atoi(optarg);
             break;
         default:
             fprintf(stderr, "Invalid argument: %c\n", c);

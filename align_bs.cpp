@@ -345,7 +345,7 @@ void Process() {
 
     while (true) {
         for (int i = 0; i < numberOfGenomes; i++) {
-			readPenalties[i] = 0;
+            readPenalties[i] = 0;
             if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
             sscanf(line[i],"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
@@ -375,13 +375,13 @@ void Process() {
                         flag2 = 0;
                     readCigar(cigar2[i], pos2[i]+chrom[index2].chrStart-1, seq_string2, i ,index2,pos2[i],flagTwo[i],flag2);
                 }
-				orientation_t orien;
-				if (index >= 0 && index2 >= 0) {
-					if (flag[i] & 16 == flagTwo[i] & 16) orien = ff;
-					else if (flag[i] & 16 == 0 && pos[i] < pos2[i] || flag[i] & 16 != 0 && pos[i] > pos2[i]) orien = fr;
-					else orien = rf;
-					if (index != index2 || abs(pos[i] - pos2[i]) < minD || abs(pos[i] - pos2[i]) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
-				}
+                orientation_t orien;
+                if (index >= 0 && index2 >= 0) {
+                    if ((flag[i] & 16) == (flagTwo[i] & 16)) orien = ff;
+                    else if (((flag[i] & 16) == 0 && pos[i] < pos2[i]) || ((flag[i] & 16) != 0 && pos[i] > pos2[i])) orien = fr;
+                    else orien = rf;
+                    if (index != index2 || abs(pos[i] - pos2[i]) < minD || abs(pos[i] - pos2[i]) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
+                }
             }
         }
         int min = min_penalty();
@@ -395,7 +395,7 @@ int main(int argc, char *argv[]) {
     if (argc < 6) {
         fprintf(stderr, "Usage: align_bs -x <reference genome> -s <input sam files> -c <CpG-island map> -p <penalties> [-o <output SAM file>] [-h <SAM header file>] [-l/--limit <maximum allowed mismatches>]\n");
         fprintf(stderr, "Additional arguments for paired-end reads:\n");
-		fprintf(stderr, "    -P to consider the input as paired-end, -m/--min for minimum and -M/--max for maximum distance, and --fr/rf/ff for orientation.\n");
+        fprintf(stderr, "    -P to consider the input as paired-end, -m/--min for minimum and -M/--max for maximum distance, and --fr/rf/ff for orientation.\n");
         return -1;
     }
     static struct option long_options[] = {
@@ -406,12 +406,12 @@ int main(int argc, char *argv[]) {
         { "output", required_argument, 0, 'o' },
         { "header", required_argument, 0, 'h' },
         { "paired-end", no_argument, 0, 'U' },
-		{ "min", required_argument, 0, 'm'},
-		{ "max", required_argument, 0, 'M'},
-		{ "fr", no_argument, 0, 1},
-		{ "rf", no_argument, 0, 2},
-		{ "ff", no_argument, 0, 3},
-		{ "limit", required_argument, 0, 'l'}
+        { "min", required_argument, 0, 'm'},
+        { "max", required_argument, 0, 'M'},
+        { "fr", no_argument, 0, 1},
+        { "rf", no_argument, 0, 2},
+        { "ff", no_argument, 0, 3},
+        { "limit", required_argument, 0, 'l'}
     };
     int option_index = 0;
     char* samFileName = 0, *tmp, c;
@@ -449,24 +449,24 @@ int main(int argc, char *argv[]) {
         case 'P':
             paired = true;
             break;
-		case 'm': 
-			minD = atoi(optarg);
-			break;
-		case 'M': 
-			maxD = atoi(optarg); 
-			break;
-		case 1:
-			orientation = fr;
-			break;
-		case 2:
-			orientation = rf;
-			break;
-		case 3:
-			orientation = ff;
-			break;
-		case 'l':
-			limit = atoi(optarg);
-			break;
+        case 'm':
+            minD = atoi(optarg);
+            break;
+        case 'M':
+            maxD = atoi(optarg);
+            break;
+        case 1:
+            orientation = fr;
+            break;
+        case 2:
+            orientation = rf;
+            break;
+        case 3:
+            orientation = ff;
+            break;
+        case 'l':
+            limit = atoi(optarg);
+            break;
         }
     }
     if (! headerFile) headerFile = outputFile;

@@ -107,9 +107,13 @@ bool GetSequence(string chr, long long start, long long length, char *seq) {
 }
 
 void PrintSequence(string chr, long long start, long long end, bool revComp) {
+    if (end < start) {
+        cerr << "The end location: " << end << " is smaller than the start: " << start << endl;
+        return;
+    }
     char * seq = new char[end - start + 2];
     if (chr != "") {
-        if (! GetSequence(chr, start, end, seq)) {
+        if (! GetSequence(chr, start, end - start + 1, seq)) {
             cerr << "Error in the given chromosomal position." << endl;
             delete[] seq;
             return;
