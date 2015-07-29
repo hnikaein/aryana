@@ -310,13 +310,13 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             if (i < k) break;
         }
     }
-    if (args->best_factor!=-1)
+    if (args->best_factor > 0)
     {
         for (i=best_size-2; i>=(*best_found); i--)
         {
             if (best[i] == -1)
                 break;
-            if (best[i]<best[best_size-1]/args->best_factor)
+            if (best[i]<best[best_size-1]*args->best_factor)
             {
                 (*best_found)=i+1;
                 break;

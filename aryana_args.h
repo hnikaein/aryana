@@ -23,7 +23,7 @@ typedef struct {
     int threads;
     int potents;
     int seed_length;
-    int best_factor;
+    double best_factor;
     int bisulfite;
     int order;
     int debug;
