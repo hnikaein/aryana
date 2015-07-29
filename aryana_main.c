@@ -47,7 +47,7 @@ void Usage() {
     fprintf(stderr, "    -e/--exact-match              number of exact matches of each seed to check, increasing it might increase accuracy, default=50\n");
     fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
     fprintf(stderr, "    -D/--debug <int>              the level of printing debug info, default=0 (no debug info)\n\n");
-    frpintf(stderr, "    -f/--factor <double>          only check the candidate positions with total seed length at least <double> times the best hit, or 0 to check all. default=0.8\n");
+    fprintf(stderr, "    -f/--factor <double>          only check the candidate positions with total seed length at least <double> times the best hit, or 0 to check all. default=0.8\n");
     fprintf(stderr, "Optional arguments for paired-end alignment:\n");
     fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends, default: no restriction on orientation. f=forward, r=reverse.\n");
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
