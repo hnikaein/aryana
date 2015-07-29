@@ -37,12 +37,12 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     for (i=best->parts-1; i>=0; i--)
     {
         valid[i]=1;
-        if (abs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20)
+        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20)
             valid[i]=0;
         if (valid[i]==1 && i<best->parts-1 && (best->match_start[lastvalid]+best->matched[lastvalid]>best->match_start[i]))
         {
             valid[i]=0;
-            if (abs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) < abs((signed)(best->match_index[lastvalid]-best->match_start[lastvalid])-(signed)best->index))
+            if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) < llabs((signed)(best->match_index[lastvalid]-best->match_start[lastvalid])-(signed)best->index))
             {
                 valid[lastvalid]=0;
                 valid[i]=1;
@@ -71,7 +71,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     }
     for (i=best->parts-1; i>=0; i--)
     {
-        if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && abs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
+        if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
         {
             print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
             if (args->debug > 1) {

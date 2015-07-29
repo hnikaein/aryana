@@ -380,7 +380,7 @@ void Process() {
                     if ((flag[i] & 16) == (flagTwo[i] & 16)) orien = ff;
                     else if (((flag[i] & 16) == 0 && pos[i] < pos2[i]) || ((flag[i] & 16) != 0 && pos[i] > pos2[i])) orien = fr;
                     else orien = rf;
-                    if (index != index2 || abs(pos[i] - pos2[i]) < minD || abs(pos[i] - pos2[i]) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
+                    if (index != index2 || llabs((signed) (pos[i] - pos2[i])) < minD || llabs((signed)(pos[i] - pos2[i])) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
                 }
             }
         }
