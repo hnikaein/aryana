@@ -7,6 +7,9 @@
 #include "bwa2.h"
 #include "main.h"
 #define aryana_version "0.1"
+
+long long total_candidates = 0, best_factor_candidates = 0;
+
 void bwa_print_sam_PG()
 {
     printf("@PG\tID:bwa\tPN:bwa\tVN:%s\n", aryana_version);
@@ -279,7 +282,7 @@ int main(int argc, char *argv[])
         if(output)
             fclose(sam);
     }
-
+	fprintf(stderr, "Total candidates: %lld\nThe candidates filtered by --factor:%lld\n", total_candidates, best_factor_candidates);
     //fprintf(stderr, "ori = %s\n", args.ori);
     //bwa_aln_single(args.reference, args.fq);
     /*	pair_opt options;

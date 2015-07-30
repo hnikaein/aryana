@@ -27,6 +27,10 @@ void ReadGenome(string genomeFile) {
     //now get current position as length of file
     long long size = ifile.tellg();
     ifile.close();
+	if (size <= 0) {
+		cerr << "Error reading the genome file: " << genomeFile << endl;
+		exit(1);
+	}
     genome = new char[size];
     gs = 0;
     chromNum = 0;
