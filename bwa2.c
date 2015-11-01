@@ -455,6 +455,7 @@ void multiAligner(global_vars * g) {
 
 void *worker2(void *data) {
     global_vars *g = (global_vars*)data;
+fprintf(stderr, "G: %llu", g);
     multiAligner(g);
     pthread_mutex_lock(&input);
     running_threads_num--;
@@ -541,7 +542,7 @@ void bwa_aln_core2(aryana_args *args)
     int i, j;
     uint64_t * reference;
     uint64_t reference_size, reference_reminder;
-    bwtint_t offset[max_chrom_num];
+    bwtint_t *offset = (bwtint_t *)calloc(max_chrom_num, sizeof(bwtint_t));
     bwtint_t offInd = 0;
     ks = bwa_open_reads(opt->mode, fn_fa);
     if (args->paired)
@@ -561,7 +562,7 @@ void bwa_aln_core2(aryana_args *args)
     strcat(str, ".bin");
     ref_read(str, &reference, &reference_size, &reference_reminder);
 
-    memset(offset, 0, sizeof(offset));
+    memset(offset, 0, max_chrom_num * sizeof(bwtint_t));
     strcpy(str, prefix);
     strcat(str, ".ann");
     FILE * ann = fopen(str, "r");
@@ -602,6 +603,7 @@ void bwa_aln_core2(aryana_args *args)
     threads = (pthread_t*)calloc(args->threads, sizeof(pthread_t));
     pthread_attr_init(&attr);
     data = (global_vars*)calloc(args->threads, sizeof(global_vars));
+fprintf(stderr, "Data: %llu\n", data);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     for(j=0; j<args->threads; j++) {
         data[j].tid = j;
@@ -650,6 +652,7 @@ void bwa_aln_core2(aryana_args *args)
     free(data);
     free(threads);
     free(reference);
+    free(offset);
     bwt_destroy(bwt);
     bwa_seq_close(ks);
     if (args->paired)

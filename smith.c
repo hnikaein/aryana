@@ -19,15 +19,15 @@ int max(int q , int p)
     return q<p ? p : q;
 }
 
-inline int gap(int len, int go, int ge) {
+static inline int gap(int len, int go, int ge) {
     return (len <= 0) ? 0 : (len - 1) * ge + go;
 }
 
-inline int insertion(char c) {
+static inline int insertion(char c) {
     return (c >= insC && c <= insC + mgi-1);
 }
 
-inline int deletion(char c) {
+static inline int deletion(char c) {
     return (c >= delC && c <= delC + mgi - 1);
 }
 

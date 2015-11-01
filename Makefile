@@ -11,8 +11,8 @@ PROG=		aryana
 INCLUDES=	
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	. 
-debug:		CFLAGS += -DDEBUG -g3 -O0
-debug:		CXXFLAGS += -DDEBUG -g3 -O0
+debug:		CFLAGS=-Wall -Wno-unused-function -DDEBUG -g3 -O0
+debug:		CXXFLAGS=-Wall -Wno-unused-function -DDEBUG -g3 -O0
 
 .SUFFIXES:.c .o .cc
 
