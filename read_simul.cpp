@@ -246,6 +246,18 @@ void AddCigar(char * cigar, int & num, char & last, char a) {
     }
 }
 
+void FixedLengthPrint(FILE *f, char * s, long long slen, int fixedlen) {
+    while (slen > fixedlen) {
+	char c = s[fixedlen];
+	s[fixedlen] = 0;
+	fprintf(f, "%s\n", s);
+	s[fixedlen] = c;
+	s += fixedlen;
+	slen -= fixedlen;
+    }
+    fprintf(f, "%s", s);
+}
+
 // Just generates a single read, without header line but with quality line
 
 void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char original) {
@@ -291,7 +303,11 @@ void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char origi
     AddCigar(cigar, num, last, 0);
     R[RLen] = 0;
     quals[RLen] = 0;
-    fprintf(f, "%s\n%-60s\n+\n%-60s\n", cigar, R,quals);
+    fprintf(f, "%s\n", cigar);
+    FixedLengthPrint(f, R, RLen, 60);
+    fprintf(f, "\n+\n");
+    FixedLengthPrint(f, quals, RLen, 60);
+    fprintf(f, "\n");
     quals[RLen] = 'I';
 }
 
