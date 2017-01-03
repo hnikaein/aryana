@@ -89,7 +89,7 @@ int get_chr(bwtint_t index,  bwtint_t seq_len, bwtint_t * offset, bwtint_t offIn
 }
 
 void get_genomic_position(int * flag, bwtint_t index, genomic_location * loc, char * cigar,  uint32_t * mapq, bwtint_t seq_len, int unmapped, int reverse, bwtint_t * offset, bwtint_t offInd) {
-    if (index <= 0 || index >= seq_len)
+    if (index < 0 || index >= seq_len)
         *flag |= unmapped;
     if (((*flag) & unmapped) == 0) {
         if (index >= seq_len / 2) {
