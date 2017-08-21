@@ -347,7 +347,7 @@ void Process() {
         for (int i = 0; i < numberOfGenomes; i++) {
             readPenalties[i] = 0;
             if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
-            sscanf(line[i],"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
+            sscanf(line[i], "%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n" ,qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
             if(index == -1) readPenalties[i] += unalignedPenalty;
             else {
