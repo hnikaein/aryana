@@ -28,7 +28,7 @@ extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
 extern long long total_candidates, best_factor_candidates;
 
-void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
+void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;

@@ -26,6 +26,7 @@
 
 //#include "aligner.h"
 #include "sam.h"
+#define MAX(a, b) (a > b) ? a : b
 char atom2[4]= {'A','C','G','T'};
 int counter = 0;
 double base=10.0;
@@ -100,7 +101,7 @@ void compute_cigar_penalties(global_vars *g, int candidates_num, int candidates_
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
         if (candidates[i]!=-1)
         {
-            create_cigar(g->args, &table[candidates[i]], cigar[i], seq->len, seq->seq,g->bwt->seq_len,d,arr, tmp_cigar, penalty + i, g->reference, g->args->ignore);
+            create_cigar(g->args, &table[candidates[i]], cigar[i], seq->len, seq->seq, seq->qual, g->bwt->seq_len,d,arr, tmp_cigar, penalty + i, g->reference, g->args->ignore);
             compute_penalty(g->args, penalty + i);
             seq->index=table[candidates[i]].index;
             if (g->args->debug >= 1) {
@@ -148,25 +149,10 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
 void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
     int i;
     for (i = 0; i < num; i++) {
-        p[i].mapq = p[i].penalty;
-        if (paired) p2[i].mapq = p2[i].penalty;
+        p[i].mapq = MAX(0, 41 - p[i].penalty);
+        if (paired) p2[i].mapq = MAX(0, 41 - p2[i].penalty);
     }
-} // XXX
-/*
-                double scaled_err=scmax*mismatch_num/(seq->len);
-                            prob+=pow(base,-scaled_err);
-    double prob=0.0;
-//  prob+=pow(5.0,-(10-best_errors/3));
-    double scaled_err=scmax*best_mismatch_num/(seq->len);
-    prob=1.0-pow(base,-scaled_err)/prob;
-    if (prob<=0.00000001)
-        prob+=0.00000001;
-    double mapq=-5*log10(prob);
-//  mapq/=1.5;
-    seq->mapQ=mapq;
-    //  fprintf(stderr,"%lf\n",mapq);
 }
-*/
 
 void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2,  char * cigar[], char * cigar2[], int paired) {
     *best_num = 0;
@@ -455,7 +441,6 @@ void multiAligner(global_vars * g) {
 
 void *worker2(void *data) {
     global_vars *g = (global_vars*)data;
-fprintf(stderr, "G: %llu", g);
     multiAligner(g);
     pthread_mutex_lock(&input);
     running_threads_num--;
@@ -603,7 +588,6 @@ void bwa_aln_core2(aryana_args *args)
     threads = (pthread_t*)calloc(args->threads, sizeof(pthread_t));
     pthread_attr_init(&attr);
     data = (global_vars*)calloc(args->threads, sizeof(global_vars));
-fprintf(stderr, "Data: %llu\n", data);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     for(j=0; j<args->threads; j++) {
         data[j].tid = j;
