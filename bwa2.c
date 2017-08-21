@@ -149,8 +149,8 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
 void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
     int i;
     for (i = 0; i < num; i++) {
-        p[i].mapq = MAX(0, 41 - p[i].penalty);
-        if (paired) p2[i].mapq = MAX(0, 41 - p2[i].penalty);
+        p[i].mapq = MAX(1, 41 - p[i].penalty/5);
+        if (paired) p2[i].mapq = MAX(1, 41 - p2[i].penalty/5);
     }
 }
 
