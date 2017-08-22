@@ -10,6 +10,7 @@
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
+#include "const.h"
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
@@ -19,6 +20,7 @@
 #define true 1
 #define bool int
 #include "bwt2.h"
+#define MAX(a, b) (a > b) ? a : b
 extern int debug;
 extern void PrintSeq(const unsigned char *, int, int);
 extern void PrintRefSeq(uint64_t * reference, unsigned long long, unsigned long long, unsigned long long, int);
@@ -30,6 +32,7 @@ extern long long total_candidates, best_factor_candidates;
 
 void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
+
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
@@ -75,7 +78,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     {
         if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
         {
-            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq ,  len, &penalty->mismatch_num ,  seq_len, d, arr, tmp_cigar, reference, ignore);
             if (args->debug > 1) {
                 fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
                 PrintSeq(seq+head_match,  best->match_start[i] - head_match, 1);
@@ -92,7 +95,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
                 print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'I');
             else {
-                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq ,  len , &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
                 if (args->debug > 1) {
                     fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);
@@ -155,6 +158,34 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             penalty->gap_ext_num += last_size - 1;
         }
     }
+
+    //calculating mapq 
+    int qual_index=0;
+    for(i=0; cigar[i]; i++)
+    {    
+   	char tmp[10];
+        j=0;
+        while(isdigit(cigar[i]))
+            tmp[j++]=cigar[i++];
+        tmp[j]=0;
+        bwtint_t num=atoi(tmp);
+	if(cigar[i]=='D')
+		continue;
+	for(;num>0;qual_index++,num--)
+	{
+		if(cigar[i]=='M')
+		{
+			penalty->mapq+=(qual[qual_index]-33);
+		}
+		else if(cigar[i]=='I')
+		{
+			penalty->mapq-=(qual[qual_index]-33);
+		}
+	}
+    }
+    penalty->mapq=MAX(penalty->mapq,0);
+    penalty->mapq/=len;	
+    
     if (args->debug > 0)
         fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
     best->index=slack_index;

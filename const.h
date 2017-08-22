@@ -10,3 +10,5 @@
 #define maxPenalty (100000000)
 #define max_chrom_num (10000)
 #define max_sam_header_size (1000000)
+#define max_quality 60
+

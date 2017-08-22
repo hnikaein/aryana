@@ -147,11 +147,11 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
 }
 
 void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
-    int i;
+    /*int i;
     for (i = 0; i < num; i++) {
-        p[i].mapq = MAX(1, 41 - p[i].penalty/5);
+        p[i].mapq = p[i].mapq/;
         if (paired) p2[i].mapq = MAX(1, 41 - p2[i].penalty/5);
-    }
+    }*/
 }
 
 void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2,  char * cigar[], char * cigar2[], int paired) {
