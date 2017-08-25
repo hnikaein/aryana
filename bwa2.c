@@ -28,6 +28,7 @@
 //#include "aligner.h"
 #include "sam.h"
 #define MAX(a, b) (a > b) ? a : b
+#define MIN(a, b) (a < b) ? a : b
 char atom2[4]= {'A','C','G','T'};
 int counter = 0;
 double base=10.0;
@@ -68,7 +69,7 @@ double PtoQ(double prob)
 	const double eps=0.0001;
 	if(prob<eps)
 		return 40;
-	return -10*log10(prob);
+	return MIN(-10*log10(prob),40);
 }
 
 void compute_penalty(aryana_args * args, penalty_t * p) {
@@ -205,7 +206,7 @@ double prob_function2(bwtint_t len, ubyte_t * qual, char * cigar)
 			
 		}
     	}
-	double p_ans=(p_delete+p_not_delete);
+	double p_ans=(p_delete*p_not_delete);
 	return p_ans;
 }
 
@@ -249,19 +250,23 @@ void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p
     for (i = 0; i < num; i++) {
         p[i].mapq = prob_function2(len,qual,c[i]);
         if (paired) p2[i].mapq = prob_function2(len2, qual2 ,c2[i]);	
-	sum+=p[i].mapq;
-	if(paired)sum2+=p2[i].mapq;
+	
+		sum+=p[i].mapq;
+		if(paired)sum2+=p2[i].mapq;
 
     }
+
     for (i=0; i < num; i++)
     {
-	p[i].mapq/=sum;
-	p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
-	if(paired)
-	{	
-		p2[i].mapq/=sum2; //TODO prior probability
-		p2[i].mapq=PtoQ(1-p2[i].mapq);
-	}
+		p[i].mapq/=sum;
+		p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
+		if(paired)
+		{	
+			p2[i].mapq/=sum2; //TODO prior probability
+			p2[i].mapq=PtoQ(1-p2[i].mapq);
+		}
+		if(p[i].mapq>40)
+			fprintf(stderr,"error\n");
     }
 
 }
