@@ -5,6 +5,7 @@
 #include <string.h>
 #include <strings.h>
 #include <time.h>
+#include<ctype.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -23,7 +24,7 @@
 #include "bntseq.h"
 #include "utils.h"
 #include "const.h"
-
+#include <math.h>
 //#include "aligner.h"
 #include "sam.h"
 #define MAX(a, b) (a > b) ? a : b
@@ -56,6 +57,19 @@ typedef struct {
 outBuf_t * outBuf;
 int running_threads_num;
 unsigned long long outBufIndex, outBufLen;
+
+double QtoP(double quality)
+{
+	return pow(10,quality/(-10));
+}
+
+double PtoQ(double prob)
+{
+	const double eps=0.0001;
+	if(prob<eps)
+		return 40;
+	return -10*log10(prob);
+}
 
 void compute_penalty(aryana_args * args, penalty_t * p) {
     if (args->mismatch_limit >= 0 && p->mismatch_num > args->mismatch_limit) p->penalty = maxPenalty;
@@ -146,15 +160,115 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
     return 1;	// Valid pair
 }
 
-void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
-    /*int i;
-    for (i = 0; i < num; i++) {
-        p[i].mapq = p[i].mapq/;
-        if (paired) p2[i].mapq = MAX(1, 41 - p2[i].penalty/5);
-    }*/
+double prob_function2(bwtint_t len, ubyte_t * qual, char * cigar)
+{	
+    	int qual_index=0;
+
+	const double p_snp=0.0011;	
+
+	const double p_delete_open=0.001;
+	const double p_delete_extend=0.01;
+
+	double p_mismatch=0; // compute from read quality
+
+	double p_delete=1; // compute for delete blocks
+	double p_not_delete=1; //compute for insert and mathch ( match and mismatch)
+
+	int prev_was_delete=0;	
+
+	int i;
+    	for(i=0; cigar[i]; i++)
+    	{    
+   		char tmp[10];
+        	int j=0;
+       		while(isdigit(cigar[i]))
+           		tmp[j++]=cigar[i++];
+        	tmp[j]=0;
+        	bwtint_t num=atoi(tmp);
+		if(cigar[i]=='D')
+		{
+			prev_was_delete=1;
+			p_delete *= (p_delete_open)*pow(p_delete_extend,num-1);
+		}
+		for(;num>0;qual_index++,num--)
+		{
+			p_mismatch=QtoP(qual[qual_index]-33);
+			if(cigar[i]=='M')
+			{
+				p_not_delete *=((1-p_snp)*(1-p_mismatch)+p_snp*p_mismatch/3) * ( prev_was_delete ? (1-p_delete_extend) : (1-p_delete_open));
+			}
+			else if(cigar[i]=='I')
+			{
+				p_not_delete *=(1-p_snp)*(p_mismatch/3)+(p_snp/3)*(1-p_mismatch)+(2*p_snp/3)*(p_mismatch/3) * ( prev_was_delete ? (1-p_delete_extend) : (1-p_delete_open));
+			}
+			
+			
+		}
+    	}
+	double p_ans=(p_delete+p_not_delete);
+	return p_ans;
 }
 
-void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2,  char * cigar[], char * cigar2[], int paired) {
+double prob_function1(bwtint_t len, ubyte_t *qual, char *cigar)
+{
+	
+    	int qual_index=0;
+	double mapq=0;
+	int i;
+    	for(i=0; cigar[i]; i++)
+    	{    
+   		char tmp[10];
+        	int j=0;
+       		while(isdigit(cigar[i]))
+           		tmp[j++]=cigar[i++];
+        	tmp[j]=0;
+        	bwtint_t num=atoi(tmp);
+		if(cigar[i]=='D')
+			continue;
+		for(;num>0;qual_index++,num--)
+		{
+			if(cigar[i]=='M')
+			{
+				mapq+=(qual[qual_index]-33);
+			}
+			else if(cigar[i]=='I')
+			{
+				mapq-=(qual[qual_index]-33);
+			}
+		}
+    	}
+    	mapq=MAX(mapq,0);
+    	mapq/=len;
+	return 1-QtoP(mapq);
+}
+
+void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, bwtint_t len, bwtint_t len2, ubyte_t *qual, ubyte_t *qual2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
+    
+    int i;
+    double sum=0,sum2=0;
+    for (i = 0; i < num; i++) {
+        p[i].mapq = prob_function2(len,qual,c[i]);
+        if (paired) p2[i].mapq = prob_function2(len2, qual2 ,c2[i]);	
+	sum+=p[i].mapq;
+	if(paired)sum2+=p2[i].mapq;
+
+    }
+    fprintf(stderr,"sum=%f\n",sum); 
+    for (i=0; i < num; i++)
+    {
+	p[i].mapq/=sum;
+	p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
+        fprintf(stderr,"mapq=%f",p[i].mapq);	
+	if(paired)
+	{	
+		p2[i].mapq/=sum2; //TODO prior probability
+		p2[i].mapq=PtoQ(1-p2[i].mapq);
+	}
+    }
+
+}
+
+void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) { 
     *best_num = 0;
     int min_penalty = maxPenalty, i, j;
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
@@ -201,7 +315,7 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
             }
         }
     if (*best_num > 0)
-        compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, table, table2, cigar, cigar2, paired);
+        compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, len, len2, qual, qual2, table, table2, cigar, cigar2, paired);
 }
 
 long long report_alignment_results(global_vars *g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, int * can, int * can2, int canNum, int canNum2, penalty_t * penalty, penalty_t * penalty2) {
@@ -295,6 +409,7 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
 // This function aligns one (single or paired) read, finds the best alignment positions, computes the CIGAR sequence, and one or multiple lines of the SAM file for reporting the read alignments
 // arr and d are the arrays used for smith_waterman dynamic programming. The reason to pass their pointers is to avoid creating them for every read
 long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, char **arr, char* tmp_cigar) {
+     
     buffer[0]='\0';
     int candidates_size=g->args->potents;
     int candidates[candidates_size], candidates2[candidates_size], candidates_num = candidates_size, candidates_num2 = candidates_size;
@@ -316,12 +431,11 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
     if (g->args->paired) {
         aligner(g->bwt, seq2->len, seq2->seq,  level, table2, candidates2, candidates_size, &candidates_num2, g->args, g->reference);
         compute_cigar_penalties(g, candidates_num2, candidates_size, candidates2, cigar2, seq2, table2, d, arr, tmp_cigar, penalty2);
-    }
-
-    find_best_candidates(g, candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len,  (g->args->paired) ? seq2->len : 0, cigar, cigar2, g->args->paired);
+    } 
+    find_best_candidates(g, candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len,  (g->args->paired) ? seq2->len : 0, seq->qual, (g->args->paired) ? seq2->qual : 0, cigar, cigar2, g->args->paired);
     if (g->args->paired && g->args->discordant && best_num == 0) { // No valid paired alignments but we should report "discordant" alignments: the best alignment for each read of the pair separately
-        find_best_candidates(g, candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0, cigar, 0, 0);
-        find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, cigar2, 0, 0);
+        find_best_candidates(g, candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0,seq->qual, seq2->qual,  cigar, 0, 0);
+        find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, seq->qual, seq2->qual, cigar2, 0, 0);
         return report_discordant_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
     }
     return report_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);

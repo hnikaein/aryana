@@ -159,32 +159,6 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
         }
     }
 
-    //calculating mapq 
-    int qual_index=0;
-    for(i=0; cigar[i]; i++)
-    {    
-   	char tmp[10];
-        j=0;
-        while(isdigit(cigar[i]))
-            tmp[j++]=cigar[i++];
-        tmp[j]=0;
-        bwtint_t num=atoi(tmp);
-	if(cigar[i]=='D')
-		continue;
-	for(;num>0;qual_index++,num--)
-	{
-		if(cigar[i]=='M')
-		{
-			penalty->mapq+=(qual[qual_index]-33);
-		}
-		else if(cigar[i]=='I')
-		{
-			penalty->mapq-=(qual[qual_index]-33);
-		}
-	}
-    }
-    penalty->mapq=MAX(penalty->mapq,0);
-    penalty->mapq/=len;	
     
     if (args->debug > 0)
         fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);

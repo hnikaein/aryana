@@ -31,14 +31,14 @@ uint64_t cigar_len(char *cigar)
         }
         else
         {
-            if (type=='m' || type=='d')
+            if (type=='M' || type=='D')
                 length+=num;
             type=cigar[i];
             num=0;
             offset=1;
         }
     }
-    if (type=='m')
+    if (type=='M')
         length+=num;
     return length;
 }
