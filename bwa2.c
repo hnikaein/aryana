@@ -253,12 +253,10 @@ void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p
 	if(paired)sum2+=p2[i].mapq;
 
     }
-    fprintf(stderr,"sum=%f\n",sum); 
     for (i=0; i < num; i++)
     {
 	p[i].mapq/=sum;
 	p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
-        fprintf(stderr,"mapq=%f",p[i].mapq);	
 	if(paired)
 	{	
 		p2[i].mapq/=sum2; //TODO prior probability
