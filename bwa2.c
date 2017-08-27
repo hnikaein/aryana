@@ -190,6 +190,7 @@ double prob_function2(bwtint_t len, ubyte_t * qual, char * cigar)
 		{
 			prev_was_delete=1;
 			p_delete *= (p_delete_open)*pow(p_delete_extend,num-1);
+			continue;
 		}
 		for(;num>0;qual_index++,num--)
 		{
@@ -265,8 +266,6 @@ void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p
 			p2[i].mapq/=sum2; //TODO prior probability
 			p2[i].mapq=PtoQ(1-p2[i].mapq);
 		}
-		if(p[i].mapq>40)
-			fprintf(stderr,"error\n");
     }
 
 }
