@@ -161,21 +161,25 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
     return 1;	// Valid pair
 }
 
-double prob_function2(bwtint_t len, ubyte_t * qual, char * cigar)
+double prob_function2(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual, char * cigar, uint64_t refrence_index)
 {	
-    	int qual_index=0;
+    	int read_index=0;
 
 	const double p_snp=0.0011;	
 
-	const double p_delete_open=0.001;
-	const double p_delete_extend=0.01;
+	const double p_delete_open=0.003;
+	const double p_delete_extend=0.05;
+
+	const double p_insert_open=0.003;
+	const double p_insert_extend=0.05;
+
+	double p_d,p_m,p_i;
 
 	double p_mismatch=0; // compute from read quality
 
-	double p_delete=1; // compute for delete blocks
-	double p_not_delete=1; //compute for insert and mathch ( match and mismatch)
+	double p_ans=1;
 
-	int prev_was_delete=0;	
+	char prev='M';	
 
 	int i;
     	for(i=0; cigar[i]; i++)
@@ -186,32 +190,46 @@ double prob_function2(bwtint_t len, ubyte_t * qual, char * cigar)
            		tmp[j++]=cigar[i++];
         	tmp[j]=0;
         	bwtint_t num=atoi(tmp);
+		
+		p_d=(prev=='D' ? p_delete_extend : p_delete_open);
+		p_i=(prev=='I' ? p_insert_extend : p_insert_open);
+		p_m=1-p_i-p_d;
+
 		if(cigar[i]=='D')
 		{
-			prev_was_delete=1;
-			p_delete *= (p_delete_open)*pow(p_delete_extend,num-1);
+
+			prev=cigar[i];
+			p_ans *= (p_delete_open) * pow(p_delete_extend,num-1);
+			refrence_index+=num;
 			continue;
 		}
-		for(;num>0;qual_index++,num--)
+		if(cigar[i]=='I')
 		{
-			p_mismatch=QtoP(qual[qual_index]-33);
-			if(cigar[i]=='M')
+			p_ans *= (p_insert_open) * pow(p_insert_extend,num-1);
+			prev=cigar[i];
+			read_index+=num;
+			continue;
+		}
+		for(;num>0;read_index++, refrence_index++ ,num--)
+		{
+
+			p_mismatch=QtoP(qual[read_index]-33);
+			if(seq[read_index]==getNuc(refrence_index,g->reference, g->bwt->seq_len))
 			{
-				p_not_delete *=((1-p_snp)*(1-p_mismatch)+p_snp*p_mismatch/3) * ( prev_was_delete ? (1-p_delete_extend) : (1-p_delete_open));
+				p_ans *=((1-p_snp)*(1-p_mismatch)+p_snp*p_mismatch/3) * p_m;
 			}
-			else if(cigar[i]=='I')
+			else 
 			{
-				p_not_delete *=(1-p_snp)*(p_mismatch/3)+(p_snp/3)*(1-p_mismatch)+(2*p_snp/3)*(p_mismatch/3) * ( prev_was_delete ? (1-p_delete_extend) : (1-p_delete_open));
+				p_ans *=((1-p_snp)*(p_mismatch/3)+(p_snp/3)*(1-p_mismatch)+(2*p_snp/3)*(p_mismatch/3)) * p_m;
 			}
 			
 			
 		}
     	}
-	double p_ans=(p_delete*p_not_delete);
 	return p_ans;
 }
 
-double prob_function1(bwtint_t len, ubyte_t *qual, char *cigar)
+double prob_function1(global_vars * g, bwtint_t len, ubyte_t* seq, ubyte_t *qual, char *cigar, uint64_t refrence_index)
 {
 	
     	int qual_index=0;
@@ -244,33 +262,34 @@ double prob_function1(bwtint_t len, ubyte_t *qual, char *cigar)
 	return 1-QtoP(mapq);
 }
 
-void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, bwtint_t len, bwtint_t len2, ubyte_t *qual, ubyte_t *qual2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
+void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, bwtint_t len, bwtint_t len2, ubyte_t *seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
     
     int i;
     double sum=0,sum2=0;
     for (i = 0; i < num; i++) {
-        p[i].mapq = prob_function2(len,qual,c[i]);
-        if (paired) p2[i].mapq = prob_function2(len2, qual2 ,c2[i]);	
+        p[i].mapq = prob_function2(g,len,seq, qual,c[i],t[can[i]].index);
+
+        
+	if (paired) p2[i].mapq = prob_function2(g,len2, seq, qual2 ,c2[i], t2[can2[i]].index);	
 	
-		sum+=p[i].mapq;
-		if(paired)sum2+=p2[i].mapq;
-
+	sum+=p[i].mapq;
+	if(paired)sum2+=p2[i].mapq;
     }
-
     for (i=0; i < num; i++)
-    {
-		p[i].mapq/=sum;
+    {	
+		double e=0.03;
+		p[i].mapq/=MIN(sum+e,1);
 		p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
 		if(paired)
 		{	
-			p2[i].mapq/=sum2; //TODO prior probability
+			p2[i].mapq/=MIN(sum2+e,1); //TODO prior probability
 			p2[i].mapq=PtoQ(1-p2[i].mapq);
 		}
     }
 
 }
 
-void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) { 
+void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t* seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) { 
     *best_num = 0;
     int min_penalty = maxPenalty, i, j;
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
@@ -317,7 +336,7 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
             }
         }
     if (*best_num > 0)
-        compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, len, len2, qual, qual2, table, table2, cigar, cigar2, paired);
+        compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, len, len2, seq, seq2, qual, qual2, table, table2, cigar, cigar2, paired);
 }
 
 long long report_alignment_results(global_vars *g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, int * can, int * can2, int canNum, int canNum2, penalty_t * penalty, penalty_t * penalty2) {
@@ -433,11 +452,11 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
     if (g->args->paired) {
         aligner(g->bwt, seq2->len, seq2->seq,  level, table2, candidates2, candidates_size, &candidates_num2, g->args, g->reference);
         compute_cigar_penalties(g, candidates_num2, candidates_size, candidates2, cigar2, seq2, table2, d, arr, tmp_cigar, penalty2);
-    } 
-    find_best_candidates(g, candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len,  (g->args->paired) ? seq2->len : 0, seq->qual, (g->args->paired) ? seq2->qual : 0, cigar, cigar2, g->args->paired);
+    }
+    find_best_candidates(g, candidates_num, candidates_num2, candidates_size, candidates, candidates2, penalty, penalty2, best_candidates, best_candidates2, &best_num, table, table2, seq->len,  (g->args->paired) ? seq2->len : 0, seq->seq, (g->args->paired) ? seq2->seq : 0, seq->qual, (g->args->paired) ? seq2->qual : 0, cigar, cigar2, g->args->paired);
     if (g->args->paired && g->args->discordant && best_num == 0) { // No valid paired alignments but we should report "discordant" alignments: the best alignment for each read of the pair separately
-        find_best_candidates(g, candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0,seq->qual, seq2->qual,  cigar, 0, 0);
-        find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, seq->qual, seq2->qual, cigar2, 0, 0);
+        find_best_candidates(g, candidates_num, 0, candidates_size, candidates, 0, penalty, 0, best_candidates, 0, &best_num, table, 0, seq->len, 0, seq->seq, seq2->seq, seq->qual, seq2->qual,  cigar, 0, 0);
+        find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, seq->seq, seq2->seq , seq->qual, seq2->qual, cigar2, 0, 0);
         return report_discordant_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
     }
     return report_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
