@@ -33,6 +33,8 @@ static inline int deletion(char c) {
 
 int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore)
 {
+    // d: the array that stores dynamic programming penalty table
+    // arr: the array that stores the best strategy for each cell of dynamic programming table
     int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty;
     if ((match_end-match_start==0) && (index_end-index_start==0)) return head;	// When both strings are empty
     if (match_end-match_start==0) return head + snprintf(cigar+head,1000,"%dD",(int) (index_end-index_start)); // When one of them is empty
@@ -101,7 +103,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             }
             int k;
             for (k = 1; k <= mgi; k++) { // This is not an optimized dynamic programming here, it is a simple heuristic just to trigger the gaps open
-                // For an optimal implementation we need to have two "d" and "arr" tables, one for "no-gap" and the other for "gap already open" cases.
+                // For an optimal implementation we need to have two "d" and "d'" tables, one for "no-gap" and the other for "gap already open" cases.
                 // The alternative way would be to increase the upperbound 3 on k, which results in quadratic time.
                 if (k <= j && i >= off/2-j+k) {
                     int pen =  d[i][j-k] + (deletion(arr[i][j-k])?(k*ge):(go+(k-1)*ge));
