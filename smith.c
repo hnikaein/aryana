@@ -35,6 +35,10 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
 {
     // d: the array that stores dynamic programming penalty table
     // arr: the array that stores the best strategy for each cell of dynamic programming table
+	// match_start, match_end: positions of the alignment region in the read
+	// index_start, index_end: positions of the alignment region in the reference
+	// head: the number of characters already filled in cigar, e.g. the position to add new string to cigar
+	// return value: the new number of characters filled in cigar (e.g. the new position to add further strings to cigar)
     int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty;
     if ((match_end-match_start==0) && (index_end-index_start==0)) return head;	// When both strings are empty
     if (match_end-match_start==0) return head + snprintf(cigar+head,1000,"%dD",(int) (index_end-index_start)); // When one of them is empty
