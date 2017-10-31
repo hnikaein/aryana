@@ -1,6 +1,7 @@
-#define read_size 600000
 #define seq_num_per_read 10 // xxx 5000
-#define max_sam_line 3*MAX_READ_SIZE+1000
+#define MAX_READ_SIZE (20000)
+#define HASH_TABLE_SIZE (8193)
+#define MAX_SAM_LINE (4*MAX_READ_SIZE+1000)
 #define MAX_CIGAR_SIZE 6000
 #define output_buffer (1 << 9)
 #define sleep_time (1)

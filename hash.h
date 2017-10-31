@@ -1,10 +1,6 @@
 #include <stdint.h>
 #include "bwt.h"
 
-//#define TABLESIZE 4087//4087
-#define TABLESIZE 8193//4087
-#define MAX_READ_SIZE 6020
-//extern const int TABLESIZE;
 #ifndef hash_header
 #define hash_header
 typedef struct {

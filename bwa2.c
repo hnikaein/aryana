@@ -475,7 +475,7 @@ void multiAligner(global_vars * g) {
     bwtint_t j = 0;
     hash_element *table, *table2 = 0;
 
-    table=(hash_element *)malloc(TABLESIZE*(sizeof (hash_element)));
+    table=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
     reset_hash(table);
 
     int **d=(int **)malloc(MAX_READ_SIZE*(sizeof (int *)));
@@ -486,7 +486,7 @@ void multiAligner(global_vars * g) {
         arr[j]=(char *)malloc(300*(sizeof (char)));
     }
     //seqs = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
-    char buffer[100*max_sam_line*(sizeof (char))];
+    char buffer[100*MAX_SAM_LINE*(sizeof (char))];
     buffer[0] = '\0';
     long long lasttmpsize = 0;
     char **cigar = (char **) malloc(g->args->potents * sizeof(char *)), **cigar2 = 0;
@@ -494,7 +494,7 @@ void multiAligner(global_vars * g) {
         cigar[j]=(char *) malloc(MAX_CIGAR_SIZE*(sizeof (char)));
 
     if (g->args->paired) {
-        table2=(hash_element *)malloc(TABLESIZE*(sizeof (hash_element)));
+        table2=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
         reset_hash(table2);
         //seqs2 = (bwa_seq_t*) malloc(seq_num_per_read * sizeof(bwa_seq_t));
         //fprintf(stderr, "1, %d\n", seqs2);
@@ -552,7 +552,7 @@ void multiAligner(global_vars * g) {
     }
     // Free variables
     //free(seqs);
-    for (j=0; j<MAX_READ_SIZE; j++) {
+ /*   for (j=0; j<MAX_READ_SIZE; j++) {
         free(d[j]);
         free(arr[j]);
     }
@@ -571,7 +571,8 @@ void multiAligner(global_vars * g) {
     free(d);
     free(arr);
     free(tmp_cigar);
-//    fprintf(stderr, "Thread %d finished.\n", g->tid);
+*/
+// <F12>   fprintf(stderr, "Thread %d finished.\n", g->tid);
 }
 
 void *worker2(void *data) {
