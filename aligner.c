@@ -66,7 +66,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     bwtint_t head_match=0,head_index=best->index >= slack ? best->index-slack : 0;
     bwtint_t slack_index=head_index;
     int print_head=0;
-    if (best->parts<=0 || best->parts > 50)
+    if (best->parts<=0 || best->parts > SEED_NUMS_PER_READ)
         fprintf(stderr , "too much parts!\n");
     if (args->debug > 0) {
 

@@ -94,7 +94,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             arr[i][j]=matC; // match
 
             if (index_start+ref_i-1 >= seq_len) {
-                d[i][j] += (insertion(arr[i-j][j])?ge:go);
+                d[i][j] += (insertion(arr[i-1][j])?ge:go);
                 arr[i][j] = insC;
             } else {
                 char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];

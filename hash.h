@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "bwt.h"
+#include "const.h"
 
 #ifndef hash_header
 #define hash_header
@@ -14,9 +15,9 @@ typedef struct {
     //uint64_t old_left;
     uint64_t last; //last seed that updtates left
     uint64_t groupid;
-    uint64_t match_start[55];//start position in read
-    uint64_t match_index[55];//start position in reference
-    uint64_t matched[55];
+    uint64_t match_start[SEED_NUMS_PER_READ];//start position in read
+    uint64_t match_index[SEED_NUMS_PER_READ];//start position in reference
+    uint64_t matched[SEED_NUMS_PER_READ];
     int parts;
     int mate;
 } hash_element;
