@@ -250,7 +250,7 @@ void FixedLengthPrint(FILE *f, char * s, long long slen, int fixedlen) {
     while (slen > fixedlen) {
 	char c = s[fixedlen];
 	s[fixedlen] = 0;
-	fprintf(f, "%s\n", s);
+	fprintf(f, "%s", s);
 	s[fixedlen] = c;
 	s += fixedlen;
 	slen -= fixedlen;

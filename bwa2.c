@@ -160,13 +160,12 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
     }
     return 1;	// Valid pair
 }
-
-double prob_function2(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual, char * cigar, uint64_t refrence_index)
+double prob_function(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual, char * cigar, uint64_t refrence_index)
 {	
     	int read_index=0;
 
 	const double p_snp=0.0011;	
-
+	const double p_indel=0.0001;
 	const double p_delete_open=0.003;
 	const double p_delete_extend=0.05;
 
@@ -199,7 +198,7 @@ double prob_function2(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual
 		{
 
 			prev=cigar[i];
-			p_ans *= (p_delete_open) * pow(p_delete_extend,num-1);
+			p_ans *= (p_d) * pow(p_delete_extend,num-1);
 			refrence_index+=num;
 			continue;
 		}
@@ -207,7 +206,12 @@ double prob_function2(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual
 		{
 			p_ans *= (p_insert_open) * pow(p_insert_extend,num-1);
 			prev=cigar[i];
-			read_index+=num;
+			while(num >0)
+			{
+				p_ans*=QtoP(qual[read_index]-33)*p_i+(1-QtoP(qual[read_index]-33))*p_indel;
+				read_index++;
+				num--;
+			}
 			continue;
 		}
 		for(;num>0;read_index++, refrence_index++ ,num--)
@@ -228,66 +232,33 @@ double prob_function2(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual
     	}
 	return p_ans;
 }
-
-double prob_function1(global_vars * g, bwtint_t len, ubyte_t* seq, ubyte_t *qual, char *cigar, uint64_t refrence_index)
-{
-	
-    	int qual_index=0;
-	double mapq=0;
-	int i;
-    	for(i=0; cigar[i]; i++)
-    	{    
-   		char tmp[10];
-        	int j=0;
-       		while(isdigit(cigar[i]))
-           		tmp[j++]=cigar[i++];
-        	tmp[j]=0;
-        	bwtint_t num=atoi(tmp);
-		if(cigar[i]=='D')
-			continue;
-		for(;num>0;qual_index++,num--)
-		{
-			if(cigar[i]=='M')
-			{
-				mapq+=(qual[qual_index]-33);
-			}
-			else if(cigar[i]=='I')
-			{
-				mapq-=(qual[qual_index]-33);
-			}
-		}
-    	}
-    	mapq=MAX(mapq,0);
-    	mapq/=len;
-	return 1-QtoP(mapq);
-}
-
 void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, bwtint_t len, bwtint_t len2, ubyte_t *seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
     
     int i;
     double sum=0,sum2=0;
     for (i = 0; i < num; i++) {
-        p[i].mapq = prob_function2(g,len,seq, qual,c[i],t[can[i]].index);
+        p[i].mapq = prob_function(g,len,seq, qual,c[i],t[can[i]].index);
 
         
-	if (paired) p2[i].mapq = prob_function2(g,len2, seq, qual2 ,c2[i], t2[can2[i]].index);	
+	if (paired) p2[i].mapq = prob_function(g,len2, seq, qual2 ,c2[i], t2[can2[i]].index);	
 	
 	sum+=p[i].mapq;
 	if(paired)sum2+=p2[i].mapq;
     }
+    double e1=0.1;
     for (i=0; i < num; i++)
     {	
-		double e=0.03;
-		p[i].mapq/=MIN(sum+e,1);
-		p[i].mapq=PtoQ(1-p[i].mapq);//TODO prior probability
+		double e2=1-p[i].mapq/sum;
+		p[i].mapq=PtoQ(e1+(1-e1)*e2);//TODO prior probability
 		if(paired)
 		{	
-			p2[i].mapq/=MIN(sum2+e,1); //TODO prior probability
+			p2[i].mapq/=MIN(sum2,1); //TODO prior probability
 			p2[i].mapq=PtoQ(1-p2[i].mapq);
 		}
     }
 
 }
+
 
 void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t* seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) { 
     *best_num = 0;
