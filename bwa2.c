@@ -252,8 +252,8 @@ void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p
 		p[i].mapq=PtoQ(e1+(1-e1)*e2);//TODO prior probability
 		if(paired)
 		{	
-			p2[i].mapq/=MIN(sum2,1); //TODO prior probability
-			p2[i].mapq=PtoQ(1-p2[i].mapq);
+			double e2=1-p2[i].mapq/sum2;
+		        p2[i].mapq=PtoQ(e1+(1-e1)*e2);//TODO prior probability
 		}
     }
 
