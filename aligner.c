@@ -11,6 +11,7 @@
 #include "bwa2.h"
 #include "smith.h"
 #include "const.h"
+#define llu unsigned long long
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
@@ -32,20 +33,25 @@ extern long long total_candidates, best_factor_candidates;
 
 void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
-
+	
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
     int *valid=(int *)malloc(best->parts*(sizeof (int)));
     bwtint_t lastvalid=best->parts-1;
     long long i=0,j=0;
+	// This part estimated alignment position by checking all seeds, finding  a valid chain of them. TODO: Dynamic Programming rather than greedy validation and estimation of alignment pos.
     for (i=best->parts-1; i>=0; i--)
     {
+		if (args->debug > 2) fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i], (llu) best->match_start[i], (llu) best->matched[i]);
         valid[i]=1;
-        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20)
+        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20) {
+			if (args->debug > 2) fprintf(stderr, "out of chain by rule 1\n");
             valid[i]=0;
+		}
         if (valid[i]==1 && i<best->parts-1 && (best->match_start[lastvalid]+best->matched[lastvalid]>best->match_start[i]))
         {
+			if (args->debug > 2) fprintf(stderr, "out of chain by rule 2\n");
             valid[i]=0;
             if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) < llabs((signed)(best->match_index[lastvalid]-best->match_start[lastvalid])-(signed)best->index))
             {
@@ -53,12 +59,13 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
                 valid[i]=1;
             }
         }
-        if (valid[i]==1)
+        if (valid[i]==1) {
             lastvalid=i;
+			if (args->debug > 2) fprintf(stderr, "valid\n");
+		}
         if (i==0)
             break;
     }
-
     //for (i=0; i<best->parts; i++)
     //	fprintf(stderr, "part %lld: %lld %lld %d %d\n",i,best->match_start[i],best->match_index[i],best->matched[i],valid[i]);
 
@@ -274,7 +281,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         }
         bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
         if (args->debug > 2) {
-            fprintf(stderr, "aligner(), %llu regions have exact match with %llu score, seq: ", (unsigned long long) (up - down + 1), (unsigned long long) limit);
+            fprintf(stderr, "aligner, read position=%llu, num of exact matches of the seed in ref=%llu, score=%llu, seq: ", i, (unsigned long long) (up - down + 1), (unsigned long long) limit);
             PrintSeq(seq + i + 1 - limit, limit, 1);
         }
 
@@ -306,25 +313,34 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             if (index < (i-limit+1)) continue;
             bwtint_t rindex=index- (i - limit+1);
             assert(rindex < bwt->seq_len);
-            add(bwt, rindex/len, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
+			int tag_size = 2 * len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
+            add(bwt, rindex/tag_size, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
+			if (args->debug > 2) fprintf(stderr, "Scoring match, tag index: %llu, score: %llu, estimated starting pos in ref: %llu, seed ref pos: %llu, seed read pos: %llu\n", (llu) rindex/tag_size, (llu) score, (llu) index - (i - limit+1), (llu) index, (llu) i);
         }
         groupid_last++;
         if(i > k) {
             if((limit - k + 1) > 0)
                 i = i - limit + (k - 1);
             else
-                fprintf(stderr, "manfi\n");
+                fprintf(stderr, "Negative value for (limit-k+1)\n");
             if (i < k) break;
         }
     }
 	total_candidates += best_size - *best_found;
+	int bestCandidate = best[best_size-1];
+	if (args->debug > 1 && (*best_found) < best_size) {
+		fprintf(stderr, "Printing seeds of the best candidate:\n");
+		for (int i = 0; i < table[bestCandidate].parts; i++)
+			fprintf(stderr, "Length: %llu, Read: %llu\t Ref: %llu\n", (unsigned long long) table[bestCandidate].matched[i], (unsigned long long) table[bestCandidate].match_start[i], (unsigned long long) table[bestCandidate].match_index[i]);
+		for (int i = best_size - 1; i >= (*best_found); i--) if (best[i] != -1) fprintf(stderr, "Candidate %d, seeds num: %d, total score: %d\n", i, table[best[i]].parts, table[best[i]].value);
+	}
     if (args->best_factor > 0)
     {
         for (i=best_size-2; i>=(*best_found); i--)
         {
             if (best[i] == -1)
                 break;
-            if (best[i]<best[best_size-1]*args->best_factor)
+            if (table[best[i]].value<table[bestCandidate].value*args->best_factor)
             {
 				best_factor_candidates += i + 1 - *best_found;
                 (*best_found)=i+1;

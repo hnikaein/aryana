@@ -44,8 +44,8 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
     //	return;
     table[h_index].groupid=groupid;
     //if(index < table[h_index].index)
-    if(uminus(table[h_index].index, index) > 10 && table[h_index].value > 3 * value)
-        return;
+    // if(uminus(table[h_index].index, index) > 10 && table[h_index].value > 3 * value)
+    //    return;
     table[h_index].index = index;
 //	fprintf(stderr,"index :: %llu\n",index);
     table[h_index].value += value;

@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     args.potents=10;
     args.debug = 0;
     args.seed_length = -1;
-    args.best_factor = 0;
+    args.best_factor = 0.6;
     args.bisulfite = 0;
     args.order = 0;
     args.exactmatch_num = 50;

@@ -15,10 +15,10 @@ typedef struct {
     //uint64_t old_left;
     uint64_t last; //last seed that updtates left
     uint64_t groupid;
-    uint64_t match_start[SEED_NUMS_PER_READ];//start position in read
-    uint64_t match_index[SEED_NUMS_PER_READ];//start position in reference
-    uint64_t matched[SEED_NUMS_PER_READ];
-    int parts;
+    uint64_t match_start[SEED_NUMS_PER_READ];// start positions of the seeds in read
+    uint64_t match_index[SEED_NUMS_PER_READ];// start positions of the seeds in reference
+    uint64_t matched[SEED_NUMS_PER_READ]; // lengths of the seeds
+    int parts; // Number of seeds matched to a tag
     int mate;
 } hash_element;
 
