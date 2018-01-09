@@ -619,6 +619,11 @@ char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len) {
     return mask;//atom[mask];
 }
 
+void byebye(char * message) {
+	fprintf(stderr, "%s\n", message);
+	exit(1);
+}
+
 //void bwa_aln_core2(const char *prefix, const char *fn_fa, const char *fn_fa1, const char *fn_fa2, const //gap_opt_t *opt, pair_opt *args)
 void bwa_aln_core2(aryana_args *args)
 {
@@ -661,26 +666,21 @@ void bwa_aln_core2(aryana_args *args)
     free(str);
 
     char line[1000];
-    if(fgets(line, sizeof line, ann) == NULL) {
-        fprintf(stderr, "Error: Empty file\n");
-        bwt_destroy(bwt);
-        bwa_seq_close(ks);
-        if (args->paired)
-            bwa_seq_close(ks2);
-        return;
+    if (!fgets(line, sizeof line, ann) || !fscanf(ann, "%d %s", &i, name[0])) {
+		bwa_seq_close(ks);
+		if (args->paired)
+        	bwa_seq_close(ks2);
+		byebye("Error reading one of the index files");
     }
-    fscanf(ann, "%d %s", &i, name[0]);
-    while(fgets(line, sizeof line, ann) != NULL) {
-        fscanf(ann, "%llu", (unsigned long long *) &offset[offInd++]);
-        if(fgets(line, sizeof line, ann) == NULL) {
-            fprintf(stderr, "Error: Empty file\n");
-            bwt_destroy(bwt);
-            bwa_seq_close(ks);
-            if (args->paired)
-                bwa_seq_close(ks2);
-            return;
-        }
-        fscanf(ann, "%d %s", &i, name[offInd]);
+	while(fgets(line, sizeof line, ann) != NULL) {
+        if (! fscanf(ann, "%llu", (unsigned long long *) &offset[offInd++]) ||
+			!fgets(line, sizeof line, ann) || 
+			!fscanf(ann, "%d %s", &i, name[offInd])) {
+        	bwa_seq_close(ks);
+        	if (args->paired)
+            	bwa_seq_close(ks2);
+			byebye("Error reading one of the index files");
+		}
     }
 
     offset[offInd] = bwt->seq_len / 2;

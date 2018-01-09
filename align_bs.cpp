@@ -309,11 +309,11 @@ void WriteHeader() {
     char line[maxSamFileLineLength];
     string header;
     FILE *samFile = fopen(samNames[0], "r");
-    fgets(line, 10000, samFile);
-    while (line[0] == '@') {
-        header += line;
-        fgets(line, 10000, samFile);
-    }
+    if (fgets(line, 10000, samFile)) 
+		while (line[0] == '@') {
+        	header += line;
+        	if (! fgets(line, 10000, samFile)) break;
+    	}
     fprintf(headerFile,"%s",header.c_str());
     fclose(samFile);
     if (headerFile != outputFile) fclose(headerFile);
