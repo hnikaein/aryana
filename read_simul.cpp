@@ -161,7 +161,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
         }
         while (! feof(f)) {
             position=0;
-            fscanf(f, "%s\t%lld\t%lf\n", chr, &position, &m);
+            if (! fscanf(f, "%s\t%lld\t%lf\n", chr, &position, &m)) break;
             if (position <= 0) continue;
             position += chromPos[chromIndex[chr]] - 1;
             meth[position] = (unsigned short) (m * 100);
