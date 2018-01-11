@@ -45,7 +45,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     {
 		if (args->debug > 2) fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i], (llu) best->match_start[i], (llu) best->matched[i]);
         valid[i]=1;
-        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20) {
+        if (args->platform == illumina && llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20) {
 			if (args->debug > 2) fprintf(stderr, "out of chain by rule 1\n");
             valid[i]=0;
 		}
@@ -196,7 +196,7 @@ void floyd(long long down, long long up , int exactmatch_num,long long *selected
     in = N - exactmatch_num;
 
     for (; in < N && im < exactmatch_num; ++in) {
-        srand (time(NULL));
+        srand (RAND_SEED);
         long long r = rand() % (in + 1); /* generate a random number 'r' */
         if(BITTEST(is_used, r))
             /* we already have 'r' */
@@ -220,7 +220,7 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
     for (in = 0; in < N && im < exactmatch_num; ++in) {
         rn = N - in;
         rm = exactmatch_num - im;
-        srand (time(NULL));
+        srand (RAND_SEED);
         if (rand() % rn < rm)
             selected[im++] = down + in;
     }

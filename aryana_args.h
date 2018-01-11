@@ -10,6 +10,7 @@ typedef enum {orien_all, orien_ff, orien_fr, orien_rf} orientation_t;
 
 typedef enum {ignore_none, ignore_CT, ignore_GA} ignore_mismatch_t;
 
+typedef enum {illumina, pacbio, nanopore} platform_t;
 
 typedef struct {
     int paired;
@@ -31,6 +32,7 @@ typedef struct {
     int report_multi, mismatch_limit;
     int out_buffer_factor;
     int mismatch_penalty, gap_open_penalty, gap_ext_penalty;
+	platform_t platform;
     ignore_mismatch_t ignore;
 } aryana_args;
 #endif
