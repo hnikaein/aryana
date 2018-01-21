@@ -225,7 +225,7 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
 void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
     bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
-        fprintf(f, "%d\t%d\t%d\t%d", aligned, mismatch1, gapOpen1, gapExt1);
+        fprintf(f, "%s\t%d\t%d\t%d\t%d", name.c_str(), aligned, mismatch1, gapOpen1, gapExt1);
         if (realPos) fprintf(f, "\t%d\t%d\t%d\t%d", matchTogether, mismatch2, gapOpen2, gapExt2);
     } else {
         fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
