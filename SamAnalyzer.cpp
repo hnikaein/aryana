@@ -251,7 +251,7 @@ void ProcessSamFile(string samFileName) {
     }
     char buf[maxSamLineLength];
     if (onlyPenalties) {
-        fprintf(of, "Aligned\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
+        fprintf(of, "ReadName\tAligned\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
         if (realPos) fprintf(of, "\tCorrectPos\tRealMismatch\tRealGapOpen\tRealGapExt");
     } else {
         fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
