@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
     char* inputFolder;
     int option_index = 0;
     int c;
+    args.read_file = 0;
     while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:p:", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
@@ -242,6 +243,9 @@ int main(int argc, char *argv[])
         case 5:
             args.ignore = ignore_GA;
             break;
+        case 6:
+            args.mismatch_penalty = atoi(optarg);
+            break;
         case 7:
             args.gap_open_penalty = atoi(optarg);
             break;
@@ -252,7 +256,7 @@ int main(int argc, char *argv[])
 			args.platform = atoi(optarg);
 			break;
 		default:
-            fprintf(stderr, "Invalid argument: %c\n", c);
+            fprintf(stderr, "One or more arguments are invalid. Run aryana without any argument to see a help.\n");
             exit(1);
         }
     }

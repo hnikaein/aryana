@@ -641,10 +641,18 @@ void bwa_aln_core2(aryana_args *args)
     uint64_t reference_size, reference_reminder;
     bwtint_t *offset = (bwtint_t *)calloc(max_chrom_num, sizeof(bwtint_t));
     bwtint_t offInd = 0;
+    if (! fn_fa) {
+        fprintf(stderr, "No input file is provided\n");
+        exit(1);
+    }
     ks = bwa_open_reads(opt->mode, fn_fa);
-    if (args->paired)
+    if (args->paired) {
+        if (! fn_fa2) {
+            fprintf(stderr, "Paired input file is not provided\n");
+            exit(1);
+        }
         ks2 = bwa_open_reads(opt->mode, fn_fa2);
-
+    }
     // initialization
 
     // load BWT
