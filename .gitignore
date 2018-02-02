@@ -1,4 +1,5 @@
 *.o
+*.swp
 SamAnalyzer
 SamToNormWig
 align_bs
@@ -8,3 +9,6 @@ convert_genomes
 fastaseq
 methyl_extract
 read_simul
+aryana_bsp
+aryana_bs
+penalty_test
