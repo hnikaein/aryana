@@ -85,7 +85,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     {
         if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
         {
-            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq ,  len, &penalty->mismatch_num ,  seq_len, d, arr, tmp_cigar, reference, ignore);
+            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq ,  len, &penalty->mismatch_num ,  seq_len, d, arr, tmp_cigar, reference, ignore, qual);
             if (args->debug > 1) {
                 fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
                 PrintSeq(seq+head_match,  best->match_start[i] - head_match, 1);
@@ -102,7 +102,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
                 print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'I');
             else {
-                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq ,  len , &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq ,  len , &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore, qual);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
                 if (args->debug > 1) {
                     fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);

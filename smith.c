@@ -31,7 +31,13 @@ static inline int deletion(char c) {
     return (c >= delC && c <= delC + mgi - 1);
 }
 
-int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore)
+static inline int mismatch(ubyte_t qual, int mp){
+    double factor = (74 - (int)qual) / 40;
+    int qual_cost = (mp-1)*factor;
+    return mp - qual_cost;
+}
+
+int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore, ubyte_t *qual)
 {
     // d: the array that stores dynamic programming penalty table
     // arr: the array that stores the best strategy for each cell of dynamic programming table
@@ -100,7 +106,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                 char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
                 if (gc != rc) {
                     if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) || (ignore == ignore_GA && (gc != 2 || rc != 0))) {
-                        d[i][j]+= mp;
+                        d[i][j]+= mismatch(qual[i],mp);
                         arr[i][j] = misC; // mismatch
                     }
                 }
