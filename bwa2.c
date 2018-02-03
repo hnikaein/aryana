@@ -523,7 +523,7 @@ void multiAligner(global_vars * g) {
     }
     // Free variables
     //free(seqs);
- /*   for (j=0; j<MAX_READ_SIZE; j++) {
+    for (j=0; j<MAX_READ_SIZE; j++) {
         free(d[j]);
         free(arr[j]);
     }
@@ -542,8 +542,7 @@ void multiAligner(global_vars * g) {
     free(d);
     free(arr);
     free(tmp_cigar);
-*/
-// <F12>   fprintf(stderr, "Thread %d finished.\n", g->tid);
+    fprintf(stderr, "Thread %d finished.\n", g->tid);
 }
 
 void *worker2(void *data) {
