@@ -674,6 +674,7 @@ void bwa_aln_core2(aryana_args *args)
 
     char line[1000];
     if (!fgets(line, sizeof line, ann) || !fscanf(ann, "%d %s", &i, name[0])) {
+        fclose(ann);
 		bwa_seq_close(ks);
 		if (args->paired)
         	bwa_seq_close(ks2);
@@ -683,7 +684,8 @@ void bwa_aln_core2(aryana_args *args)
         if (! fscanf(ann, "%llu", (unsigned long long *) &offset[offInd++]) ||
 			!fgets(line, sizeof line, ann) || 
 			!fscanf(ann, "%d %s", &i, name[offInd])) {
-        	bwa_seq_close(ks);
+            fclose(ann);
+            bwa_seq_close(ks);
         	if (args->paired)
             	bwa_seq_close(ks2);
 			byebye("Error reading one of the index files");
@@ -751,6 +753,7 @@ void bwa_aln_core2(aryana_args *args)
     free(threads);
     free(reference);
     free(offset);
+    fclose(ann);
     bwt_destroy(bwt);
     bwa_seq_close(ks);
     if (args->paired)
