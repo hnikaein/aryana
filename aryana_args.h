@@ -34,5 +34,6 @@ typedef struct {
     int mismatch_penalty, gap_open_penalty, gap_ext_penalty;
 	platform_t platform;
     ignore_mismatch_t ignore;
+	int tag_size;
 } aryana_args;
 #endif

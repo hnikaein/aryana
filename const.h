@@ -1,4 +1,4 @@
-#define seq_num_per_read 10 // xxx 5000
+#define seq_num_per_read 7 // xxx 5000
 #define MAX_READ_SIZE (20000)
 #define HASH_TABLE_SIZE (8193)
 #define SEED_NUMS_PER_READ (1000)

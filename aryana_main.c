@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
     args.min_dis = 0;
     args.platform = 0;
 	args.max_dis = 10000;
+    args.tag_size = -1;
     char *refNames[5];	// Number of bisulfite-seq reference genomes
     bzero(refNames, sizeof(refNames));
     ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
