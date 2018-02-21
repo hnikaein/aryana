@@ -35,5 +35,6 @@ typedef struct {
 	platform_t platform;
     ignore_mismatch_t ignore;
 	int tag_size;
+    double indel_ratio_between_seeds;
 } aryana_args;
 #endif
