@@ -449,15 +449,15 @@ void multiAligner(global_vars * g) {
     table=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
     reset_hash(table);
 
-    int **d=(int **)malloc(MAX_READ_SIZE*(sizeof (int *)));
-    char **arr=(char **)malloc(MAX_READ_SIZE*(sizeof (char *)));
-    char *tmp_cigar=(char *)malloc(MAX_READ_SIZE*(sizeof (char)));
-    for (j=0; j<MAX_READ_SIZE; j++) {
+    int **d=(int **)malloc(MAX_READ_LEN*(sizeof (int *)));
+    char **arr=(char **)malloc(MAX_READ_LEN*(sizeof (char *)));
+    char *tmp_cigar=(char *)malloc(MAX_READ_LEN*(sizeof (char)));
+    for (j=0; j<MAX_READ_LEN; j++) {
         d[j]=(int *)malloc(300*(sizeof (int)));
         arr[j]=(char *)malloc(300*(sizeof (char)));
     }
-    //seqs = (bwa_seq_t*)calloc(seq_num_per_read, sizeof(bwa_seq_t));
-    char buffer[100*MAX_SAM_LINE*(sizeof (char))];
+    //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
+    char buffer[seq_num_per_file_read * MAX_SAM_LINE * (sizeof(char))];
     buffer[0] = '\0';
     long long lasttmpsize = 0;
     char **cigar = (char **) malloc(g->args->potents * sizeof(char *)), **cigar2 = 0;
@@ -467,7 +467,7 @@ void multiAligner(global_vars * g) {
     if (g->args->paired) {
         table2=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
         reset_hash(table2);
-        //seqs2 = (bwa_seq_t*) malloc(seq_num_per_read * sizeof(bwa_seq_t));
+        //seqs2 = (bwa_seq_t*) malloc(seq_num_per_file_read * sizeof(bwa_seq_t));
         //fprintf(stderr, "1, %d\n", seqs2);
         cigar2 =  (char **) malloc(g->args->potents * sizeof(char *));
         for (j=0; j < g->args->potents; j++)
@@ -480,8 +480,8 @@ void multiAligner(global_vars * g) {
     while(true) {
         pthread_mutex_lock(&input);
         int read = 1;
-        if((seqs = bwa_read_seq(g->ks, seq_num_per_read, &n_seqs, g->opt->mode, g->opt->trim_qual)) == 0 ||
-                (g->args->paired && (seqs2 = bwa_read_seq(g->ks2, seq_num_per_read, &n_seqs2, g->opt->mode, g->opt->trim_qual)) == 0)) read = 0;
+        if((seqs = bwa_read_seq(g->ks, seq_num_per_file_read, &n_seqs, g->opt->mode, g->opt->trim_qual)) == 0 ||
+                (g->args->paired && (seqs2 = bwa_read_seq(g->ks2, seq_num_per_file_read, &n_seqs2, g->opt->mode, g->opt->trim_qual)) == 0)) read = 0;
         pthread_mutex_unlock(&input);
         if (! read) break;
         if (g->args->paired && n_seqs != n_seqs2) {
@@ -503,7 +503,7 @@ void multiAligner(global_vars * g) {
                 outBuf[pos].read_num = read_num; // Should be strictly after previous command of outBuf[pos].str assignment, for synchronization purposes.
                 lasttmpsize = 0;
             } else {
-                if(j % 100 == 0 || j == n_seqs - 1) {
+                if (j % seq_num_per_file_read == 0 || j == n_seqs - 1) {
                     pthread_mutex_lock(&output);
                     fputs(buffer, stdout);
                     pthread_mutex_unlock(&output);
@@ -523,7 +523,7 @@ void multiAligner(global_vars * g) {
     }
     // Free variables
     //free(seqs);
-    for (j=0; j<MAX_READ_SIZE; j++) {
+    for (j=0; j<MAX_READ_LEN; j++) {
         free(d[j]);
         free(arr[j]);
     }
@@ -721,7 +721,7 @@ void bwa_aln_core2(aryana_args *args)
 
     running_threads_num = args->threads;
     if (args->order) {
-        outBufLen = args->out_buffer_factor * args->threads * seq_num_per_read;
+        outBufLen = args->out_buffer_factor * args->threads * seq_num_per_file_read;
         outBuf = malloc(sizeof(outBuf_t) * outBufLen);
         bzero(outBuf, sizeof(outBuf_t) * outBufLen);
         outBufIndex = 1;

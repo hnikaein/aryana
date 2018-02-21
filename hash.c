@@ -203,9 +203,9 @@ void reset_hash(hash_element  table[]) {
         /*		table[i].match_start=(uint64_t *)malloc(300*(sizeof (uint64_t)));
         		table[i].match_index=(uint64_t *)malloc(300*(sizeof (uint64_t)));
         		table[i].matched=(uint64_t *)malloc(300*(sizeof (uint64_t)));*/
-//		table[i].match_start=(uint64_t *)malloc(MAX_READ_SIZE*(sizeof (uint64_t)));
-//		table[i].match_index=(uint64_t *)malloc(MAX_READ_SIZE*(sizeof (uint64_t)));
-//		table[i].matched=(uint64_t *)malloc(MAX_READ_SIZE*(sizeof (uint64_t)));
+//		table[i].match_start=(uint64_t *)malloc(MAX_READ_LEN*(sizeof (uint64_t)));
+//		table[i].match_index=(uint64_t *)malloc(MAX_READ_LEN*(sizeof (uint64_t)));
+//		table[i].matched=(uint64_t *)malloc(MAX_READ_LEN*(sizeof (uint64_t)));
     }
 }
 
