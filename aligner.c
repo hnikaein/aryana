@@ -346,15 +346,18 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             bwtint_t rindex = index - (i - limit + 1);
             if (index < (i - limit + 1)) rindex = 0;
             assert(rindex < bwt->seq_len);
-            int tag_size = args->tag_size;
-            if (tag_size < 1)
-                tag_size = 2 * len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
-            add(bwt, rindex / tag_size, score, level, rindex, best, best_size, best_found, table, i - limit + 1, limit,
-                index, len, groupid_last); // if level changed, check the find_value in hash.c
+            int tag_size_diff = args->tag_size / 2;
+            if (tag_size_diff < 1)
+                tag_size_diff = len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
+            add(bwt, rindex / tag_size_diff, score, level, rindex, best, best_size, best_found, table, i - limit + 1,
+                limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
+            if (rindex / tag_size_diff > 0)
+                add(bwt, rindex / tag_size_diff - 1, score, level, rindex, best, best_size, best_found, table,
+                    i - limit + 1, limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
             if (args->debug > 2)
                 fprintf(stderr,
                         "Scoring match, tag index: %llu, score: %llu, estimated starting pos in ref: %llu, seed ref pos: %llu, seed read pos: %llu\n",
-                        (llu) rindex / tag_size, (llu) score, (llu) index - (i - limit + 1), (llu) index, (llu) i);
+                        (llu) rindex / tag_size_diff, (llu) score, (llu) index - (i - limit + 1), (llu) index, (llu) i);
         }
         groupid_last++;
         if (i > k) {
