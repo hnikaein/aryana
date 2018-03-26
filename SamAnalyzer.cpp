@@ -1,8 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <map>
 #include <vector>
 #include <string>
@@ -20,7 +20,7 @@ int chromNum = 0;
 string genomeFile, samFileName, outputFileName;
 bool bisSeq = false, realPos = false, seqOutput = false, onlyPenalties = false, keepSecondary = false;
 
-void ReadGenome(string genomeFile) {
+void ReadGenome(const string &genomeFile) {
     cerr << "Allocating memory..." << endl;
     ifstream ifile(genomeFile.c_str());
     ifile.seekg(0, std::ios_base::end);	//seek to end
@@ -43,7 +43,7 @@ void ReadGenome(string genomeFile) {
     }
     while (! feof(f)) {
         if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
-        int n = strlen(fLineMain), start = 0;
+        int n = static_cast<int>(strlen(fLineMain)), start = 0;
         while (n > 0 && fLineMain[n-1] <= ' ') n--;
         fLineMain[n] = 0;
         while (start < n && fLineMain[start] <= ' ') start++;
@@ -59,14 +59,14 @@ void ReadGenome(string genomeFile) {
             }
 
             string name = fLine;
-            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            if (name.find(' ') != string::npos) name = name.substr(1, name.find(' ')-1);
             else name = name.substr(1, name.size() - 1);
             //cerr << name;
             chromIndex[name] = chromNum;
             chromName[chromNum] = name;
             chromNum++;
         } else {
-            memcpy(genome+gs, fLine, n);
+            memcpy(genome+gs, fLine, static_cast<size_t>(n));
             gs += n;
         }
     }
@@ -77,9 +77,9 @@ void ReadGenome(string genomeFile) {
 }
 
 void revcomp(char * a, long long l = 0) {
-    if (! l) l = strlen(a);
-    char * b = new char[l];
-    memcpy(b, a, l);
+    if (! l) l = static_cast<long long int>(strlen(a));
+    auto * b = new char[l];
+    memcpy(b, a, static_cast<size_t>(l));
     for (long long i = 0; i < l; i++)
         switch (b[i]) {
         case 'a':
@@ -105,10 +105,10 @@ void revcomp(char * a, long long l = 0) {
 }
 
 // Start is 1-based.
-bool GetSequence(string chr, long long start, long long length, char *seq) {
+bool GetSequence(const string &chr, long long start, long long length, char *seq) {
     start--;
     if (chromIndex.find(chr) == chromIndex.end() || chromLen[chromIndex[chr]] < start + length) return false;
-    memcpy(seq, genome + chromPos[chromIndex[chr]] + start, length);
+    memcpy(seq, genome + chromPos[chromIndex[chr]] + start, static_cast<size_t>(length));
     seq[length] = 0;
     return true;
 }
@@ -154,7 +154,7 @@ int CigarLen(string cigar, int & insOpen, int & insExt, int & delOpen, int & del
 
 string reverse_cigar(string cigar)
 {
-    int i=0, cigar_size = cigar.size();
+    int i=0, cigar_size = static_cast<int>(cigar.size());
     char cigar_tmp[cigar_size + 50];
     int num=0;
     char type=cigar[cigar_size-1];
@@ -229,7 +229,7 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
     return penalty;
 }
 
-void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int insOpen1 = 0, int insExt1 = 0, int delOpen1 = 0, int delExt1 = 0, int clipFirst1 = 0, int clipNext1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int insOpen2 = 0, int insExt2 = 0, int delOpen2 = 0, int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
+void PrintOutput(FILE * f, const string &name = "NA", bool aligned = false, const string &chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int insOpen1 = 0, int insExt1 = 0, int delOpen1 = 0, int delExt1 = 0, int clipFirst1 = 0, int clipNext1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int insOpen2 = 0, int insExt2 = 0, int delOpen2 = 0, int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
     bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
         fprintf(f, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", name.c_str(), aligned, mismatch1, insOpen1, insExt1, delOpen1, delExt1, clipFirst1, clipNext1);
@@ -245,13 +245,13 @@ void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1
     fprintf(f, "\n");
 }
 
-void ProcessSamFile(string samFileName) {
+void ProcessSamFile(const string &samFileName) {
     long long int tlen, pos;
     int flag, mapq, mismatch, mismatch2, insOpen, insOpen2, insExt, insExt2, startPos, clipFirst, clipNext, clipFirst2, clipNext2, delOpen, delOpen2, delExt, delExt2;
     char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], cigar[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
     FILE * f = stdin, * of = stdout;
-    if (samFileName != "") f = fopen(samFileName.c_str(), "r");
-    if (outputFileName != "") of = fopen(outputFileName.c_str(), "w");
+    if (!samFileName.empty()) f = fopen(samFileName.c_str(), "r");
+    if (!outputFileName.empty()) of = fopen(outputFileName.c_str(), "w");
     if (! f) {
         cerr << "Error opening SAM file" << endl;
         exit(-1);
@@ -306,13 +306,13 @@ void ProcessSamFile(string samFileName) {
             getline(s, cigar2, ' ');
             startPos = atoi(start.c_str());
             if (GetSequence(chr, startPos, CigarLen(cigar2, insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2), refSeq2)) {
-                bool samRev = flag & 16, refRev = type == "-o" || type == "+p";
+                bool samRev = static_cast<bool>(flag & 16), refRev = type == "-o" || type == "+p";
                 if (samRev != refRev) revcomp(refSeq2);
                 if (samRev && refRev) cigar2 = reverse_cigar(cigar2);
                 if (bisSeq)
-                    mismatch2 = min(EditDistance(refSeq2, seq, cigar2.c_str(), 'C', 'T'), EditDistance(refSeq2, seq, cigar2.c_str(), 'G', 'A'));
+                    mismatch2 = min(EditDistance(refSeq2, seq, cigar2, 'C', 'T'), EditDistance(refSeq2, seq, cigar2, 'G', 'A'));
                 else
-                    mismatch2 = EditDistance(refSeq2, seq, cigar2.c_str());
+                    mismatch2 = EditDistance(refSeq2, seq, cigar2);
             }
         }
         PrintOutput(of, qname, aligned, rname, pos, mismatch, insOpen, insExt, delOpen, delExt, clipFirst, clipNext, chr, startPos, mismatch2, insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2, seq, cigar, refSeq, (char *) cigar2.c_str(), refSeq2);
@@ -359,7 +359,7 @@ int main(int argc, char * argv[]) {
         cerr << "This argument should be followed by an input: "<< argv[i] << endl;
         exit(1);
     }
-    if (genomeFile == "") {
+    if (genomeFile.empty()) {
         cerr << "Arguments:\n" <<
              "    -g <fasta file>              reference genome, mandatory\n" <<
              "    -i <SAM file>                the input SAM file to be analyzed, default: standard input\n" <<
