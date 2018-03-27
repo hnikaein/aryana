@@ -7,9 +7,11 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include "const.h"
+
 using namespace std;
 
-const int maxReadLen = 10000;
+const int maxReadLen = MAX_READ_LEN;
 const int maxSamLineLength = 3 * maxReadLen;
 vector <long long> chromPos, chromLen;
 long long gs;
