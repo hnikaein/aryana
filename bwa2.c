@@ -449,12 +449,12 @@ void multiAligner(global_vars * g) {
     table=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
     reset_hash(table);
 
-    int **d=(int **)malloc(MAX_READ_LEN*(sizeof (int *)));
-    char **arr=(char **)malloc(MAX_READ_LEN*(sizeof (char *)));
-    char *tmp_cigar=(char *)malloc(MAX_READ_LEN*(sizeof (char)));
+    int **d= malloc((MAX_READ_LEN+1)*(sizeof (int *)));
+    char **arr= malloc((MAX_READ_LEN+1)*(sizeof (char *)));
+    char *tmp_cigar= malloc(MAX_READ_LEN*(sizeof (char)));
     for (j=0; j<MAX_READ_LEN; j++) {
-        d[j]=(int *)malloc(300*(sizeof (int)));
-        arr[j]=(char *)malloc(300*(sizeof (char)));
+        d[j]=malloc(300*(sizeof (int)));
+        arr[j]=malloc(300*(sizeof (char)));
     }
     //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
     char buffer[seq_num_per_file_read * MAX_SAM_LINE * (sizeof(char))];
