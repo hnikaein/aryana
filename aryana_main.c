@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include "const.h"
 #include "aryana_args.h"
 #include "utils.h"
 #include "bwa2.h"
 #include "main.h"
 #define aryana_version "0.1"
+#define MIN(a, b) (a < b) ? a : b
 
 long long total_candidates = 0, best_factor_candidates = 0;
 
@@ -66,6 +68,7 @@ void Usage() {
     fprintf(stderr, "Additional optional arguments for bisulfite-sequencing reads:\n");
     fprintf(stderr, "     --ct                        ignore C->T mismatches. While using -b this argument is automatically set based on the type of converted genome\n");
     fprintf(stderr, "     --ga                        ignore G->A mismatches. This argument is also automatically set with using -b. Either --ct or --ga can be used.\n");
+    fprintf(stderr, "     -S                        to set the number of seeds to check if seed length is not specified.");
     fprintf(stderr, "See README.md for more details.\n");
     exit(1);
 }
@@ -96,6 +99,7 @@ int main(int argc, char *argv[])
 	args.max_dis = 10000;
     args.tag_size = -1;
     args.indel_ratio_between_seeds = 1000;
+    args.seed_check = 3;
     char *refNames[5];	// Number of bisulfite-seq reference genomes
     bzero(refNames, sizeof(refNames));
     ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
@@ -130,14 +134,14 @@ int main(int argc, char *argv[])
         {"mp", required_argument, 0, 6},
         {"go", required_argument, 0, 7},
         {"ge", required_argument, 0, 8},
-		{"platform", required_argument, 0, 'p'}
+		{"platform", required_argument, 0, 'p'},
     };
     char* output = NULL;
     char* inputFolder;
     int option_index = 0;
     int c;
     args.read_file = 0;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:p:", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:S:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:p:", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
@@ -257,6 +261,10 @@ int main(int argc, char *argv[])
 		case 'p':
 			args.platform = atoi(optarg);
 			break;
+        case 'S':
+            args.seed_check = MIN(MAX_SEED_COUNT, atoi(optarg));
+            break;
+
 		default:
             fprintf(stderr, "One or more arguments are invalid. Run aryana without any argument to see a help.\n");
             exit(1);
