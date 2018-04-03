@@ -75,7 +75,7 @@ void reverse_seq(bwa_seq_t* seq){
 }
 
 int* get_seeds(aryana_args * args, int read_len, int user_seed){
-     = malloc((MAX_SEED_COUNT+1)*sizeof(int));
+    int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
     if(read_len<=225){
         seeds[0] = 30, seeds[1] = 15, seeds[2] = 55;
     }else if(read_len<=275){
