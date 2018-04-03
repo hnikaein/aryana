@@ -295,9 +295,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
 	
 	//inexact match
 	bwtint_t groupid_last = 1;
-	int seeds[] = {30, 65, 95};
-	for(int seed_c = 0; seed_c<3; seed_c++){ 
-	k = seeds[seed_c];
 	for (i = len - 1; i >= k; i--) {
 		bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
 		if (limit < k) {
@@ -363,7 +360,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
 			if (i < k) break;
 		}
 	}
-		}
 	total_candidates += best_size - *best_found;
 	int bestCandidate = best[best_size - 1];
 	if (args->debug > 1 && (*best_found) < best_size) {

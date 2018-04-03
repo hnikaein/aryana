@@ -74,8 +74,8 @@ void reverse_seq(bwa_seq_t* seq){
     }
 }
 
-int* get_seeds(aryana_args * args, int read_len){
-    int* seeds = malloc(MAX_SEED_COUNT*sizeof(int));
+int* get_seeds(aryana_args * args, int read_len, int user_seed){
+     = malloc((MAX_SEED_COUNT+1)*sizeof(int));
     if(read_len<=225){
         seeds[0] = 30, seeds[1] = 15, seeds[2] = 55;
     }else if(read_len<=275){
@@ -95,8 +95,12 @@ int* get_seeds(aryana_args * args, int read_len){
     }else{
         seeds[0] = 95, seeds[1] = 30, seeds[2] = 65; 
     }
-    if(args->seed_length != -1)
-        seeds[0] = args->seed_length;
+    if(user_seed != -1){
+        for(int i = MAX_SEED_COUNT; i>0; i--){
+            seeds[i] = seeds[i-1];
+        }
+        seeds[0] = user_seed;
+    }
     return seeds;
 }
 
@@ -568,6 +572,7 @@ void multiAligner(global_vars * g) {
 
         lasttmpsize = 0;
         int level_counter = 1;
+        int user_seed = g->args->seed_length;
         for(j=0; j<n_seqs; j++) {
            
             /*reversing the sequence*/
@@ -575,12 +580,18 @@ void multiAligner(global_vars * g) {
 	        reverse_seq(seq);
 
             /*aligning the sequence with multiple seeds*/
-            int *seeds = get_seeds(g->args, seq->len);
+            //------set the seed sets
+            int *seeds = get_seeds(g->args, seq->len, user_seed);
             int seed_count = g->args->seed_check;
+
+
+            //------initialising variables used for choosing the best result
             int penalties[seed_count];
             char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
             int buffs_len[seed_count];
             int tmpsize = 0;
+
+            //------looping on different seeds
             for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 g->args->seed_length = seeds[seed_c];
                 struct report* rpt = align_read(g, buffs+tmpsize, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2,total_seqs + level_counter, d,arr, tmp_cigar);
@@ -590,16 +601,12 @@ void multiAligner(global_vars * g) {
                 buffs_len[seed_c] = tmp;
                 tmpsize+=tmp;
                 /*free the memory reserved for the aligner*/
-                free(rpt->can);
-                free(rpt->can2);
-                free(rpt->penalty);
-                free(rpt->penalty2);
-                free(rpt);//it was reserved for the report struct
-                /*freed*/
+                free_report(rpt);
             }
-            /*free the seeds array*/
+            //------free the seeds array
             free(seeds);
-            /*choose the best alignment*/
+            
+            //------choose the best alignment
             int minPenalty = maxPenalty, minIndex = 0;
             for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 if(penalties[seed_c] < minPenalty){
@@ -607,7 +614,7 @@ void multiAligner(global_vars * g) {
                     minIndex = seed_c;
                 }
             }
-            /*copy this to buffer*/
+            //------copy the best alignment sam file result to buffer
             int where = 0;
             for(int seed_c = 0; seed_c<minIndex; seed_c++){
                 where+=buffs_len[seed_c];
