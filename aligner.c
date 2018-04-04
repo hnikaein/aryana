@@ -277,21 +277,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
 	long long i = 0, j = 0;
 
 	bwtint_t k;
-	if (args->seed_length == -1) {
-		k = 26;
-		if (len < 600)
-			k = 24;
-		if (len < 300)
-			k = 22;
-		if (len < 150)
-			k = 20;
-		if (len < 80)
-			k = 18;
-		if (len < 40)
-			k = 15;
-	} else
-		k = (bwtint_t) args->seed_length;
-
+	k = (bwtint_t) args->seed_length;
 	
 	//inexact match
 	bwtint_t groupid_last = 1;

@@ -20,11 +20,13 @@
 #include "bwt.h"
 #include "aryana_args.h"
 #include "bwa2.h"
+#include "bwt2.h"
 #include "aligner.h"
 #include "bntseq.h"
 #include "utils.h"
 #include "const.h"
 #include <math.h>
+
 //#include "aligner.h"
 #include "sam.h"
 #define MAX(a, b) (a > b) ? a : b
@@ -73,8 +75,45 @@ void reverse_seq(bwa_seq_t* seq){
 		seq->seq[jjj] = tmp;
     }
 }
+int compare( const void* a, const void* b)
+{
+     int int_a = * ( (int*) a );
+     int int_b = * ( (int*) b );
 
-int* get_seeds(aryana_args * args, int read_len, int user_seed){
+     if ( int_a == int_b ) return 0;
+     else if ( int_a < int_b ) return -1;
+     else return 1;
+}
+
+bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
+	// initialize
+	bwtint_t down, up;
+	bwtint_t limit;
+	long long i = 0;
+
+	bwtint_t k = -1;
+    double sum_seed = 0;
+	double seeds[tries+10];
+	int counter = 0;
+	for(i = len-1; i>0; i-=(int)(len/(double)tries)){
+		bwt_match_limit(bwt, i, seq, &down, &up,&limit);
+        //bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
+        seeds[i] = limit;
+        //printf("limit is %d, i is %d \n", limit, i);
+		sum_seed+=limit;
+		counter++;
+	}
+    k = (bwtint_t)((sum_seed/counter)*2.0);
+
+    qsort( seeds, counter, sizeof(int), compare );
+    k = seeds[counter/2];
+    //printf("k is %d\n", k);
+    return k;
+	
+}
+
+
+int* get_seeds(aryana_args * args, int read_len, int user_seed, bwt_t *const bwt, ubyte_t *seq, int tries){
     int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
     if(read_len<=225){
         seeds[0] = 30, seeds[1] = 15, seeds[2] = 55;
@@ -95,6 +134,13 @@ int* get_seeds(aryana_args * args, int read_len, int user_seed){
     }else{
         seeds[0] = 95, seeds[1] = 30, seeds[2] = 65; 
     }
+    //put the smart seed in the seeds
+    for(int i = MAX_SEED_COUNT; i>0; i--){
+            seeds[i] = seeds[i-1];
+        }
+    seeds[0] = get_smart_seed(bwt, read_len, seq, tries);
+    
+    //put the user seed in the seeds if it is available
     if(user_seed != -1){
         for(int i = MAX_SEED_COUNT; i>0; i--){
             seeds[i] = seeds[i-1];
@@ -575,13 +621,13 @@ void multiAligner(global_vars * g) {
         int user_seed = g->args->seed_length;
         for(j=0; j<n_seqs; j++) {
            
-            /*reversing the sequence*/
+            /*reversing the sequence, it should be before gettinf the seeds*/
             bwa_seq_t *seq = &seqs[j];
 	        reverse_seq(seq);
 
             /*aligning the sequence with multiple seeds*/
             //------set the seed sets
-            int *seeds = get_seeds(g->args, seq->len, user_seed);
+            int *seeds = get_seeds(g->args, seq->len, user_seed,g->bwt, seq->seq, 40);
             int seed_count = g->args->seed_check;
 
 
