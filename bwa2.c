@@ -572,6 +572,11 @@ void multiAligner(global_vars * g) {
 
         lasttmpsize = 0;
         int level_counter = 1;
+        //------initialising variables used for choosing the best result
+        int seed_count = g->args->seed_check;
+        int penalties[seed_count];
+        char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
+        int buffs_len[seed_count];
         int user_seed = g->args->seed_length;
         for(j=0; j<n_seqs; j++) {
            
@@ -582,13 +587,7 @@ void multiAligner(global_vars * g) {
             /*aligning the sequence with multiple seeds*/
             //------set the seed sets
             int *seeds = get_seeds(g->args, seq->len, user_seed);
-            int seed_count = g->args->seed_check;
-
-
-            //------initialising variables used for choosing the best result
-            int penalties[seed_count];
-            char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
-            int buffs_len[seed_count];
+            //------for storing the sam outputs      
             int tmpsize = 0;
 
             //------looping on different seeds
