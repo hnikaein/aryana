@@ -591,23 +591,28 @@ void multiAligner(global_vars * g) {
             int tmpsize = 0;
 
             //------looping on different seeds
+            int seed_counter = 0;
             for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 g->args->seed_length = seeds[seed_c];
                 struct report* rpt = align_read(g, buffs+tmpsize, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2,total_seqs + level_counter, d,arr, tmp_cigar);
                 level_counter++;
                 penalties[seed_c] = (rpt->canNum?rpt->penalty[0].penalty:maxPenalty);
+                seed_counter++;
                 int tmp=report_alignment_results(rpt->g, rpt->buffer, rpt->cigar,rpt->cigar2, rpt->seq,rpt->seq2, rpt->table, rpt->table2, rpt->can, rpt->can2, rpt->canNum, rpt->canNum2, rpt->penalty, rpt->penalty2);
                 buffs_len[seed_c] = tmp;
                 tmpsize+=tmp;
                 /*free the memory reserved for the aligner*/
                 free_report(rpt);
+                /*if it is a good one, escape so*/
+                if(penalties[seed_c] < g->args->gap_ext_penalty*0.2*seq->len)
+                    break;
             }
             //------free the seeds array
             free(seeds);
             
             //------choose the best alignment
             int minPenalty = maxPenalty, minIndex = 0;
-            for(int seed_c = 0; seed_c<seed_count; seed_c++){
+            for(int seed_c = 0; seed_c<seed_counter; seed_c++){
                 if(penalties[seed_c] < minPenalty){
                     minPenalty = penalties[seed_c];
                     minIndex = seed_c;
