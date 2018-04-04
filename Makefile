@@ -1,7 +1,7 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-Wall -Wno-unused-function -o3
-CXXFLAGS=	-Wall -Wno-unused-function -o3
+CFLAGS=		-Wall -Wno-unused-function -Ofast
+CXXFLAGS=	-Wall -Wno-unused-function -Ofast
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
