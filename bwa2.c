@@ -96,19 +96,14 @@ bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
 	double seeds[tries+10];
 	int counter = 0;
 	for(i = len-1; i>0; i-=(int)(len/(double)tries)){
-		bwt_match_limit(bwt, i, seq, &down, &up,&limit);
-        //bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
-        seeds[i] = limit;
-        //printf("limit is %d, i is %d \n", limit, i);
+		bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
+        seeds[counter] = limit;
 		sum_seed+=limit;
 		counter++;
 	}
     k = (bwtint_t)((sum_seed/counter)*2.0);
-
-    qsort( seeds, counter, sizeof(int), compare );
-    k = seeds[counter/2];
     //printf("k is %d\n", k);
-    return k;
+    return MIN(k, 100);
 	
 }
 
