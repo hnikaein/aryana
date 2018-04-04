@@ -77,23 +77,23 @@ void reverse_seq(bwa_seq_t* seq){
 int* get_seeds(aryana_args * args, int read_len, int user_seed){
     int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
     if(read_len<=225){
-        seeds[0] = 30, seeds[1] = 15, seeds[2] = 55;
+        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
     }else if(read_len<=275){
-        seeds[0] = 50, seeds[1] = 30, seeds[2] = 65;
+        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
     }else if(read_len<=325){
-        seeds[0] = 65, seeds[1] = 30, seeds[2] = 95;
+        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
     }else if(read_len<=375){
-        seeds[0] = 70, seeds[1] = 25, seeds[2] = 60;
+        seeds[0] = 75, seeds[1] = 15, seeds[2] = 55;
     }else if(read_len<=450){
-        seeds[0] = 75, seeds[1] = 25, seeds[2] = 60;
+        seeds[0] = 75, seeds[1] = 15, seeds[2] = 60;
     }else if(read_len<=550){
-        seeds[0] = 95, seeds[1] = 25, seeds[2] = 65;
+        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
     }else if(read_len<=650){
-        seeds[0] = 95, seeds[1] = 25, seeds[2] = 40;
+        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
     }else if(read_len<=850){
-        seeds[0] = 95, seeds[1] = 25, seeds[2] = 70;
+        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
     }else{
-        seeds[0] = 95, seeds[1] = 30, seeds[2] = 65; 
+        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60; 
     }
     if(user_seed != -1){
         for(int i = MAX_SEED_COUNT; i>0; i--){
@@ -604,7 +604,7 @@ void multiAligner(global_vars * g) {
                 /*free the memory reserved for the aligner*/
                 free_report(rpt);
                 /*if it is a good one, escape so*/
-                if(penalties[seed_c] < g->args->gap_ext_penalty*0.2*seq->len)
+                if(penalties[seed_c] < g->args->gap_ext_penalty*0.05*seq->len)
                     break;
             }
             //------free the seeds array
