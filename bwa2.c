@@ -102,8 +102,7 @@ bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
 		counter++;
 	}
     k = (bwtint_t)((sum_seed/counter)*2.0);
-    //printf("k is %d\n", k);
-    return MIN(k, 100);
+    return MAX(MIN(k, 100), 5);
 	
 }
 
