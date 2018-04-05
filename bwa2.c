@@ -85,6 +85,20 @@ int compare( const void* a, const void* b)
      else return 1;
 }
 
+void shuffle(int *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
 bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
 	// initialize
 	bwtint_t down, up;
@@ -564,7 +578,6 @@ struct report* align_read(global_vars * g, char * buffer, char *cigar[], char * 
 // This is the central function of each thread. It reads a group of reads, aligns each one, and puts the output to be printed in SAM file
 
 void multiAligner(global_vars * g) {
-
     // Allocating memory and initializing variables
     bwa_seq_t *seqs, *seqs2 = 0;
     int n_seqs = 0, n_seqs2;
@@ -612,43 +625,48 @@ void multiAligner(global_vars * g) {
 
         lasttmpsize = 0;
         int level_counter = 1;
+        //------initialising variables used for choosing the best result
+        int seed_count = g->args->seed_check;
+        int penalties[seed_count];
+        char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
+        int buffs_len[seed_count];
         int user_seed = g->args->seed_length;
         for(j=0; j<n_seqs; j++) {
            
-            /*reversing the sequence, it should be before gettinf the seeds*/
+            /*reversing the sequence*/
             bwa_seq_t *seq = &seqs[j];
 	        reverse_seq(seq);
 
             /*aligning the sequence with multiple seeds*/
             //------set the seed sets
-            int *seeds = get_seeds(g->args, seq->len, user_seed,g->bwt, seq->seq, 40);
-            int seed_count = g->args->seed_check;
-
-
-            //------initialising variables used for choosing the best result
-            int penalties[seed_count];
-            char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
-            int buffs_len[seed_count];
+            int *seeds = get_seeds(g->args, seq->len, user_seed, g->bwt, seq->seq, 10);
+              shuffle(seeds+1, seed_count-1);
+            //------for storing the sam outputs      
             int tmpsize = 0;
 
             //------looping on different seeds
+            int seed_counter = 0;
             for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 g->args->seed_length = seeds[seed_c];
                 struct report* rpt = align_read(g, buffs+tmpsize, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2,total_seqs + level_counter, d,arr, tmp_cigar);
                 level_counter++;
                 penalties[seed_c] = (rpt->canNum?rpt->penalty[0].penalty:maxPenalty);
+                seed_counter++;
                 int tmp=report_alignment_results(rpt->g, rpt->buffer, rpt->cigar,rpt->cigar2, rpt->seq,rpt->seq2, rpt->table, rpt->table2, rpt->can, rpt->can2, rpt->canNum, rpt->canNum2, rpt->penalty, rpt->penalty2);
                 buffs_len[seed_c] = tmp;
                 tmpsize+=tmp;
                 /*free the memory reserved for the aligner*/
                 free_report(rpt);
+                /*if it is a good one, escape so*/
+                if(penalties[seed_c] < g->args->gap_open_penalty*0.5*seq->len)
+                    break;
             }
             //------free the seeds array
             free(seeds);
             
             //------choose the best alignment
             int minPenalty = maxPenalty, minIndex = 0;
-            for(int seed_c = 0; seed_c<seed_count; seed_c++){
+            for(int seed_c = 0; seed_c<seed_counter; seed_c++){
                 if(penalties[seed_c] < minPenalty){
                     minPenalty = penalties[seed_c];
                     minIndex = seed_c;
