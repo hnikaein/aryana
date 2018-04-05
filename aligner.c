@@ -281,7 +281,9 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
 	
 	//inexact match
 	bwtint_t groupid_last = 1;
+	limit = k;
 	for (i = len - 1; i >= k; i--) {
+		//k = (bwtint_t)(0.5*limit+0.5*k);
 		bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
 		if (limit < k) {
 			i = (long long int) (i - k + limit);

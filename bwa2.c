@@ -101,9 +101,9 @@ bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
 		sum_seed+=limit;
 		counter++;
 	}
-    k = (bwtint_t)((sum_seed/counter)*2.0);
-    //printf("k is %d\n", k);
-    return MIN(k, 100);
+    qsort(seeds, tries, sizeof(double), compare);
+    k = seeds[counter/2]*2;
+    return k;
 	
 }
 
@@ -622,7 +622,7 @@ void multiAligner(global_vars * g) {
 
             /*aligning the sequence with multiple seeds*/
             //------set the seed sets
-            int *seeds = get_seeds(g->args, seq->len, user_seed,g->bwt, seq->seq, 40);
+            int *seeds = get_seeds(g->args, seq->len, user_seed,g->bwt, seq->seq, 10);
             int seed_count = g->args->seed_check;
 
 
