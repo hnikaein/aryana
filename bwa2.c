@@ -20,11 +20,13 @@
 #include "bwt.h"
 #include "aryana_args.h"
 #include "bwa2.h"
+#include "bwt2.h"
 #include "aligner.h"
 #include "bntseq.h"
 #include "utils.h"
 #include "const.h"
 #include <math.h>
+
 //#include "aligner.h"
 #include "sam.h"
 #define MAX(a, b) (a > b) ? a : b
@@ -105,27 +107,35 @@ bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
 	
 }
 
-int* get_seeds(aryana_args * args, int read_len, int user_seed){
+
+int* get_seeds(aryana_args * args, int read_len, int user_seed, bwt_t *const bwt, ubyte_t *seq, int tries){
     int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
-     if(read_len<=225){
-        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
+    if(read_len<=225){
+        seeds[0] = 30, seeds[1] = 15, seeds[2] = 55;
     }else if(read_len<=275){
-        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
+        seeds[0] = 50, seeds[1] = 30, seeds[2] = 65;
     }else if(read_len<=325){
-        seeds[0] = 60, seeds[1] = 15, seeds[2] = 45;
+        seeds[0] = 65, seeds[1] = 30, seeds[2] = 95;
     }else if(read_len<=375){
-        seeds[0] = 75, seeds[1] = 15, seeds[2] = 55;
+        seeds[0] = 70, seeds[1] = 25, seeds[2] = 60;
     }else if(read_len<=450){
-        seeds[0] = 75, seeds[1] = 15, seeds[2] = 60;
+        seeds[0] = 75, seeds[1] = 25, seeds[2] = 60;
     }else if(read_len<=550){
-        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
+        seeds[0] = 95, seeds[1] = 25, seeds[2] = 65;
     }else if(read_len<=650){
-        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
+        seeds[0] = 95, seeds[1] = 25, seeds[2] = 40;
     }else if(read_len<=850){
-        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60;
+        seeds[0] = 95, seeds[1] = 25, seeds[2] = 70;
     }else{
-        seeds[0] = 100, seeds[1] = 15, seeds[2] = 60; 
+        seeds[0] = 95, seeds[1] = 30, seeds[2] = 65; 
     }
+    //put the smart seed in the seeds
+    for(int i = MAX_SEED_COUNT; i>0; i--){
+            seeds[i] = seeds[i-1];
+        }
+    seeds[0] = get_smart_seed(bwt, read_len, seq, tries);
+    
+    //put the user seed in the seeds if it is available
     if(user_seed != -1){
         for(int i = MAX_SEED_COUNT; i>0; i--){
             seeds[i] = seeds[i-1];
@@ -603,47 +613,43 @@ void multiAligner(global_vars * g) {
 
         lasttmpsize = 0;
         int level_counter = 1;
-        //------initialising variables used for choosing the best result
-        int seed_count = g->args->seed_check;
-        int penalties[seed_count];
-        char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
-        int buffs_len[seed_count];
         int user_seed = g->args->seed_length;
         for(j=0; j<n_seqs; j++) {
            
-            /*reversing the sequence*/
+            /*reversing the sequence, it should be before gettinf the seeds*/
             bwa_seq_t *seq = &seqs[j];
 	        reverse_seq(seq);
 
             /*aligning the sequence with multiple seeds*/
             //------set the seed sets
-            int *seeds = get_seeds(g->args, seq->len, user_seed);
-            //------for storing the sam outputs      
+            int *seeds = get_seeds(g->args, seq->len, user_seed,g->bwt, seq->seq, 40);
+            int seed_count = g->args->seed_check;
+
+
+            //------initialising variables used for choosing the best result
+            int penalties[seed_count];
+            char buffs[seed_count*MAX_SAM_LINE*sizeof(char)];
+            int buffs_len[seed_count];
             int tmpsize = 0;
 
             //------looping on different seeds
-            int seed_counter = 0;
             for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 g->args->seed_length = seeds[seed_c];
                 struct report* rpt = align_read(g, buffs+tmpsize, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2,total_seqs + level_counter, d,arr, tmp_cigar);
                 level_counter++;
                 penalties[seed_c] = (rpt->canNum?rpt->penalty[0].penalty:maxPenalty);
-                seed_counter++;
                 int tmp=report_alignment_results(rpt->g, rpt->buffer, rpt->cigar,rpt->cigar2, rpt->seq,rpt->seq2, rpt->table, rpt->table2, rpt->can, rpt->can2, rpt->canNum, rpt->canNum2, rpt->penalty, rpt->penalty2);
                 buffs_len[seed_c] = tmp;
                 tmpsize+=tmp;
                 /*free the memory reserved for the aligner*/
                 free_report(rpt);
-                /*if it is a good one, escape so*/
-                if(penalties[seed_c] < g->args->gap_ext_penalty*0.05*seq->len)
-                    break;
             }
             //------free the seeds array
             free(seeds);
             
             //------choose the best alignment
             int minPenalty = maxPenalty, minIndex = 0;
-            for(int seed_c = 0; seed_c<seed_counter; seed_c++){
+            for(int seed_c = 0; seed_c<seed_count; seed_c++){
                 if(penalties[seed_c] < minPenalty){
                     minPenalty = penalties[seed_c];
                     minIndex = seed_c;
