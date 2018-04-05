@@ -27,7 +27,7 @@
 #include <math.h>
 //#include "aligner.h"
 #include "sam.h"
-#define MAX(a, b) (a > b) ? a : b
+#define  MAX(a, b) (a > b) ? a : b
 #define MIN(a, b) (a < b) ? a : b
 typedef struct {
     int tid;
