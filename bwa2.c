@@ -73,6 +73,37 @@ void reverse_seq(bwa_seq_t* seq){
 		seq->seq[jjj] = tmp;
     }
 }
+int compare( const void* a, const void* b)
+{
+     int int_a = * ( (int*) a );
+     int int_b = * ( (int*) b );
+
+     if ( int_a == int_b ) return 0;
+     else if ( int_a < int_b ) return -1;
+     else return 1;
+}
+
+bwtint_t get_smart_seed(bwt_t *const bwt, int len, ubyte_t *seq, int tries) {
+	// initialize
+	bwtint_t down, up;
+	bwtint_t limit;
+	long long i = 0;
+
+	bwtint_t k = -1;
+    double sum_seed = 0;
+	double seeds[tries+10];
+	int counter = 0;
+	for(i = len-1; i>0; i-=(int)(len/(double)tries)){
+		bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
+        seeds[counter] = limit;
+		sum_seed+=limit;
+		counter++;
+	}
+    k = (bwtint_t)((sum_seed/counter)*2.0);
+    //printf("k is %d\n", k);
+    return MIN(k, 100);
+	
+}
 
 int* get_seeds(aryana_args * args, int read_len, int user_seed){
     int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
