@@ -278,7 +278,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
 
 	bwtint_t k;
 	k = (bwtint_t) args->seed_length;
-	
 	//inexact match
 	bwtint_t groupid_last = 1;
 	limit = k;
