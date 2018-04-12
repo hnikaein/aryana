@@ -30,15 +30,7 @@
 #define MAX(a, b) (a > b) ? a : b
 #define MIN(a, b) (a < b) ? a : b
 char atom2[4]= {'A','C','G','T'};
-int counter = 0;
-double base=10.0;
-double scmax=100.0;
-bwa_seq_t *seqs;
-int n_seqs = 0;
-int tot_seqs = 0;
 static int output_buffer_warning = 0;
-pthread_mutex_t input = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t output = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {
     int tid;
@@ -48,6 +40,9 @@ typedef struct {
     bwa_seqio_t * ks, *ks2;
     uint64_t * reference, reference_size, reference_reminder;
     bwtint_t * offset, offInd;
+    int * running_threads_num;
+    pthread_mutex_t * input;
+    FILE * stdout_file;
 } global_vars;
 
 // The Data structure used for preserving the initial order of the reads
@@ -55,8 +50,8 @@ typedef struct {
     char * str;
     unsigned long long read_num;
 } outBuf_t;
+
 outBuf_t * outBuf;
-int running_threads_num;
 unsigned long long outBufIndex, outBufLen;
 
 double QtoP(double quality)
@@ -161,10 +156,10 @@ int valid_pair(global_vars * g, hash_element *hit1, hash_element * hit2, bwtint_
     return 1;	// Valid pair
 }
 double prob_function(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual, char * cigar, uint64_t refrence_index)
-{	
+{
     	int read_index=0;
 
-	const double p_snp=0.0011;	
+	const double p_snp=0.0011;
 	const double p_indel=0.0001;
 	const double p_delete_open=0.003;
 	const double p_delete_extend=0.05;
@@ -178,18 +173,18 @@ double prob_function(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual,
 
 	double p_ans=1;
 
-	char prev='M';	
+	char prev='M';
 
 	int i;
     	for(i=0; cigar[i]; i++)
-    	{    
+    	{
    		char tmp[10];
         	int j=0;
        		while(isdigit(cigar[i]))
            		tmp[j++]=cigar[i++];
         	tmp[j]=0;
         	bwtint_t num=atoi(tmp);
-		
+
 		p_d=(prev=='D' ? p_delete_extend : p_delete_open);
 		p_i=(prev=='I' ? p_insert_extend : p_insert_open);
 		p_m=1-p_i-p_d;
@@ -222,36 +217,36 @@ double prob_function(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual,
 			{
 				p_ans *=((1-p_snp)*(1-p_mismatch)+p_snp*p_mismatch/3) * p_m;
 			}
-			else 
+			else
 			{
 				p_ans *=((1-p_snp)*(p_mismatch/3)+(p_snp/3)*(1-p_mismatch)+(2*p_snp/3)*(p_mismatch/3)) * p_m;
 			}
-			
-			
+
+
 		}
     	}
 	return p_ans;
 }
 void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p, penalty_t * p2, bwtint_t len, bwtint_t len2, ubyte_t *seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, hash_element * t, hash_element * t2, char * c[], char * c2[], int paired) {
-    
+
     int i;
     double sum=0,sum2=0;
     for (i = 0; i < num; i++) {
         p[i].mapq = prob_function(g,len,seq, qual,c[i],t[can[i]].index);
 
-        
-	if (paired) p2[i].mapq = prob_function(g,len2, seq, qual2 ,c2[i], t2[can2[i]].index);	
-	
+
+	if (paired) p2[i].mapq = prob_function(g,len2, seq, qual2 ,c2[i], t2[can2[i]].index);
+
 	sum+=p[i].mapq;
 	if(paired)sum2+=p2[i].mapq;
     }
     double e1=0.1;
     for (i=0; i < num; i++)
-    {	
+    {
 		double e2=1-p[i].mapq/sum;
 		p[i].mapq=PtoQ(e1+(1-e1)*e2);//TODO prior probability
 		if(paired)
-		{	
+		{
 			double e2=1-p2[i].mapq/sum2;
 		        p2[i].mapq=PtoQ(e1+(1-e1)*e2);//TODO prior probability
 		}
@@ -260,7 +255,7 @@ void compute_mapq(global_vars * g, int * can, int * can2, int num, penalty_t * p
 }
 
 
-void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t* seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) { 
+void find_best_candidates(global_vars * g, int candidates_num, int candidates_num2, int candidates_size, int * candidates, int * candidates2, penalty_t * penalty, penalty_t * penalty2, int * best_candidates, int * best_candidates2, int * best_num, hash_element *table, hash_element * table2, bwtint_t len, bwtint_t len2, ubyte_t* seq, ubyte_t *seq2, ubyte_t *qual, ubyte_t *qual2, char * cigar[], char * cigar2[], int paired) {
     *best_num = 0;
     int min_penalty = maxPenalty, i, j;
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
@@ -401,7 +396,7 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
 // This function aligns one (single or paired) read, finds the best alignment positions, computes the CIGAR sequence, and one or multiple lines of the SAM file for reporting the read alignments
 // arr and d are the arrays used for smith_waterman dynamic programming. The reason to pass their pointers is to avoid creating them for every read
 long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, char **arr, char* tmp_cigar) {
-     
+
     buffer[0]='\0';
     int candidates_size=g->args->potents;
     int candidates[candidates_size], candidates2[candidates_size], candidates_num = candidates_size, candidates_num2 = candidates_size;
@@ -433,11 +428,18 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
     return report_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
 }
 
-
+int **d_a[MAX_THREADS_COUNT];
+char **arr_a[MAX_THREADS_COUNT];
+char *tmp_cigar_a[MAX_THREADS_COUNT];
+char **cigar_a[MAX_THREADS_COUNT];
+hash_element *table_a[MAX_THREADS_COUNT];
+pthread_mutex_t used_mem_mutex;
+int used_mem[MAX_THREADS_COUNT];
 
 // This is the central function of each thread. It reads a group of reads, aligns each one, and puts the output to be printed in SAM file
 
 void multiAligner(global_vars * g) {
+    pthread_mutex_t output = PTHREAD_MUTEX_INITIALIZER;
 
     // Allocating memory and initializing variables
     bwa_seq_t *seqs, *seqs2 = 0;
@@ -445,24 +447,44 @@ void multiAligner(global_vars * g) {
     int total_seqs = 0;
     bwtint_t j = 0;
     hash_element *table, *table2 = 0;
+    int my_mem = 0;
 
-    table=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
+    pthread_mutex_lock(&used_mem_mutex);
+    for (int i = 0; i < MAX_THREADS_COUNT; ++i)
+        if (used_mem[i] == 0) {
+            used_mem[i] = 1;
+            my_mem = i;
+            fprintf(stderr, "my_mem: %d\n", my_mem);
+            break;
+        }
+    pthread_mutex_unlock(&used_mem_mutex);
+
+    if (d_a[my_mem] == 0) {
+        d_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (int *)));
+        arr_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (char *)));
+        tmp_cigar_a[my_mem] = malloc(MAX_READ_LEN*(sizeof (char)));
+        for (j = 0; j < MAX_READ_LEN; j++) {
+            d_a[my_mem][j] = malloc(300*(sizeof (int)));
+            arr_a[my_mem][j] = malloc(300*(sizeof (char)));
+        }
+        //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
+        cigar_a[my_mem] = (char **) malloc(g->args->potents * sizeof(char *));
+        for (j = 0; j < g->args->potents; j++)
+            cigar_a[my_mem][j] = (char *) malloc(MAX_CIGAR_SIZE * (sizeof(char)));
+        table_a[my_mem] = (hash_element *) malloc(HASH_TABLE_SIZE * (sizeof(hash_element)));
+    }
+    int **d = d_a[my_mem];
+    char **arr = arr_a[my_mem];
+    char *tmp_cigar = tmp_cigar_a[my_mem];
+    char **cigar = cigar_a[my_mem];
+    table = table_a[my_mem];
+
     reset_hash(table);
 
-    int **d=(int **)malloc(MAX_READ_LEN*(sizeof (int *)));
-    char **arr=(char **)malloc(MAX_READ_LEN*(sizeof (char *)));
-    char *tmp_cigar=(char *)malloc(MAX_READ_LEN*(sizeof (char)));
-    for (j=0; j<MAX_READ_LEN; j++) {
-        d[j]=(int *)malloc(300*(sizeof (int)));
-        arr[j]=(char *)malloc(300*(sizeof (char)));
-    }
-    //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
+    char **cigar2 = 0;
     char buffer[seq_num_per_file_read * MAX_SAM_LINE * (sizeof(char))];
     buffer[0] = '\0';
     long long lasttmpsize = 0;
-    char **cigar = (char **) malloc(g->args->potents * sizeof(char *)), **cigar2 = 0;
-    for (j=0; j < g->args->potents; j++)
-        cigar[j]=(char *) malloc(MAX_CIGAR_SIZE*(sizeof (char)));
 
     if (g->args->paired) {
         table2=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
@@ -478,11 +500,11 @@ void multiAligner(global_vars * g) {
 
     // The thread body
     while(true) {
-        pthread_mutex_lock(&input);
+        pthread_mutex_lock(g->input);
         int read = 1;
         if((seqs = bwa_read_seq(g->ks, seq_num_per_file_read, &n_seqs, g->opt->mode, g->opt->trim_qual)) == 0 ||
                 (g->args->paired && (seqs2 = bwa_read_seq(g->ks2, seq_num_per_file_read, &n_seqs2, g->opt->mode, g->opt->trim_qual)) == 0)) read = 0;
-        pthread_mutex_unlock(&input);
+        pthread_mutex_unlock(g->input);
         if (! read) break;
         if (g->args->paired && n_seqs != n_seqs2) {
             fprintf(stderr, "Error: The number of reads from fastq1 is not equal to fastq2\n");
@@ -505,7 +527,7 @@ void multiAligner(global_vars * g) {
             } else {
                 if (j % seq_num_per_file_read == 0 || j == n_seqs - 1) {
                     pthread_mutex_lock(&output);
-                    fputs(buffer, stdout);
+                    fputs(buffer, g->stdout_file);
                     pthread_mutex_unlock(&output);
                     lasttmpsize = 0;
                 }
@@ -517,20 +539,26 @@ void multiAligner(global_vars * g) {
     }
     if (lasttmpsize > 0) {
         pthread_mutex_lock(&output);
-        fputs(buffer, stdout);
+        fputs(buffer, g->stdout_file);
         pthread_mutex_unlock(&output);
         lasttmpsize = 0;
     }
     // Free variables
     //free(seqs);
-    for (j=0; j<MAX_READ_LEN; j++) {
-        free(d[j]);
-        free(arr[j]);
-    }
-    for (j = 0; j < g->args->potents; j++)
-        free(cigar[j]);
-    free(cigar);
-    free(table);
+//    for (j=0; j<MAX_READ_LEN; j++) {
+//        free(d[j]);
+//        free(arr[j]);
+//    }
+//    for (j = 0; j < g->args->potents; j++)
+//        free(cigar[j]);
+//    free(cigar);
+//    free(table);
+//    free(d);
+//    free(arr);
+//    free(tmp_cigar);
+    pthread_mutex_lock(&used_mem_mutex);
+    used_mem[my_mem] = 0;
+    pthread_mutex_unlock(&used_mem_mutex);
     if (g->args->paired) {
         free(table2);
         //fprintf(stderr, "2, %d\n", seqs2);
@@ -539,18 +567,15 @@ void multiAligner(global_vars * g) {
             free(cigar2[j]);
         free(cigar2);
     }
-    free(d);
-    free(arr);
-    free(tmp_cigar);
     fprintf(stderr, "Thread %d finished.\n", g->tid);
 }
 
 void *worker2(void *data) {
     global_vars *g = (global_vars*)data;
     multiAligner(g);
-    pthread_mutex_lock(&input);
-    running_threads_num--;
-    pthread_mutex_unlock(&input);
+    pthread_mutex_lock(g->input);
+    (*g->running_threads_num)--;
+    pthread_mutex_unlock(g->input);
     return 0;
 }
 
@@ -682,7 +707,7 @@ void bwa_aln_core2(aryana_args *args)
     }
 	while(fgets(line, sizeof line, ann) != NULL) {
         if (! fscanf(ann, "%llu", (unsigned long long *) &offset[offInd++]) ||
-			!fgets(line, sizeof line, ann) || 
+			!fgets(line, sizeof line, ann) ||
 			!fscanf(ann, "%d %s", &i, name[offInd])) {
             fclose(ann);
             bwa_seq_close(ks);
@@ -696,7 +721,7 @@ void bwa_aln_core2(aryana_args *args)
     char buffer[max_sam_header_size];
     buffer[0] = '\0';
     sam_headers(buffer,offset, offInd, max_sam_header_size);
-    fputs(buffer, stdout);
+    fputs(buffer, args->stdout_file);
 
     pthread_t *threads;
     pthread_attr_t attr;
@@ -705,6 +730,12 @@ void bwa_aln_core2(aryana_args *args)
     pthread_attr_init(&attr);
     data = (global_vars*)calloc(args->threads, sizeof(global_vars));
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    int * running_threads_num = malloc(sizeof(int));
+    *running_threads_num =  args->threads;
+    pthread_mutex_t * input_mutex = malloc(sizeof(pthread_mutex_t));
+    pthread_mutex_t tmp = PTHREAD_MUTEX_INITIALIZER;
+    memcpy(input_mutex, &tmp, sizeof(tmp));
+
     for(j=0; j<args->threads; j++) {
         data[j].tid = j;
         data[j].bwt = bwt;
@@ -717,9 +748,11 @@ void bwa_aln_core2(aryana_args *args)
         data[j].reference_reminder = reference_reminder;
         data[j].offset = offset;
         data[j].offInd = offInd;
+        data[j].running_threads_num = running_threads_num;
+        data[j].input = input_mutex;
+        data[j].stdout_file = args->stdout_file;
     }
 
-    running_threads_num = args->threads;
     if (args->order) {
         outBufLen = args->out_buffer_factor * args->threads * seq_num_per_file_read;
         outBuf = malloc(sizeof(outBuf_t) * outBufLen);

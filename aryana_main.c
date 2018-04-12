@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
         for(i=0; i<5; i++) {
             sprintf(output_temp, "%s-%d", output, i);
             FILE *sam = fopen(output_temp, "w");
-            stdout = sam;
+            args.stdout_file = sam;
             args.reference = refNames[i];
             args.ignore = ignore[i];
             bwa_aln_core2(&args);
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
         FILE *sam;
         if(output) {
             sam = fopen(output, "w");
-            stdout = sam;
+            args.stdout_file = sam;
         }
         bwa_aln_core2(&args);
         if(output)

@@ -4,6 +4,8 @@
 #define SEED_NUMS_PER_READ 1000
 #define MAX_SAM_LINE (4 * MAX_READ_LEN + 2000)
 #define MAX_CIGAR_SIZE (4 * MAX_READ_LEN)
+#define MAX_POTENTS 200
+#define MAX_THREADS_COUNT 100
 #define sleep_time 1
 #define true 1
 #define false 0

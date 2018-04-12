@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #ifndef __aryana_args
 #define __aryana_args
 
@@ -36,5 +37,6 @@ typedef struct {
     ignore_mismatch_t ignore;
 	int tag_size;
     double indel_ratio_between_seeds;
+	FILE * stdout_file;
 } aryana_args;
 #endif
