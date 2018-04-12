@@ -43,12 +43,12 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
             fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i],
                     (llu) best->match_start[i], (llu) best->matched[i]);
         valid[i] = 1;
-        if (args->platform == illumina &&
+        /*if (args->platform == illumina &&
             llabs((signed) (best->match_index[i] - best->match_start[i]) - (signed) best->index) >
             5 + best->match_start[i] / 20) {
             if (args->debug > 2) fprintf(stderr, "out of chain by rule 1\n");
             valid[i] = 0;
-        }
+        }*/
         if (valid[i] == 1 && i < best->parts - 1 &&
             (best->match_start[lastvalid] + best->matched[lastvalid] > best->match_start[i])) {
             if (args->debug > 2) fprintf(stderr, "out of chain by rule 2\n");
@@ -80,12 +80,12 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
             uint64_t match_start_diff = best->match_start[ii] - (best->match_start[jj] + best->matched[jj]);
             uint64_t match_index_diff = best->match_index[ii] - (best->match_index[jj] + best->matched[jj]);
             if (match_start_diff >= 0 && match_index_diff >= 0 &&
-                match_index_diff <= args->indel_ratio_between_seeds * match_start_diff + 1 &&
-                match_start_diff <= args->indel_ratio_between_seeds * match_index_diff + 1) {
+                match_index_diff <= args->indel_ratio_between_seeds * (match_start_diff + 1) &&
+                match_start_diff <= args->indel_ratio_between_seeds * (match_index_diff + 1)) {
                 uint64_t max_dist_ii_jj = MAX(match_start_diff, match_index_diff);
-                if (best_parts_lis_max[jj] + 1 > mmax ||
-                    (best_parts_lis_max[jj] + 1 == mmax && max_dist_ii_jj <= max_dist)) {
-                    mmax = best_parts_lis_max[jj] + 1;
+                if (best_parts_lis_max[jj] + best->matched[i] > mmax ||
+                    (best_parts_lis_max[jj] + best->matched[i] == mmax && max_dist_ii_jj <= max_dist)) {
+                    mmax = (int) (best_parts_lis_max[jj] + best->matched[i]);
                     mmaxi = jj;
                     max_dist = max_dist_ii_jj;
                 }
