@@ -1,7 +1,7 @@
 #define seq_num_per_file_read 7
-#define MAX_READ_LEN 40000
-#define HASH_TABLE_SIZE 8193
-#define SEED_NUMS_PER_READ 1000
+#define MAX_READ_LEN (1000 + 50)
+#define HASH_TABLE_SIZE 200
+#define SEED_NUMS_PER_READ 100
 #define MAX_SAM_LINE (4 * MAX_READ_LEN + 2000)
 #define MAX_CIGAR_SIZE (4 * MAX_READ_LEN)
 #define MAX_POTENTS 200
