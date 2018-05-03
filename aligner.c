@@ -36,9 +36,9 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
     penalty->gap_ext_num = 0;
     int *valid = (int *) malloc(best->parts * (sizeof(int)));
     bwtint_t lastvalid = (bwtint_t) (best->parts - 1);
-    long long i = 0, j = 0;
+    long long j = 0;
     // This part estimated alignment position by checking all seeds, finding  a valid chain of them. TODO: Dynamic Programming rather than greedy validation and estimation of alignment pos.
-    for (i = best->parts - 1; i >= 0; i--) {
+    for (long long i = best->parts - 1; i >= 0; i--) {
         if (args->debug > 2)
             fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i],
                     (llu) best->match_start[i], (llu) best->matched[i]);
@@ -83,9 +83,9 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
                 match_index_diff <= args->indel_ratio_between_seeds * (match_start_diff + 1) &&
                 match_start_diff <= args->indel_ratio_between_seeds * (match_index_diff + 1)) {
                 uint64_t max_dist_ii_jj = MAX(match_start_diff, match_index_diff);
-                if (best_parts_lis_max[jj] + best->matched[i] > mmax ||
-                    (best_parts_lis_max[jj] + best->matched[i] == mmax && max_dist_ii_jj <= max_dist)) {
-                    mmax = (int) (best_parts_lis_max[jj] + best->matched[i]);
+                if (best_parts_lis_max[jj] + best->matched[ii] > mmax ||
+                    (best_parts_lis_max[jj] + best->matched[ii] == mmax && max_dist_ii_jj <= max_dist)) {
+                    mmax = (int) (best_parts_lis_max[jj] + best->matched[ii]);
                     mmaxi = jj;
                     max_dist = max_dist_ii_jj;
                 }
@@ -116,7 +116,7 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
         PrintSeq(seq, len, 1);
         PrintRefSeq(reference, head_index, head_index + len + 2 * slack, seq_len, 1);
     }
-    for (i = max_lis_first; i != -1; i = best_parts_lis_rev[i]) {
+    for (long long i = max_lis_first; i != -1; i = best_parts_lis_rev[i]) {
         print_head = smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar,
                                     print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar,
                                     reference, ignore, (ubyte_t *) qual);
@@ -158,7 +158,7 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
     char last_char = 'M';
     print_head = 0;
 
-    for (i = 0; cigar[i]; i++) {
+    for (long long i = 0; cigar[i]; i++) {
         char tmp[10];
         j = 0;
         while (isdigit(cigar[i]))
