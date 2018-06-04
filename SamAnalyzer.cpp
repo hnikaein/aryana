@@ -80,7 +80,7 @@ void ReadGenome(const string &genomeFile) {
 
 void revcomp(char * a, long long l = 0) {
     if (! l) l = static_cast<long long int>(strlen(a));
-    auto * b = new char[l];
+    auto b = new char[l];
     memcpy(b, a, static_cast<size_t>(l));
     for (long long i = 0; i < l; i++)
         switch (b[i]) {

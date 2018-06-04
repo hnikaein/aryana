@@ -38,5 +38,6 @@ typedef struct {
 	int tag_size;
     double indel_ratio_between_seeds;
 	FILE * stdout_file;
+    int seed_check;
 } aryana_args;
 #endif

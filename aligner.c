@@ -269,132 +269,110 @@ void match_select(long long down, long long up, int exactmatch_num, long long *s
 // The main Aryana aligner routine.
 
 void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_element *table, int *best, int best_size,
-             int *best_found, aryana_args *args, uint64_t *reference) {
-    // initialize
-    bwtint_t down, up;
-    bwtint_t limit;
-    long long i = 0, j = 0;
+		int *best_found, aryana_args *args, uint64_t *reference) {
+	// initialize
+	bwtint_t down, up;
+	bwtint_t limit;
+	long long i = 0, j = 0;
 
-    bwtint_t k;
-    if (args->seed_length == -1) {
-        k = 26;
-        if (len < 600)
-            k = 24;
-        if (len < 300)
-            k = 22;
-        if (len < 150)
-            k = 20;
-        if (len < 80)
-            k = 18;
-        if (len < 40)
-            k = 15;
-    } else
-        k = (bwtint_t) args->seed_length;
+	bwtint_t k;
+	k = (bwtint_t) args->seed_length;
 
-    //reversing
-    j = len - 1;
-    i = 0;
-    for (; i < j && j >= 0 && i < len; (i++, j--)) {
-        ubyte_t tmp = seq[i];
-        seq[i] = seq[j];
-        seq[j] = tmp;
-        //if (seq[i]>3 || seq[j]>3)
-        //	return;
-    }
-    //inexact match
-    bwtint_t groupid_last = 1;
-    for (i = len - 1; i >= k; i--) {
-        bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
-        if (limit < k) {
-            i = (long long int) (i - k + limit);
-            if (i < k) break;
-            continue;
-        }
-        bwt_match_limit(bwt, (int) (i + 1), seq, &down, &up, &limit);
-        if (args->debug > 2) {
-            fprintf(stderr,
-                    "aligner, read position=%llu, num of exact matches of the seed in ref=%llu, score=%llu, seq: ", i,
-                    (unsigned long long) (up - down + 1), (unsigned long long) limit);
-            PrintSeq(seq + i + 1 - limit, (int) limit, 1);
-        }
+	//inexact match
+	bwtint_t groupid_last = 1;
+	for (i = len - 1; i >= k; i--) {
+		bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
+		if (limit < k) {
+			i = (long long int) (i - k + limit);
+			if (i < k) break;
+			continue;
+		}
+		bwt_match_limit(bwt, (int) (i + 1), seq, &down, &up, &limit);
+		if (args->debug > 2) {
+			fprintf(stderr,
+					"aligner, read position=%llu, num of exact matches of the seed in ref=%llu, score=%llu, seq: ", i,
+					(unsigned long long) (up - down + 1), (unsigned long long) limit);
+			PrintSeq(seq + i + 1 - limit, (int) limit, 1);
+		}
 
-        long long selected[args->exactmatch_num];
-        match_select((long long int) down, (long long int) up, args->exactmatch_num, selected);
-        //		for (j=down; j<=up && j <= (down + 50); j++){
-        int ii = 0;
-        for (; ii < args->exactmatch_num && ii < up - down + 1; ii++) {
-            j = selected[ii];
-            bwtint_t index = bwt_sa(bwt, (bwtint_t) j);
-//            		if (index > len)
-//                 		index = index - len;
-//             		else
-//                 		index = 0;
-            if (args->debug > 2) {
-                fprintf(stderr, "match, index: %llu, seq: ", (unsigned long long) index);
-                PrintRefSeq(reference, index, index + limit - 1, bwt->seq_len, 1);
-                if (args->debug > 3) {
-                    fprintf(stderr, "Additional sequences:\n");
-                    long long l;
-                    for (l = j - 3; l < j + 3; l++) {
-                        if (l < 0 || l > bwt->seq_len) continue;
-                        bwtint_t tmpind = bwt_sa(bwt, (bwtint_t) l);
-                        PrintRefSeq(reference, tmpind, tmpind + limit - 1, bwt->seq_len, 1);
-                    }
-                }
-            }
-            bwtint_t score = limit;
-            bwtint_t rindex = index - (i - limit + 1);
-            if (index < (i - limit + 1)) rindex = 0;
-            assert(rindex < bwt->seq_len);
-            int tag_size_diff = args->tag_size / 2;
-            if (tag_size_diff < 1)
-                tag_size_diff = len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
-            add(bwt, rindex / tag_size_diff, score, level, rindex, best, best_size, best_found, table, i - limit + 1,
-                limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
-            if (rindex / tag_size_diff > 0)
-                add(bwt, rindex / tag_size_diff - 1, score, level, rindex, best, best_size, best_found, table,
-                    i - limit + 1, limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
-            if (args->debug > 2)
-                fprintf(stderr,
-                        "Scoring match, tag index: %llu, score: %llu, estimated starting pos in ref: %llu, seed ref pos: %llu, seed read pos: %llu\n",
-                        (llu) rindex / tag_size_diff, (llu) score, (llu) index - (i - limit + 1), (llu) index, (llu) i);
-        }
-        groupid_last++;
-        if (i > k) {
-            if ((limit - k + 1) > 0)
-                i = (long long int) (i - limit + (k - 1));
-            else
-                fprintf(stderr, "Negative value for (limit-k+1)\n");
-            if (i < k) break;
-        }
-    }
-    total_candidates += best_size - *best_found;
-    int bestCandidate = best[best_size - 1];
-    if (args->debug > 1 && (*best_found) < best_size) {
-        fprintf(stderr, "Printing seeds of the best candidate:\n");
-        for (int ii = 0; ii < table[bestCandidate].parts; ii++)
-            fprintf(stderr, "Length: %llu, Read: %llu\t Ref: %llu\n",
-                    (unsigned long long) table[bestCandidate].matched[ii],
-                    (unsigned long long) table[bestCandidate].match_start[ii],
-                    (unsigned long long) table[bestCandidate].match_index[ii]);
-        for (int ii = best_size - 1; ii >= (*best_found); ii--)
-            if (best[ii] != -1)
-                fprintf(stderr, "Candidate %d, seeds num: %d, total score: %d\n", ii, table[best[ii]].parts,
-                        table[best[ii]].value);
-    }
-    if (args->best_factor > 0) {
-        for (i = best_size - 2; i >= (*best_found); i--) {
-            if (best[i] == -1)
-                break;
-            if (table[best[i]].value < table[bestCandidate].value * args->best_factor) {
-                best_factor_candidates += i + 1 - *best_found;
-                (*best_found) = (int) (i + 1);
-                break;
-            }
-            if (i == 0)
-                break;
-        }
-    }
+		long long selected[args->exactmatch_num];
+		match_select((long long int) down, (long long int) up, args->exactmatch_num, selected);
+		//		for (j=down; j<=up && j <= (down + 50); j++){
+		int ii = 0;
+		for (; ii < args->exactmatch_num && ii < up - down + 1; ii++) {
+			j = selected[ii];
+			bwtint_t index = bwt_sa(bwt, (bwtint_t) j);
+			//            		if (index > len)
+			//                 		index = index - len;
+			//             		else
+			//                 		index = 0;
+			if (args->debug > 2) {
+				fprintf(stderr, "match, index: %llu, seq: ", (unsigned long long) index);
+				PrintRefSeq(reference, index, index + limit - 1, bwt->seq_len, 1);
+				if (args->debug > 3) {
+					fprintf(stderr, "Additional sequences:\n");
+					long long l;
+					for (l = j - 3; l < j + 3; l++) {
+						if (l < 0 || l > bwt->seq_len) continue;
+						bwtint_t tmpind = bwt_sa(bwt, (bwtint_t) l);
+						PrintRefSeq(reference, tmpind, tmpind + limit - 1, bwt->seq_len, 1);
+					}
+				}
+			}
+			bwtint_t score = limit;
+			bwtint_t rindex = index - (i - limit + 1);
+			if (index < (i - limit + 1)) rindex = 0;
+			assert(rindex < bwt->seq_len);
+			int tag_size_diff = args->tag_size / 2;
+			if (tag_size_diff < 1)
+				tag_size_diff = len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
+			add(bwt, rindex / tag_size_diff, score, level, rindex, best, best_size, best_found, table, i - limit + 1,
+					limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
+			if (rindex / tag_size_diff > 0)
+				add(bwt, rindex / tag_size_diff - 1, score, level, rindex, best, best_size, best_found, table,
+						i - limit + 1, limit, index, len, groupid_last); // if level changed, check the find_value in hash.c
+			if (args->debug > 2)
+				fprintf(stderr,
+						"Scoring match, tag index: %llu, score: %llu, estimated starting pos in ref: %llu, seed ref pos: %llu, seed read pos: %llu\n",
+						(llu) rindex / tag_size_diff, (llu) score, (llu) index - (i - limit + 1), (llu) index, (llu) i);
+		}
+		groupid_last++;
+		if (i > k) {
+			if ((limit - k + 1) > 0)
+				i = (long long int) (i - limit + (k - 1));
+			else
+				fprintf(stderr, "Negative value for (limit-k+1)\n");
+			if (i < k) break;
+		}
+	}
+	total_candidates += best_size - *best_found;
+	int bestCandidate = best[best_size - 1];
+	if (args->debug > 1 && (*best_found) < best_size) {
+		fprintf(stderr, "Printing seeds of the best candidate:\n");
+		for (int ii = 0; ii < table[bestCandidate].parts; ii++)
+			fprintf(stderr, "Length: %llu, Read: %llu\t Ref: %llu\n",
+					(unsigned long long) table[bestCandidate].matched[ii],
+					(unsigned long long) table[bestCandidate].match_start[ii],
+					(unsigned long long) table[bestCandidate].match_index[ii]);
+		for (int ii = best_size - 1; ii >= (*best_found); ii--)
+			if (best[ii] != -1)
+				fprintf(stderr, "Candidate %d, seeds num: %d, total score: %d\n", ii, table[best[ii]].parts,
+						table[best[ii]].value);
+	}
+	if (args->best_factor > 0) {
+		for (i = best_size - 2; i >= (*best_found); i--) {
+			if (best[i] == -1)
+				break;
+			if (table[best[i]].value < table[bestCandidate].value * args->best_factor) {
+				best_factor_candidates += i + 1 - *best_found;
+				(*best_found) = (int) (i + 1);
+				break;
+			}
+			if (i == 0)
+				break;
+		}
+	}
 
-}
 
+
+	}

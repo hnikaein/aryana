@@ -1,7 +1,7 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-Wall -Wno-unused-function -O2
-CXXFLAGS=	-Wall -Wno-unused-function -O2
+CFLAGS=		-Wall -Wno-unused-function -Ofast
+CXXFLAGS=	-Wall -Wno-unused-function -Ofast
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
@@ -40,7 +40,7 @@ read_simul:
 		$(CXX) $(CXXFLAGS) read_simul.cpp -o read_simul
 
 SamAnalyzer:
-		$(CXX) $(CXXFLAGS) SamAnalyzer.cpp -o SamAnalyzer
+		$(CXX) $(CXXFLAGS) -std=c++11 SamAnalyzer.cpp -o SamAnalyzer
 
 SamToNormWig:
 		$(CXX) $(CXXFLAGS) SamToNormWig.cpp -o SamToNormWig
