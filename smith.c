@@ -81,7 +81,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             d[0][i]=gap(i-off/2, go, ge);
         arr[0][i] = delC;
     }
-
+    d[0][off/2] = 0;
     int cur_off = 0, best_pen = INT_MAX;
     for (i=1; i<=match_end-match_start; i++) // The position in read
         for (j=0; j<off; j++)                // The real position - read position + off/2
