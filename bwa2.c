@@ -463,14 +463,16 @@ void multiAligner(global_vars * g) {
         d_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (int *)));
         arr_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (char *)));
         tmp_cigar_a[my_mem] = malloc(MAX_READ_LEN*(sizeof (char)));
+        int* te_d = malloc(MAX_READ_LEN * 300 * (sizeof(int)));
+        char* te_arr = malloc(MAX_READ_LEN * 300 * (sizeof(char)));
         for (j = 0; j < MAX_READ_LEN; j++) {
-            d_a[my_mem][j] = malloc(300*(sizeof (int)));
-            arr_a[my_mem][j] = malloc(300*(sizeof (char)));
+            d_a[my_mem][j] = te_d + j * 300 * (sizeof(int));
+            arr_a[my_mem][j] = te_arr + j * 300 * (sizeof(char));;
         }
-        //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
         cigar_a[my_mem] = (char **) malloc(g->args->potents * sizeof(char *));
+        char *te_cigar = malloc(g->args->potents * MAX_CIGAR_SIZE * (sizeof(char)));
         for (j = 0; j < g->args->potents; j++)
-            cigar_a[my_mem][j] = (char *) malloc(MAX_CIGAR_SIZE * (sizeof(char)));
+            cigar_a[my_mem][j] = te_cigar + j * MAX_CIGAR_SIZE * (sizeof(char));
         table_a[my_mem] = (hash_element *) malloc(HASH_TABLE_SIZE * (sizeof(hash_element)));
     }
     int **d = d_a[my_mem];
