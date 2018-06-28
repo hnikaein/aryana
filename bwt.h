@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 // requirement: (OCC_INTERVAL%16 == 0); please DO NOT change this line because some part of the code assume OCC_INTERVAL=0x80
 #define OCC_INTV_SHIFT 7
@@ -90,7 +91,9 @@ void bwt_dump_bwt(const char *fn, const bwt_t *bwt);
 void bwt_dump_sa(const char *fn, const bwt_t *bwt);
 
 bwt_t *bwt_restore_bwt(const char *fn);
+bwt_t *bwt_restore_bwt_FILE(FILE *fp);
 void bwt_restore_sa(const char *fn, bwt_t *bwt);
+void bwt_restore_sa_FILE(FILE *fp, bwt_t *bwt);
 
 void bwt_destroy(bwt_t *bwt);
 
