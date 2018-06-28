@@ -1,16 +1,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "fa2bin.h"
 
 int fa2bin(int argc, char *argv[]) {
     fprintf(stderr, "inside fa2bin\n");
-    if(argc < 2) {
+    if (argc < 2) {
         fprintf(stderr, "No fasta specified.\n");
         return -1;
     }
-    char * prefix = argv[1];
-    char *str = (char*)calloc(strlen(prefix) + 10, 1);
+    char *prefix = argv[1];
+    char *str = (char *) calloc(strlen(prefix) + 10, 1);
     strcpy(str, prefix);
     fprintf(stderr, "fasta file is: %s\n", str);
 
@@ -20,47 +19,46 @@ int fa2bin(int argc, char *argv[]) {
     fprintf(stderr, "output bin is: %s\n", str);
 
     char c;
-    if(fscanf(fin, "%c", &c) == EOF) {
+    if (fscanf(fin, "%c", &c) == EOF) {
         fprintf(stderr, "empty fasta file\n");
         return -2;
     }
-    if(c != '>') {
+    if (c != '>') {
         fprintf(stderr, "wrong fasta format\n");
         return -3;
-    }
-    else
-        while(c != '\n' && fscanf(fin, "%c", &c) != EOF);
+    } else
+        while (c != '\n' && fscanf(fin, "%c", &c) != EOF);
 
     int b = 0;
     int i = 0;
     int j = 0;
-    while(fscanf(fin, "%c", &c) != EOF) {
-        if(c == '>') {
-            while(c != '\n' && fscanf(fin, "%c", &c) != EOF);
+    while (fscanf(fin, "%c", &c) != EOF) {
+        if (c == '>') {
+            while (c != '\n' && fscanf(fin, "%c", &c) != EOF);
             continue;
         }
-        if(c == '\n' || c == '\r')
+        if (c == '\n' || c == '\r')
             continue;
         //if(j && j % 60 == 0)
         //	printf("\n");
         //printf("%c", c);
         //j++;
-        if(j > 99999999)
+        if (j > 99999999)
             break;
-        if(c == 'C' || c == 'c')
+        if (c == 'C' || c == 'c')
             b |= (1 << i);
-        if(c == 'G' || c == 'g')
+        if (c == 'G' || c == 'g')
             b |= (2 << i);
-        if(c == 'T' || c == 't' || c == 'U' || c == 'u')
+        if (c == 'T' || c == 't' || c == 'U' || c == 'u')
             b |= (3 << i);
 
         i += 2;
-        if(i == 8) {
+        if (i == 8) {
             fputc(b, fbin);
             b = i = 0;
         }
     }
-    if(i)
+    if (i)
         fputc(b, fbin);
     fclose(fbin);
     fclose(fin);

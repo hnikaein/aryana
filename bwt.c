@@ -441,11 +441,15 @@ static bwtint_t fread_fix(FILE *fp, bwtint_t size, void *a)
 
 void bwt_restore_sa(const char *fn, bwt_t *bwt)
 {
+    FILE *fp = xopen(fn, "rb");
+    bwt_restore_sa_FILE(fp, bwt);
+}
+
+void bwt_restore_sa_FILE(FILE *fp, bwt_t *bwt)
+{
     char skipped[256];
-    FILE *fp;
     bwtint_t primary;
 
-    fp = xopen(fn, "rb");
     err_fread_noeof(&primary, sizeof(bwtint_t), 1, fp);
     xassert(primary == bwt->primary, "SA-BWT inconsistency: primary is not the same.");
     err_fread_noeof(skipped, sizeof(bwtint_t), 4, fp); // skip
@@ -463,11 +467,15 @@ void bwt_restore_sa(const char *fn, bwt_t *bwt)
 
 bwt_t *bwt_restore_bwt(const char *fn)
 {
+    FILE *fp = xopen(fn, "rb");
+    return bwt_restore_bwt_FILE(fp);
+}
+
+bwt_t *bwt_restore_bwt_FILE(FILE *fp)
+{
     bwt_t *bwt;
-    FILE *fp;
 
     bwt = (bwt_t*)calloc(1, sizeof(bwt_t));
-    fp = xopen(fn, "rb");
     err_fseek(fp, 0, SEEK_END);
     bwt->bwt_size = (err_ftell(fp) - sizeof(bwtint_t) * 5) >> 2;
     bwt->bwt = (uint32_t*)calloc(bwt->bwt_size, 4);
