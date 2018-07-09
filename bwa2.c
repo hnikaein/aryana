@@ -790,6 +790,8 @@ void bwa_aln_core2(aryana_args *args)
     free(threads);
     free(reference);
     free(offset);
+    free(input_mutex);
+    free(running_threads_num);
     fclose(ann);
     bwt_destroy(bwt);
     bwa_seq_close(ks);
