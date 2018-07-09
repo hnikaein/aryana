@@ -62,5 +62,6 @@ int fa2bin(int argc, char *argv[]) {
         fputc(b, fbin);
     fclose(fbin);
     fclose(fin);
+    free(str);
     return 0;
 }
