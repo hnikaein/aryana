@@ -72,7 +72,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
         off=100;
 
 
-    long long i=0,j=0;
+    int i=0,j=0;
     for (i=off/2+1; i<off; i++)
     {
         if (match_start==0 || match_start==len) // zero deletion penalty for the beginning of the read
@@ -88,7 +88,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
         {
             int real_off=j-off/2;
             if (i < -real_off) continue;
-            uint64_t ref_i=i+real_off;
+            int ref_i=i+real_off;
             if (ref_i==0)
             {
                 d[i][j]=gap(i, go, ge);
