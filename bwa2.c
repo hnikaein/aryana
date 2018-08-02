@@ -466,8 +466,8 @@ void multiAligner(global_vars * g) {
         int* te_d = malloc(MAX_READ_LEN * 300 * (sizeof(int)));
         char* te_arr = malloc(MAX_READ_LEN * 300 * (sizeof(char)));
         for (j = 0; j < MAX_READ_LEN; j++) {
-            d_a[my_mem][j] = te_d + j * 300 * (sizeof(int));
-            arr_a[my_mem][j] = te_arr + j * 300 * (sizeof(char));;
+            d_a[my_mem][j] = te_d + j * 300;
+            arr_a[my_mem][j] = te_arr + j * 300;
         }
         cigar_a[my_mem] = (char **) malloc(g->args->potents * sizeof(char *));
         char *te_cigar = malloc(g->args->potents * MAX_CIGAR_SIZE * (sizeof(char)));
