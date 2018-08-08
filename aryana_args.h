@@ -41,7 +41,7 @@ typedef struct {
     int exactmatch_num;
     int report_multi, mismatch_limit;
     int out_buffer_factor;
-    int mismatch_penalty, gap_open_penalty, gap_ext_penalty;
+    int match_score, mismatch_penalty, gap_open_penalty, gap_ext_penalty;
     platform_t platform;
     ignore_mismatch_t ignore;
     int tag_size;

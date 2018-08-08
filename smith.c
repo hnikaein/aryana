@@ -45,7 +45,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
 	// index_start, index_end: positions of the alignment region in the reference
 	// head: the number of characters already filled in cigar, e.g. the position to add new string to cigar
 	// return value: the new number of characters filled in cigar (e.g. the new position to add further strings to cigar)
-    int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty;
+    int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty, ms = options->match_score;
     if ((match_end-match_start==0) && (index_end-index_start==0)) return head;	// When both strings are empty
     if (match_end-match_start==0) return head + snprintf(cigar+head,1000,"%dD",(int) (index_end-index_start)); // When one of them is empty
     if (index_end-index_start==0) return head + snprintf(cigar+head,1000,"%dI",(int) (match_end-match_start)); // When one of them is empty
@@ -96,7 +96,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                 continue;
             }
 
-            d[i][j]=d[i-1][j];
+            d[i][j]=d[i-1][j] + ms;
             arr[i][j]=matC; // match
 
             if (index_start+ref_i-1 >= seq_len) {
