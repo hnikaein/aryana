@@ -270,6 +270,7 @@ int main(int argc, char *argv[])
     }
     if (args.threads < 1) args.threads = 1;
 
+    args.stdout_file = stdout;
     if(args.bisulfite) {
         if(!output) {
             fprintf(stderr, "The ouptut name should be specified\n");
