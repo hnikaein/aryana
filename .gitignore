@@ -1,3 +1,6 @@
+.idea
+cmake-build-debug
+CMakeLists.txt
 *.o
 *.swp
 SamAnalyzer
