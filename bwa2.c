@@ -692,8 +692,8 @@ void bwa_aln_core2(aryana_args *args)
     prefix[0] == 0 ? bwt_restore_sa_FILE(args->index_files[1], bwt) : bwt_restore_sa(str, bwt);
     strcpy(str, prefix);
     strcat(str, ".bin");
-    ref_read(str, prefix[0] == 0 ? args->index_files[2] : NULL, args->index_files_size[2], &reference, &reference_size,
-             &reference_reminder);
+    ref_read(str, prefix[0] == 0 ? args->index_files[2] : NULL, prefix[0] == 0 ? args->index_files_size[2] : 0,
+             &reference, &reference_size, &reference_reminder);
 
     memset(offset, 0, max_chrom_num * sizeof(bwtint_t));
     strcpy(str, prefix);
