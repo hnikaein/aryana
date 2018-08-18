@@ -173,8 +173,8 @@ string reverse_cigar(string cigar) {
             offset = 1;
         }
     }
-    lasttmpsize += snprintf(cigar_tmp + lasttmpsize, 10, "%d%c", num, type);
-    return cigar_tmp;
+    snprintf(cigar_tmp + lasttmpsize, 10, "%d%c", num, type);
+    return string(cigar_tmp);
 }
 
 // Finds the best alignment between a (reference) and b (query).
@@ -225,18 +225,20 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
                 }
                 apos += num;
                 break;
+            default:
+                break;
         }
     }
     //cerr << "Penlty: " << penalty << endl;
     return penalty;
 }
 
-void
-PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const string &chr1 = "NA", long long pos1 = 0,
-            int mismatch1 = 0, int insOpen1 = 0, int insExt1 = 0, int delOpen1 = 0, int delExt1 = 0, int clipFirst1 = 0,
-            int clipNext1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int insOpen2 = 0,
-            int insExt2 = 0, int delOpen2 = 0, int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0,
-            char *samSeq = NULL, char *cigar = NULL, char *seq1 = NULL, char *cigar2 = NULL, char *seq2 = NULL) {
+void PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const string &chr1 = "NA",
+                 long long pos1 = 0, int cigLen = 0, int mismatch1 = 0, int insOpen1 = 0, int insExt1 = 0,
+                 int delOpen1 = 0, int delExt1 = 0, int clipFirst1 = 0, int clipNext1 = 0, const string &chr2 = "NA",
+                 long long pos2 = 0, int mismatch2 = 0, int insOpen2 = 0, int insExt2 = 0, int delOpen2 = 0,
+                 int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0, char *samSeq = nullptr, char *cigar = nullptr,
+                 char *seq1 = nullptr, char *cigar2 = nullptr, char *seq2 = nullptr) {
     bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
         fprintf(f, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", name.c_str(), aligned, mismatch1, insOpen1, insExt1, delOpen1,
@@ -245,8 +247,8 @@ PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const stri
             fprintf(f, "\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", matchTogether, mismatch2, insOpen2, insExt2, delOpen2,
                     delExt2, clipFirst2, clipNext2);
     } else {
-        fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1,
-                insOpen1, insExt1, delOpen1, delExt1, clipFirst1, clipNext1);
+        fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1,
+                cigLen, mismatch1, insOpen1, insExt1, delOpen1, delExt1, clipFirst1, clipNext1);
         if (realPos)
             fprintf(f, "\t%s\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", chr2.c_str(), pos2, matchTogether, mismatch2,
                     insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2);
@@ -260,7 +262,8 @@ PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const stri
 
 void ProcessSamFile(const string &samFileName) {
     long long int tlen, pos;
-    int cigLen, flag, mapq, mismatch, mismatch2, insOpen, insOpen2, insExt, insExt2, startPos, clipFirst, clipNext, clipFirst2, clipNext2, delOpen, delOpen2, delExt, delExt2;
+    int cigLen = 0, flag, mapq, mismatch, mismatch2, insOpen, insOpen2, insExt, insExt2, startPos, clipFirst, clipNext,
+            clipFirst2, clipNext2, delOpen, delOpen2, delExt, delExt2;
     char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], cigar[
             2 * maxReadLen], refSeq[2 * maxReadLen], refSeq2[2 * maxReadLen];
     FILE *f = stdin, *of = stdout;
@@ -272,17 +275,17 @@ void ProcessSamFile(const string &samFileName) {
     }
     char buf[maxSamLineLength];
     if (onlyPenalties) {
-        fprintf(of,
-                "ReadName\tAligned\tAlnMismatch\tAlnInsOpen\tAlnInsExt\tAlnDelOpen\tAlnDelExt\tAlnClipFirst\tAlnClipNext");
+        fprintf(of, "ReadName\tAligned\tAlnMismatch\tAlnInsOpen\tAlnInsExt\tAlnDelOpen\tAlnDelExt\tAlnClipFirst\t"
+                    "AlnClipNext");
         if (realPos)
-            fprintf(of,
-                    "\tCorrectPos\tRealMismatch\tRealInsOpen\tRealInsExt\tRealDelOpen\tRealDelExt\tRealClipFirst\tRealClipNext");
+            fprintf(of, "\tCorrectPos\tRealMismatch\tRealInsOpen\tRealInsExt\tRealDelOpen\tRealDelExt\tRealClipFirst\t"
+                        "RealClipNext");
     } else {
-        fprintf(of,
-                "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnInsExt\tAlnDelOpen\tAlnDelExt\tAlnClipFirst\tAlnClipNext");
+        fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tCigarLen\tAlnMismatch\tAlnInsOpen\tAlnInsExt\tAlnDelOpen\t"
+                    "AlnDelExt\tAlnClipFirst\tAlnClipNext");
         if (realPos)
-            fprintf(of,
-                    "\tRealChr\tRealPos\tCorrectPos\tRealMismatch\tRealInsOpen\tRealInsExt\tRealDelOpen\tRealDelExt\tRealClipFirst\tRealClipNext");
+            fprintf(of, "\tRealChr\tRealPos\tCorrectPos\tRealMismatch\tRealInsOpen\tRealInsExt\tRealDelOpen\tRealDelExt"
+                        "\tRealClipFirst\tRealClipNext");
         if (seqOutput) {
             fprintf(of, "\tSamSeq\tAlnCIGAR\tAlnSeq");
             if (realPos) fprintf(of, "\tRealCIGAR\tRealSeq");
@@ -301,8 +304,8 @@ void ProcessSamFile(const string &samFileName) {
         sscanf(buf, "%s\t%d\t%s\t%lld\t%d\t%s\t%s\t%s\t%lld\t%s\t%s\n", qname, &flag, rname, &pos, &mapq, cigar, rnext,
                pnext, &tlen, seq, quality_string);
 //		cerr << "Position: " << rname << ":" << pos << endl;
-        if (!keepSecondary && (flag & (2048 + 256))) continue;
-        if ((flag & 4) || strcmp(cigar, "*") == 0 || strcmp(rname, "*") == 0) {
+        if (!keepSecondary && (flag & (2048 + 256))) continue; //NOLINT
+        if ((flag & 4) || strcmp(cigar, "*") == 0 || strcmp(rname, "*") == 0) {//NOLINT
             strcpy(rname, "NA");
             strcpy(refSeq, "NA");
             pos = 0;
@@ -328,7 +331,7 @@ void ProcessSamFile(const string &samFileName) {
             startPos = atoi(start.c_str());
             if (GetSequence(chr, startPos,
                             CigarLen(cigar2, insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2), refSeq2)) {
-                bool samRev = static_cast<bool>(flag & 16), refRev = type == "-o" || type == "+p";
+                bool samRev = static_cast<bool>(flag & 16), refRev = type == "-o" || type == "+p";//NOLINT
                 if (samRev != refRev) revcomp(refSeq2);
                 if (samRev && refRev) cigar2 = reverse_cigar(cigar2);
                 if (bisSeq)
@@ -338,9 +341,9 @@ void ProcessSamFile(const string &samFileName) {
                     mismatch2 = EditDistance(refSeq2, seq, cigar2);
             }
         }
-        PrintOutput(of, qname, aligned, rname, pos, mismatch, insOpen, insExt, delOpen, delExt, clipFirst, clipNext,
-                    chr, startPos, mismatch2, insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2, seq, cigar,
-                    refSeq, (char *) cigar2.c_str(), refSeq2);
+        PrintOutput(of, qname, aligned, rname, pos, cigLen, mismatch, insOpen, insExt, delOpen, delExt, clipFirst,
+                    clipNext, chr, startPos, mismatch2, insOpen2, insExt2, delOpen2, delExt2, clipFirst2, clipNext2,
+                    seq, cigar, refSeq, (char *) cigar2.c_str(), refSeq2);
     }
 }
 
