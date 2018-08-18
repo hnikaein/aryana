@@ -96,7 +96,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                 continue;
             }
 
-            d[i][j]=d[i-1][j] + ms;
+            d[i][j]=d[i-1][j];
             arr[i][j]=matC; // match
 
             if (index_start+ref_i-1 >= seq_len) {
@@ -109,7 +109,8 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                         d[i][j]+= mismatch(qual[i],mp);
                         arr[i][j] = misC; // mismatch
                     }
-                }
+                } else
+                    d[i][j] -= ms;
             }
             int k;
             for (k = 1; k <= mgi; k++) { // This is not an optimized dynamic programming here, it is a simple heuristic just to trigger the gaps open
