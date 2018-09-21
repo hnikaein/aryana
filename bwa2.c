@@ -106,7 +106,7 @@ void GetRefSeq(uint64_t * reference, unsigned long long start, unsigned long lon
     seq[k-start] = 0;
 }
 
-void compute_cigar_penalties(global_vars *g, int candidates_num, int candidates_size, int * candidates, char * cigar[], bwa_seq_t * seq, hash_element * table, int **d, char **arr, char *tmp_cigar, penalty_t * penalty) {
+void compute_cigar_penalties(global_vars *g, int candidates_num, int candidates_size, int * candidates, char * cigar[], bwa_seq_t * seq, hash_element * table, int **d, unsigned char **arr, char *tmp_cigar, penalty_t * penalty) {
     int i;
     for (i= candidates_num; i< candidates_size; i++) // The array is started to fill from the last.
         if (candidates[i]!=-1)
@@ -211,7 +211,6 @@ double prob_function(global_vars *g, bwtint_t len, ubyte_t *seq, ubyte_t * qual,
 		}
 		for(;num>0;read_index++, refrence_index++ ,num--)
 		{
-
 			p_mismatch=QtoP(qual[read_index]-33);
 			if(seq[read_index]==getNuc(refrence_index,g->reference, g->bwt->seq_len))
 			{
@@ -395,7 +394,7 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
 
 // This function aligns one (single or paired) read, finds the best alignment positions, computes the CIGAR sequence, and one or multiple lines of the SAM file for reporting the read alignments
 // arr and d are the arrays used for smith_waterman dynamic programming. The reason to pass their pointers is to avoid creating them for every read
-long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, char **arr, char* tmp_cigar) {
+long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, unsigned char **arr, char* tmp_cigar) {
 
     buffer[0]='\0';
     int candidates_size=g->args->potents;
@@ -429,7 +428,7 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
 }
 
 int **d_a[MAX_THREADS_COUNT];
-char **arr_a[MAX_THREADS_COUNT];
+unsigned char **arr_a[MAX_THREADS_COUNT];
 char *tmp_cigar_a[MAX_THREADS_COUNT];
 char **cigar_a[MAX_THREADS_COUNT];
 hash_element *table_a[MAX_THREADS_COUNT];
@@ -464,7 +463,7 @@ void multiAligner(global_vars * g) {
         arr_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (char *)));
         tmp_cigar_a[my_mem] = malloc(MAX_READ_LEN*(sizeof (char)));
         int* te_d = malloc(MAX_READ_LEN * 300 * (sizeof(int)));
-        char* te_arr = malloc(MAX_READ_LEN * 300 * (sizeof(char)));
+        unsigned char* te_arr = malloc(MAX_READ_LEN * 300 * (sizeof(char)));
         for (j = 0; j < MAX_READ_LEN; j++) {
             d_a[my_mem][j] = te_d + j * 300;
             arr_a[my_mem][j] = te_arr + j * 300;
@@ -476,7 +475,7 @@ void multiAligner(global_vars * g) {
         table_a[my_mem] = (hash_element *) malloc(HASH_TABLE_SIZE * (sizeof(hash_element)));
     }
     int **d = d_a[my_mem];
-    char **arr = arr_a[my_mem];
+    unsigned char **arr = arr_a[my_mem];
     char *tmp_cigar = tmp_cigar_a[my_mem];
     char **cigar = cigar_a[my_mem];
     table = table_a[my_mem];

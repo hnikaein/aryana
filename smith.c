@@ -9,10 +9,10 @@
 #include "bwa2.h"
 #include "smith.h"
 const int mgi = 3; // Maximum length of gap interval to check. Be careful with increasing this.
-const char delC = 'a';
-const char insC = 'n';
-const char matC = 'z';
-const char misC = 'Z';
+const unsigned char delC = 2;
+const unsigned char insC = 129;
+const unsigned char matC = 0;
+const unsigned char misC = 1;
 
 int max(int q , int p)
 {
@@ -23,11 +23,11 @@ static inline int gap(int len, int go, int ge) {
     return (len <= 0) ? 0 : (len - 1) * ge + go;
 }
 
-static inline int insertion(char c) {
+static inline int insertion(unsigned char c) {
     return (c >= insC && c <= insC + mgi-1);
 }
 
-static inline int deletion(char c) {
+static inline int deletion(unsigned char c) {
     return (c >= delC && c <= delC + mgi - 1);
 }
 
@@ -37,7 +37,7 @@ static inline int mismatch(ubyte_t qual, int mp){
     return mp - qual_cost;
 }
 
-int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore, ubyte_t *qual)
+int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end, char *cigar, int head, const ubyte_t *read, int len, int * mismatch_num, uint64_t seq_len, int **d, unsigned char **arr, char *tmp_cigar, uint64_t * reference, ignore_mismatch_t ignore, ubyte_t *qual)
 {
     // d: the array that stores dynamic programming penalty table
     // arr: the array that stores the best strategy for each cell of dynamic programming table
@@ -81,6 +81,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             d[0][i]=gap(i-off/2, go, ge);
         arr[0][i] = delC;
     }
+    arr[0][off/2] = matC;
     d[0][off/2] = 0;
     int cur_off = 0, best_pen = INT_MAX;
     for (i=1; i<=match_end-match_start; i++) // The position in read
@@ -179,7 +180,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             tail += cur_i;
             break;
         }
-        char c = arr[cur_i][cur_off];
+        unsigned char c = arr[cur_i][cur_off];
         if (c == misC) (*mismatch_num)++;
 
         if (insertion(c))
