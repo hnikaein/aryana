@@ -80,9 +80,6 @@ void reverse_seq(bwa_seq_t* seq){
 }
 
 
-char atom2[4]= {'A','C','G','T'};
-static int output_buffer_warning = 0;
-
 int* get_seeds(aryana_args * args, int read_len, int user_seed){
     int* seeds = malloc((MAX_SEED_COUNT+1)*sizeof(int));
     if(read_len<=225){
