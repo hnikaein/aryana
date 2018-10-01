@@ -291,16 +291,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     } else
         k = (bwtint_t) args->seed_length;
 
-    //reversing
-    j = len - 1;
-    i = 0;
-    for (; i < j && j >= 0 && i < len; (i++, j--)) {
-        ubyte_t tmp = seq[i];
-        seq[i] = seq[j];
-        seq[j] = tmp;
-        //if (seq[i]>3 || seq[j]>3)
-        //	return;
-    }
     //inexact match
     bwtint_t groupid_last = 1;
     for (i = len - 1; i >= k; i--) {

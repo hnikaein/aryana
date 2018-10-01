@@ -27,10 +27,8 @@
 #include <math.h>
 //#include "aligner.h"
 #include "sam.h"
-#define MAX(a, b) (a > b) ? a : b
+#define  MAX(a, b) (a > b) ? a : b
 #define MIN(a, b) (a < b) ? a : b
-char atom2[4]= {'A','C','G','T'};
-static int output_buffer_warning = 0;
 
 typedef struct {
     int tid;
@@ -44,6 +42,46 @@ typedef struct {
     pthread_mutex_t * input;
     FILE * stdout_file;
 } global_vars;
+
+
+struct report{
+    global_vars *g;
+    char * buffer;
+    char ** cigar;
+    char ** cigar2;
+    bwa_seq_t *seq;
+    bwa_seq_t *seq2;
+    hash_element *table;
+    hash_element * table2;
+    int * can;
+    int * can2;
+    int canNum;
+    int canNum2;
+    penalty_t * penalty;
+    penalty_t * penalty2;
+};
+
+void free_report(struct report* rpt){
+    free(rpt->can);
+    free(rpt->can2);
+    free(rpt->penalty);
+    free(rpt->penalty2);
+    free(rpt);//it was reserved for the report struct
+}
+
+void reverse_seq(bwa_seq_t* seq){
+    int jjj = seq->len - 1;
+    int iii = 0;
+    for (; iii < jjj && jjj >= 0 && iii < seq->len; (iii++, jjj--)) {
+		ubyte_t tmp = seq->seq[iii];
+		seq->seq[iii] = seq->seq[jjj];
+		seq->seq[jjj] = tmp;
+    }
+}
+
+
+char atom2[4]= {'A','C','G','T'};
+static int output_buffer_warning = 0;
 
 // The Data structure used for preserving the initial order of the reads
 typedef struct {
@@ -395,13 +433,18 @@ long long report_discordant_alignment_results(global_vars *g, char * buffer, cha
 
 // This function aligns one (single or paired) read, finds the best alignment positions, computes the CIGAR sequence, and one or multiple lines of the SAM file for reporting the read alignments
 // arr and d are the arrays used for smith_waterman dynamic programming. The reason to pass their pointers is to avoid creating them for every read
-long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, char **arr, char* tmp_cigar) {
-
+struct report* align_read(global_vars * g, char * buffer, char *cigar[], char * cigar2[], bwa_seq_t *seq, bwa_seq_t *seq2, hash_element *table, hash_element * table2, uint64_t level, int **d, char **arr, char* tmp_cigar) {
+     
     buffer[0]='\0';
     int candidates_size=g->args->potents;
     int candidates[candidates_size], candidates2[candidates_size], candidates_num = candidates_size, candidates_num2 = candidates_size;
-    int best_candidates[candidates_size], best_candidates2[candidates_size], best_num = 0, best_num2 = 0;
-    penalty_t penalty[candidates_size], penalty2[candidates_size];
+    int *best_candidates = malloc(sizeof(int)*candidates_size);
+    int *best_candidates2 = malloc(sizeof(int)*candidates_size);
+    int best_num = 0;
+    int best_num2 = 0;
+    penalty_t* penalty = malloc(sizeof(penalty_t)*candidates_size); 
+    penalty_t* penalty2 = malloc(sizeof(penalty_t)*candidates_size);
+
     int i=0;
     for (i=0; i< candidates_size; i++)
     {
@@ -425,7 +468,22 @@ long long align_read(global_vars * g, char * buffer, char *cigar[], char * cigar
         find_best_candidates(g, candidates_num2, 0, candidates_size, candidates2, 0, penalty2, 0, best_candidates2, 0, &best_num2, table2, 0, seq2->len, 0, seq->seq, seq2->seq , seq->qual, seq2->qual, cigar2, 0, 0);
         return report_discordant_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
     }
-    return report_alignment_results(g, buffer, cigar, cigar2, seq, seq2, table, table2, best_candidates, best_candidates2, best_num, best_num2, penalty, penalty2);
+    struct report* rpt = malloc(sizeof(struct report));
+    rpt->g = g;
+    rpt->buffer = buffer;
+    rpt->cigar = cigar;
+    rpt->cigar2 = cigar2;
+    rpt->seq = seq;
+    rpt->seq2 = seq2;
+    rpt->table = table;
+    rpt->table2 = table2;
+    rpt->can = best_candidates;
+    rpt->can2 = best_candidates2;
+    rpt->canNum = best_num;
+    rpt->canNum2 = best_num2;
+    rpt->penalty = penalty;
+    rpt->penalty2 = penalty2;
+    return rpt;
 }
 
 int **d_a[MAX_THREADS_COUNT];
@@ -484,6 +542,7 @@ void multiAligner(global_vars * g) {
     reset_hash(table);
 
     char **cigar2 = 0;
+
     char buffer[seq_num_per_file_read * MAX_SAM_LINE * (sizeof(char))];
     buffer[0] = '\0';
     long long lasttmpsize = 0;
@@ -491,15 +550,10 @@ void multiAligner(global_vars * g) {
     if (g->args->paired) {
         table2=(hash_element *)malloc(HASH_TABLE_SIZE*(sizeof (hash_element)));
         reset_hash(table2);
-        //seqs2 = (bwa_seq_t*) malloc(seq_num_per_file_read * sizeof(bwa_seq_t));
-        //fprintf(stderr, "1, %d\n", seqs2);
         cigar2 =  (char **) malloc(g->args->potents * sizeof(char *));
         for (j=0; j < g->args->potents; j++)
             cigar2[j]=(char *) malloc(MAX_CIGAR_SIZE*(sizeof (char)));
     }
-
-//    fprintf(stderr, "Thread %d starting...\n", g->tid);
-
     // The thread body
     while(true) {
         pthread_mutex_lock(g->input);
@@ -512,9 +566,18 @@ void multiAligner(global_vars * g) {
             fprintf(stderr, "Error: The number of reads from fastq1 is not equal to fastq2\n");
             return;
         }
-        lasttmpsize = 0;
+
         for(j=0; j<n_seqs; j++) {
-            lasttmpsize+=align_read(g, buffer+lasttmpsize, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2, total_seqs + j + 1, d,arr, tmp_cigar);
+           
+            /*reversing the sequence*/
+            bwa_seq_t *seq = &seqs[j];
+	        reverse_seq(seq);
+
+            //------looping on different seeds
+            struct report* rpt = align_read(g, buffer, cigar, cigar2, &seqs[j], (g->args->paired)? &seqs2[j] : 0, table, table2,total_seqs + j + 1, d,arr, tmp_cigar);
+            report_alignment_results(rpt->g, rpt->buffer, rpt->cigar,rpt->cigar2, rpt->seq,rpt->seq2, rpt->table, rpt->table2, rpt->can, rpt->can2, rpt->canNum, rpt->canNum2, rpt->penalty, rpt->penalty2);
+            /*free the memory reserved for the aligner*/
+            free_report(rpt);
 
             if (g->args->order) { // Preserving order of reads
                 unsigned long long read_num = seqs[j].read_num;
@@ -571,7 +634,6 @@ void multiAligner(global_vars * g) {
     }
     fprintf(stderr, "Thread %d finished.\n", g->tid);
 }
-
 void *worker2(void *data) {
     global_vars *g = (global_vars*)data;
     multiAligner(g);
@@ -799,3 +861,4 @@ void bwa_aln_core2(aryana_args *args)
         bwa_seq_close(ks2);
     offInd = 0;
 }
+
