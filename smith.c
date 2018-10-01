@@ -45,7 +45,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
 	// index_start, index_end: positions of the alignment region in the reference
 	// head: the number of characters already filled in cigar, e.g. the position to add new string to cigar
 	// return value: the new number of characters filled in cigar (e.g. the new position to add further strings to cigar)
-    int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty;
+    int mp = options->mismatch_penalty, go = options->gap_open_penalty, ge = options->gap_ext_penalty, ms = options->match_score;
     if ((match_end-match_start==0) && (index_end-index_start==0)) return head;	// When both strings are empty
     if (match_end-match_start==0) return head + snprintf(cigar+head,1000,"%dD",(int) (index_end-index_start)); // When one of them is empty
     if (index_end-index_start==0) return head + snprintf(cigar+head,1000,"%dI",(int) (match_end-match_start)); // When one of them is empty
@@ -72,7 +72,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
         off=100;
 
 
-    long long i=0,j=0;
+    int i=0,j=0;
     for (i=off/2+1; i<off; i++)
     {
         if (match_start==0 || match_start==len) // zero deletion penalty for the beginning of the read
@@ -81,14 +81,14 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             d[0][i]=gap(i-off/2, go, ge);
         arr[0][i] = delC;
     }
-
+    d[0][off/2] = 0;
     int cur_off = 0, best_pen = INT_MAX;
     for (i=1; i<=match_end-match_start; i++) // The position in read
         for (j=0; j<off; j++)                // The real position - read position + off/2
         {
             int real_off=j-off/2;
             if (i < -real_off) continue;
-            uint64_t ref_i=i+real_off;
+            int ref_i=i+real_off;
             if (ref_i==0)
             {
                 d[i][j]=gap(i, go, ge);
@@ -109,7 +109,8 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                         d[i][j]+= mismatch(qual[i],mp);
                         arr[i][j] = misC; // mismatch
                     }
-                }
+                } else
+                    d[i][j] -= ms;
             }
             int k;
             for (k = 1; k <= mgi; k++) { // This is not an optimized dynamic programming here, it is a simple heuristic just to trigger the gaps open

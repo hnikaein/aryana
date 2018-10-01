@@ -61,7 +61,7 @@ bwt2fmv.o:bwt.h
 bntseq.o:bntseq.h
 bwtgap.o:bwtgap.h bwtaln.h bwt.h
 aligner.o: aligner.h bwt.h hash.h smith.h
-fa2bin.o: fa2bin.h
+fa2bin.o: fa2bin.c
 hash.o: hash.h
 bwa2.o: bwa2.h sam.h aligner.h bwt.h
 sam.o: sam.h bwt.h

@@ -45,6 +45,7 @@ void Usage() {
     fprintf(stderr, "    -l/--limit <int>              maximum number of mismatches allowed for each alignment, default=unlimited\n");
     fprintf(stderr, "    -O/--order                    print the reads in output with the same order in the input.\n");
     fprintf(stderr, "    -B/--buffer <int>             size of output buffer. Increase it only when using -O/--order and program issues errors. default=100000\n");
+    fprintf(stderr, "    --ms <int>                    match score, default=0\n");
     fprintf(stderr, "    --mp <int>                    maximum mismatch penalty, default=5\n");
     fprintf(stderr, "    --go <int>                    gap open penalty, default=5\n");
     fprintf(stderr, "    --ge <int>                    gap extension penalty, default=3\n");
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
     args.order = 0;
     args.exactmatch_num = 50;
     args.report_multi = 0;
+    args.match_score=0;
     args.mismatch_limit = -1;
     args.mismatch_penalty = 5;
     args.gap_open_penalty = 5;
@@ -134,14 +136,15 @@ int main(int argc, char *argv[])
         {"mp", required_argument, 0, 6},
         {"go", required_argument, 0, 7},
         {"ge", required_argument, 0, 8},
-		{"platform", required_argument, 0, 'p'},
+        {"ms", required_argument, 0, 9},
+	{"platform", required_argument, 0, 'p'}
     };
     char* output = NULL;
     char* inputFolder;
     int option_index = 0;
     int c;
     args.read_file = 0;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:S:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:p:", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:S:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:\x09:p:", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
@@ -268,10 +271,14 @@ int main(int argc, char *argv[])
 		default:
             fprintf(stderr, "One or more arguments are invalid. Run aryana without any argument to see a help.\n");
             exit(1);
+	case 9:
+	    args.match_score = atoi(optarg);
+	    break;
         }
     }
     if (args.threads < 1) args.threads = 1;
 
+    args.stdout_file = stdout;
     if(args.bisulfite) {
         if(!output) {
             fprintf(stderr, "The ouptut name should be specified\n");

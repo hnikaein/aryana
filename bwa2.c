@@ -550,14 +550,16 @@ void multiAligner(global_vars * g) {
         d_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (int *)));
         arr_a[my_mem] = malloc((MAX_READ_LEN+1)*(sizeof (char *)));
         tmp_cigar_a[my_mem] = malloc(MAX_READ_LEN*(sizeof (char)));
+        int* te_d = malloc(MAX_READ_LEN * 300 * (sizeof(int)));
+        char* te_arr = malloc(MAX_READ_LEN * 300 * (sizeof(char)));
         for (j = 0; j < MAX_READ_LEN; j++) {
-            d_a[my_mem][j] = malloc(300*(sizeof (int)));
-            arr_a[my_mem][j] = malloc(300*(sizeof (char)));
+            d_a[my_mem][j] = te_d + j * 300;
+            arr_a[my_mem][j] = te_arr + j * 300;
         }
-        //seqs = (bwa_seq_t*)calloc(seq_num_per_file_read, sizeof(bwa_seq_t));
         cigar_a[my_mem] = (char **) malloc(g->args->potents * sizeof(char *));
+        char *te_cigar = malloc(g->args->potents * MAX_CIGAR_SIZE * (sizeof(char)));
         for (j = 0; j < g->args->potents; j++)
-            cigar_a[my_mem][j] = (char *) malloc(MAX_CIGAR_SIZE * (sizeof(char)));
+            cigar_a[my_mem][j] = te_cigar + j * MAX_CIGAR_SIZE * (sizeof(char));
         table_a[my_mem] = (hash_element *) malloc(HASH_TABLE_SIZE * (sizeof(hash_element)));
     }
     int **d = d_a[my_mem];
@@ -716,53 +718,54 @@ void *worker2(void *data) {
     return 0;
 }
 
-int ref_read(char * file_name, uint64_t ** reference_p, uint64_t * reference_size_p, uint64_t * reference_reminder_p) {
+int ref_read(char *file_name, FILE *fd0, size_t file_size, uint64_t **reference_p, uint64_t *reference_size_p,
+             uint64_t *reference_reminder_p) {
     struct stat file_info;
-    if(stat(file_name , &file_info) == -1) {
-        fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", file_name);
-        return -1;
-    }
-    int fd = open(file_name , O_RDONLY);
-    //FILE *fd;
-    //fd = xopen(file_name, "rb");
-    if(fd == -1) {
+    if (!fd0)
+        if (stat(file_name, &file_info) == -1) {
+            fprintf(stderr, "Could not get the information of file %s\nplease make sure the file exists\n", file_name);
+            return -1;
+        }
+//    int fd = open(file_name, O_RDONLY);
+    FILE *fd = fd0 ? fd0 : xopen(file_name, "rb");
+//    if (fd == -1) {
+    if (!fd) {
         fprintf(stderr, "Could not open the file %s\nplease make sure the file exists\n", file_name);
         return -1;
     }
-    off_t file_size_bytes = file_info.st_size;
-    *reference_size_p = ceil ( ((double)file_size_bytes) / (double)(sizeof(uint64_t)) );
-    *reference_reminder_p = file_size_bytes % sizeof(uint64_t) ;
-    *reference_p = (uint64_t *)malloc((*reference_size_p) * sizeof(uint64_t));
+    off_t file_size_bytes = fd0 ? file_size : file_info.st_size;
+    *reference_size_p = ceil(((double) file_size_bytes) / (double) (sizeof(uint64_t)));
+    *reference_reminder_p = file_size_bytes % sizeof(uint64_t);
+    *reference_p = (uint64_t *) malloc((*reference_size_p) * sizeof(uint64_t));
     //memset ( reference , 0 , reference_size * sizeof(uint64_t) ); Is this required?
     size_t read_size2 = 0;//there is a read_size defined above
     size_t signal;
-    size_t total_size = (file_size_bytes);
-    unsigned char *uc_buffer = (unsigned char *)(* reference_p);
-    int counter=0;
+    size_t total_size = file_size_bytes;
+    unsigned char *uc_buffer = (unsigned char *) (*reference_p);
+    int counter = 0;
 
     do {
-        signal = read ( fd , (void *)uc_buffer , total_size - read_size2 );
-        //signal = fread((void *)uc_buffer, )
-        if ( signal == -1 )
-        {
-            fprintf(stderr, "Error: while writing to file\n");
-            if ( close(fd) == -1 )
-                fprintf(stderr, "Error: while closing file\n");
-            return -1;
-        }
+//        signal = read(fd, (void *) uc_buffer, total_size - read_size2);
+        signal = fread(uc_buffer, 1, total_size - read_size2, fd);
+//        if (signal == -1) {
+//            fprintf(stderr, "Error: while reading file\n");
+//            if (close(fd) == -1)
+//                fprintf(stderr, "Error: while closing file\n");
+//            return -1;
+//        }
         counter++;
         read_size2 += signal;
         uc_buffer += signal;
-    }
-    while ( read_size2 < total_size );
-    if ( close(fd) == -1 )
-    {
+    } while (read_size2 < total_size);
+    if (fclose(fd) != 0) {
+//    if (close(fd) == -1) {
         fprintf(stderr, "Unable to close the file\n");
         return -1;
     }
 
     return 0;
 }
+
 
 char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len) {
     int rev=0;
@@ -820,18 +823,19 @@ void bwa_aln_core2(aryana_args *args)
     char *str = (char*)calloc(strlen(prefix) + 10, 1);
     strcpy(str, prefix);
     strcat(str, ".bwt");
-    bwt = bwt_restore_bwt(str);
+    bwt = prefix[0] == 0 ? bwt_restore_bwt_FILE(args->index_files[0]) : bwt_restore_bwt(str);
     strcpy(str, prefix);
     strcat(str, ".sa");
-    bwt_restore_sa(str, bwt);
+    prefix[0] == 0 ? bwt_restore_sa_FILE(args->index_files[1], bwt) : bwt_restore_sa(str, bwt);
     strcpy(str, prefix);
     strcat(str, ".bin");
-    ref_read(str, &reference, &reference_size, &reference_reminder);
+    ref_read(str, prefix[0] == 0 ? args->index_files[2] : NULL, prefix[0] == 0 ? args->index_files_size[2] : 0,
+             &reference, &reference_size, &reference_reminder);
 
     memset(offset, 0, max_chrom_num * sizeof(bwtint_t));
     strcpy(str, prefix);
     strcat(str, ".ann");
-    FILE * ann = fopen(str, "r");
+    FILE *ann = prefix[0] == 0 ? args->index_files[3] : fopen(str, "r");
     free(str);
 
     char line[1000];
@@ -923,6 +927,8 @@ void bwa_aln_core2(aryana_args *args)
     free(threads);
     free(reference);
     free(offset);
+    free(input_mutex);
+    free(running_threads_num);
     fclose(ann);
     bwt_destroy(bwt);
     bwa_seq_close(ks);
