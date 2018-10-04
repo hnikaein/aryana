@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+
 #ifdef USE_MALLOC_WRAPPERS
 /* Don't wrap ourselves */
 #  undef USE_MALLOC_WRAPPERS
 #endif
+
 #include "malloc_wrap.h"
 
 void *wrap_calloc(size_t nmemb, size_t size,

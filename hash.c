@@ -8,41 +8,39 @@
 //const int HASH_TABLE_SIZE=4087;
 
 uint64_t uminus(uint64_t x, uint64_t y) {
-    if(x > y)
+    if (x > y)
         return x - y;
     return y - x;
 }
 
-uint64_t hash_f1(uint64_t t)
-{
-    return  t%HASH_TABLE_SIZE;
+uint64_t hash_f1(uint64_t t) {
+    return t % HASH_TABLE_SIZE;
     //return t;
 }
 
-uint64_t hash_f2(uint64_t t)
-{
+uint64_t hash_f2(uint64_t t) {
     return 1 + (t % (HASH_TABLE_SIZE - 1));
     //return 1;
 }
 
-uint64_t hash(uint64_t t,uint64_t attempt)
-{
+uint64_t hash(uint64_t t, uint64_t attempt) {
     //return (hash_f1(t)+attempt*hash_f2(t))%HASH_TABLE_SIZE;
     //return (t + attempt) & (HASH_TABLE_SIZE - 1);
     return (t + attempt) % (HASH_TABLE_SIZE);
 }
 
 
-void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t level, uint64_t index, int * best, int best_size, int * best_found, hash_element * table, uint64_t read_start, uint64_t read_size, uint64_t read_index, uint64_t groupid)
-{
+void update_value(bwt_t *const bwt, uint64_t h_index, uint64_t value, uint64_t level, uint64_t index, int *best,
+                  int best_size, int *best_found, hash_element *table, uint64_t read_start, uint64_t read_size,
+                  uint64_t read_index, uint64_t groupid) {
     if (table[h_index].level != level) {
-        table[h_index].value=0;
+        table[h_index].value = 0;
         //table[h_index].width = 0;
         table[h_index].index = 0;
     }
     //if(table[h_index].last == read_ind)
     //	return;
-    table[h_index].groupid=groupid;
+    table[h_index].groupid = groupid;
     //if(index < table[h_index].index)
     // if(uminus(table[h_index].index, index) > 10 && table[h_index].value > 3 * value)
     //    return;
@@ -53,9 +51,9 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
 
 
     //fprintf(stderr,"sssize %d\n",table[h_index].parts);
-    table[h_index].match_start[table[h_index].parts]=read_start;
-    table[h_index].match_index[table[h_index].parts]=read_index;
-    table[h_index].matched[table[h_index].parts++]=read_size;
+    table[h_index].match_start[table[h_index].parts] = read_start;
+    table[h_index].match_index[table[h_index].parts] = read_index;
+    table[h_index].matched[table[h_index].parts++] = read_size;
 //	if (table[h_index].parts>5)
 //		fprintf(stderr,"parts ::::::::::; %d\n",table[h_index].parts);
     //fprintf(stderr,"vuy %lld\n ",h_index);
@@ -64,23 +62,22 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
 
 
     // Updating the best table, containing top tags with highest .value
-    int i=0;
-    int changed=0;
-    for (i=0; i<best_size; i++)
-        if (best[i]==(int)(h_index))
+    int i = 0;
+    int changed = 0;
+    for (i = 0; i < best_size; i++)
+        if (best[i] == (int) (h_index))
             // The tag is already found in the best table,
             // we shift the following elements of best table with less .value to the left, and update the position of changed element
         {
-            changed=1;
-            int j=0;
-            for (j=i+1; j<best_size; j++)
-            {
-                if (best[j]==-1 || table[best[j]].value < table[h_index].value)
-                    best[j-1]=best[j];
+            changed = 1;
+            int j = 0;
+            for (j = i + 1; j < best_size; j++) {
+                if (best[j] == -1 || table[best[j]].value < table[h_index].value)
+                    best[j - 1] = best[j];
                 else
                     break;
             }
-            best[j-1]=(int)(h_index);
+            best[j - 1] = (int) (h_index);
         }
 
 
@@ -88,20 +85,17 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
         // The tag does not exist in the best table,
         // starting from best_found, we check to the end of the best table, shifting elements with smaller .value to
         // the left, and then insert the updated h_index element to the right position
-        for (i=(*best_found); i<=best_size; i++)
-        {
-            if(i==best_size || (best[i]!=-1 && table[best[i]].value >= table[h_index].value) )
-            {
-                if (i!=0)
-                {
-                    if ((*best_found)>0)// && i==(*best_found))
+        for (i = (*best_found); i <= best_size; i++) {
+            if (i == best_size || (best[i] != -1 && table[best[i]].value >= table[h_index].value)) {
+                if (i != 0) {
+                    if ((*best_found) > 0)// && i==(*best_found))
                         (*best_found)--;
-                    best[i-1] = (int)(h_index);
+                    best[i - 1] = (int) (h_index);
                 }
                 break;
             }
-            if (i>0)
-                best[i-1]=best[i];
+            if (i > 0)
+                best[i - 1] = best[i];
         }
 
 
@@ -147,19 +141,19 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
 }
 
 void error(uint64_t level) {
-    fprintf(stderr,"Table Overflow. level = %"PRIu64"\n", level);
+    fprintf(stderr, "Table Overflow. level = %"PRIu64"\n", level);
 }
 
-void add(bwt_t *const bwt, uint64_t place,uint64_t value,uint64_t level, uint64_t index, int * best, int best_size, int * best_found, hash_element * table,
-         uint64_t read_start, uint64_t read_size, uint64_t read_index, int whole_read_size,uint64_t groupid)
-{
+void add(bwt_t *const bwt, uint64_t place, uint64_t value, uint64_t level, uint64_t index, int *best, int best_size,
+         int *best_found, hash_element *table,
+         uint64_t read_start, uint64_t read_size, uint64_t read_index, int whole_read_size, uint64_t groupid) {
 //	fprintf(stderr,"index :: %llu\n",index);
-    uint64_t i=0;
-    for (; i<HASH_TABLE_SIZE; i++)
-    {
-        uint64_t h_index=hash(place,i);
+    uint64_t i = 0;
+    for (; i < HASH_TABLE_SIZE; i++) {
+        uint64_t h_index = hash(place, i);
 //		fprintf(stderr,"%d :: \n",h_index);
-        if (table[h_index].level != level) // This record belongs to previous reads, so considered empty position of hash table
+        if (table[h_index].level !=
+            level) // This record belongs to previous reads, so considered empty position of hash table
         {
             // Adding the new element in the hash table
             table[h_index].value = 0;
@@ -175,31 +169,30 @@ void add(bwt_t *const bwt, uint64_t place,uint64_t value,uint64_t level, uint64_
 //			fprintf(stderr,"NEW ADD\n");
 //			table[h_index].match_start[0]=whole_read_size;
         }
-        if (table[h_index].level==level && table[h_index].place==place)
-        {
+        if (table[h_index].level == level && table[h_index].place == place) {
             // The new item already exists or just added to the hash table
             //	fprintf(stderr,"hhere!\n");
-            if (table[h_index].groupid==groupid)
+            if (table[h_index].groupid == groupid)
                 break;
 //			fprintf(stderr,"index :: %llu, window :: %llu h_index:: %llu, i :: %llu, groudpid :: %llu\n",index,place,h_index,i,groupid);
-            update_value(bwt, h_index,value,level, index, best, best_size, best_found, table, read_start, read_size, read_index,groupid);
+            update_value(bwt, h_index, value, level, index, best, best_size, best_found, table, read_start, read_size,
+                         read_index, groupid);
             break;
         }
     }
-    if (i==HASH_TABLE_SIZE)
+    if (i == HASH_TABLE_SIZE)
         error(level);
 }
 
 
-
-void reset_hash(hash_element  table[]) {
-    memset(table,-1,(sizeof (hash_element)) * (HASH_TABLE_SIZE));
+void reset_hash(hash_element table[]) {
+    memset(table, -1, (sizeof(hash_element)) * (HASH_TABLE_SIZE));
     int i = 0;
 
-    for (i=0; i<HASH_TABLE_SIZE; i++) {
+    for (i = 0; i < HASH_TABLE_SIZE; i++) {
         table[i].place = table[i].value = table[i].level = table[i].index = 0;
         table[i].parts = 0;
-        table[i].level=0;
+        table[i].level = 0;
         /*		table[i].match_start=(uint64_t *)malloc(300*(sizeof (uint64_t)));
         		table[i].match_index=(uint64_t *)malloc(300*(sizeof (uint64_t)));
         		table[i].matched=(uint64_t *)malloc(300*(sizeof (uint64_t)));*/
@@ -209,11 +202,10 @@ void reset_hash(hash_element  table[]) {
     }
 }
 
-void print(hash_element * table)
-{
-    uint64_t i=0;
-    for (i=0; i<HASH_TABLE_SIZE; i++) {
-        printf("%"PRIu64" , %d , %"PRIu64" \n",table[i].place,table[i].value,table[i].level);
+void print(hash_element *table) {
+    uint64_t i = 0;
+    for (i = 0; i < HASH_TABLE_SIZE; i++) {
+        printf("%"PRIu64" , %d , %"PRIu64" \n", table[i].place, table[i].value, table[i].level);
         /*	if(table[i].value > maxvalue){
         	maxvalue = table[i].value;
         	index = table[i].place;

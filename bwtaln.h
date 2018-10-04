@@ -87,7 +87,7 @@ typedef struct {
     // for multi-threading only
     int tid;
     // barcode
-    char bc[BWA_MAX_BCLEN+1]; // null terminated; up to BWA_MAX_BCLEN bases
+    char bc[BWA_MAX_BCLEN + 1]; // null terminated; up to BWA_MAX_BCLEN bases
     // NM and MD tags
     uint32_t full_len:20, nm:12;
     char *md;
@@ -137,18 +137,27 @@ extern "C" {
 #endif
 
 gap_opt_t *gap_init_opt();
+
 void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt);
 
 bwa_seqio_t *bwa_seq_open(const char *fn);
+
 bwa_seqio_t *bwa_bam_open(const char *fn, int which);
+
 void bwa_seq_close(bwa_seqio_t *bs);
+
 void seq_reverse(int len, ubyte_t *seq, int is_comp);
+
 bwa_seq_t *bwa_read_seq(bwa_seqio_t *seq, int n_needed, int *n, int mode, int trim_qual);
+
 bwa_seq_t *bwa_read_seq2(bwa_seqio_t *seq, int n_needed, int *n, int mode, int trim_qual, bwa_seq_t *seqs);
+
 void bwa_free_read_seq(int n_seqs, bwa_seq_t *seqs);
 
 int bwa_cal_maxdiff(int l, double err, double thres);
+
 void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt);
+
 void bwa_cal_sa_reg_gap2(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt);
 
 void bwa_cs2nt_core(bwa_seq_t *p, bwtint_t l_pac, ubyte_t *pac);
