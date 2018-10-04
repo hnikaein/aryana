@@ -15,10 +15,10 @@ typedef struct {
 #define _hsaip_lt(a, b) ((a).qbeg < (b).qbeg)
 
 #include "ksort.h"
+
 KSORT_INIT(hsaip, hsaip_t, _hsaip_lt)
 
-static int chaining(const bsw2opt_t *opt, int shift, int n, hsaip_t *z, hsaip_t *chain)
-{
+static int chaining(const bsw2opt_t *opt, int shift, int n, hsaip_t *z, hsaip_t *chain) {
     int j, k, m = 0;
     ks_introsort(hsaip, n, z);
     for (j = 0; j < n; ++j) {
@@ -27,13 +27,15 @@ static int chaining(const bsw2opt_t *opt, int shift, int n, hsaip_t *z, hsaip_t 
             hsaip_t *q = chain + k;
             int x = p->qbeg - q->qbeg; // always positive
             int y = p->tbeg - q->tbeg;
-            if (y > 0 && x < opt->max_chain_gap && y < opt->max_chain_gap && x - y <= opt->bw && y - x <= opt->bw) { // chained
+            if (y > 0 && x < opt->max_chain_gap && y < opt->max_chain_gap && x - y <= opt->bw &&
+                y - x <= opt->bw) { // chained
                 if (p->qend > q->qend) q->qend = p->qend;
                 if (p->tend > q->tend) q->tend = p->tend;
                 ++q->chain;
                 p->chain = shift + k;
                 break;
-            } else if (q->chain > opt->t_seeds * 2) k = 0; // if the chain is strong enough, do not check the previous chains
+            } else if (q->chain > opt->t_seeds * 2)
+                k = 0; // if the chain is strong enough, do not check the previous chains
         }
         if (k < 0) { // not added to any previous chains
             chain[m] = *p;
@@ -45,8 +47,7 @@ static int chaining(const bsw2opt_t *opt, int shift, int n, hsaip_t *z, hsaip_t 
     return m;
 }
 
-void bsw2_chain_filter(const bsw2opt_t *opt, int len, bwtsw2_t *b[2])
-{
+void bsw2_chain_filter(const bsw2opt_t *opt, int len, bwtsw2_t *b[2]) {
     hsaip_t *z[2], *chain[2];
     int i, j, k, n[2], m[2], thres = opt->t_seeds * 2;
     char *flag;
@@ -70,7 +71,7 @@ void bsw2_chain_filter(const bsw2opt_t *opt, int len, bwtsw2_t *b[2])
         }
     }
     // chaining
-    m[0] = chaining(opt, 0,    n[0], z[0], chain[0]);
+    m[0] = chaining(opt, 0, n[0], z[0], chain[0]);
     chain[1] = chain[0] + m[0];
     m[1] = chaining(opt, m[0], n[1], z[1], chain[1]);
     // change query coordinate on the reverse strand

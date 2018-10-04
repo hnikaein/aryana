@@ -18,7 +18,7 @@ typedef struct __smem_i smem_i;
 #define MEM_F_NO_RESCUE 0x20
 #define MEM_F_SELF_OVLP 0x40
 #define MEM_F_ALN_REG   0x80
-#define MEM_F_REF_HDR	0x100
+#define MEM_F_REF_HDR    0x100
 #define MEM_F_SOFTCLIP  0x200
 #define MEM_F_SMARTPE   0x400
 
@@ -27,7 +27,7 @@ typedef struct {
     int o_del, e_del;
     int o_ins, e_ins;
     int pen_unpaired;       // phred-scaled penalty for unpaired reads
-    int pen_clip5,pen_clip3;// clipping penalty. This score is not deducted from the DP score.
+    int pen_clip5, pen_clip3;// clipping penalty. This score is not deducted from the DP score.
     int w;                  // band width
     int zdrop;              // Z-dropoff
 
@@ -91,7 +91,8 @@ typedef struct { // This struct is only used for the convenience of API.
     int64_t pos;     // forward strand 5'-end mapping position
     int rid;         // reference sequence index in bntseq_t; <0 for unmapped
     int flag;        // extra flag
-    uint32_t is_rev:1, is_alt:1, mapq:8, NM:22; // is_rev: whether on the reverse strand; mapq: mapping quality; NM: edit distance
+    uint32_t is_rev:1, is_alt:1, mapq:8, NM
+            :22; // is_rev: whether on the reverse strand; mapq: mapping quality; NM: edit distance
     int n_cigar;     // number of CIGAR operations
     uint32_t *cigar; // CIGAR in the BAM encoding: opLen<<4|op; op to integer mapping: MIDSH=>01234
     char *XA;        // alternative mappings
@@ -134,7 +135,9 @@ void mem_fill_scmat(int a, int b, int8_t mat[25]);
  * @param pes0   insert-size info; if NULL, infer from data; if not NULL, it should be an array with 4 elements,
  *               corresponding to each FF, FR, RF and RR orientation. See mem_pestat() for more info.
  */
-void mem_process_seqs(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bns, const uint8_t *pac, int64_t n_processed, int n, bseq1_t *seqs, const mem_pestat_t *pes0);
+void
+mem_process_seqs(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bns, const uint8_t *pac, int64_t n_processed,
+                 int n, bseq1_t *seqs, const mem_pestat_t *pes0);
 
 /**
  * Find the aligned regions for one query sequence
@@ -151,7 +154,8 @@ void mem_process_seqs(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bn
  *
  * @return       list of aligned regions.
  */
-mem_alnreg_v mem_align1(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq);
+mem_alnreg_v
+mem_align1(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq);
 
 /**
  * Generate CIGAR and forward-strand position from alignment region
@@ -165,8 +169,10 @@ mem_alnreg_v mem_align1(const mem_opt_t *opt, const bwt_t *bwt, const bntseq_t *
  *
  * @return       CIGAR, strand, mapping quality and forward-strand position
  */
-mem_aln_t mem_reg2aln(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq, const mem_alnreg_t *ar);
-mem_aln_t mem_reg2aln2(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq, const mem_alnreg_t *ar, const char *name);
+mem_aln_t mem_reg2aln(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq,
+                      const mem_alnreg_t *ar);
+mem_aln_t mem_reg2aln2(const mem_opt_t *opt, const bntseq_t *bns, const uint8_t *pac, int l_seq, const char *seq,
+                       const mem_alnreg_t *ar, const char *name);
 
 /**
  * Infer the insert size distribution from interleaved alignment regions

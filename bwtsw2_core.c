@@ -20,14 +20,18 @@ typedef struct {
 #define qintv_hash(a) ((a).k>>7^(a).l<<17)
 
 #include "khash.h"
+
 KHASH_INIT(qintv, qintv_t, uint64_t, 1, qintv_hash, qintv_eq)
+
 KHASH_MAP_INIT_INT64(64, uint64_t)
 
 #define MINUS_INF -0x3fffffff
 #define MASK_LEVEL 0.90f
 
 struct __mempool_t;
-static void mp_destroy(struct __mempool_t*);
+
+static void mp_destroy(struct __mempool_t *);
+
 typedef struct {
     bwtint_t qk, ql;
     int I, D, G;
@@ -38,11 +42,14 @@ typedef struct {
 } bsw2cell_t;
 
 #include "ksort.h"
+
 KSORT_INIT_GENERIC(int)
+
 #define __hitG_lt(a, b) (((a).G + ((int)(a).n_seeds<<2)) > (b).G + ((int)(b).n_seeds<<2))
+
 KSORT_INIT(hitG, bsw2hit_t, __hitG_lt)
 
-static const bsw2cell_t g_default_cell = { 0, 0, MINUS_INF, MINUS_INF, MINUS_INF, 0, 0, 0, -1, -1, {-1, -1, -1, -1} };
+static const bsw2cell_t g_default_cell = {0, 0, MINUS_INF, MINUS_INF, MINUS_INF, 0, 0, 0, -1, -1, {-1, -1, -1, -1}};
 
 typedef struct {
     int n, max;
@@ -58,17 +65,19 @@ typedef struct {
 } bsw2stack_t;
 
 #define stack_isempty(s) (kv_size(s->stack0) == 0 && s->n_pending == 0)
+
 static void stack_destroy(bsw2stack_t *s) {
     mp_destroy(s->pool);
     kv_destroy(s->stack0);
     kv_destroy(s->pending);
     free(s);
 }
+
 inline static void stack_push0(bsw2stack_t *s, bsw2entry_p e) {
     kv_push(bsw2entry_p, s->stack0, e);
 }
-inline static bsw2entry_p stack_pop(bsw2stack_t *s)
-{
+
+inline static bsw2entry_p stack_pop(bsw2stack_t *s) {
     assert(!(kv_size(s->stack0) == 0 && s->n_pending != 0));
     return kv_pop(s->stack0);
 }
@@ -79,20 +88,20 @@ typedef struct __mempool_t {
     int cnt; // if cnt!=0, then there must be memory leak
     kvec_t(bsw2entry_p) pool;
 } mempool_t;
-inline static bsw2entry_p mp_alloc(mempool_t *mp)
-{
+
+inline static bsw2entry_p mp_alloc(mempool_t *mp) {
     ++mp->cnt;
-    if (kv_size(mp->pool) == 0) return (bsw2entry_t*)calloc(1, sizeof(bsw2entry_t));
+    if (kv_size(mp->pool) == 0) return (bsw2entry_t *) calloc(1, sizeof(bsw2entry_t));
     else return kv_pop(mp->pool);
 }
-inline static void mp_free(mempool_t *mp, bsw2entry_p e)
-{
+
+inline static void mp_free(mempool_t *mp, bsw2entry_p e) {
     --mp->cnt;
     e->n = 0;
     kv_push(bsw2entry_p, mp->pool, e);
 }
-static void mp_destroy(struct __mempool_t *mp)
-{
+
+static void mp_destroy(struct __mempool_t *mp) {
     int i;
     for (i = 0; i != kv_size(mp->pool); ++i) {
         free(kv_A(mp->pool, i)->array);
@@ -104,8 +113,7 @@ static void mp_destroy(struct __mempool_t *mp)
 /* --- END: memory pool --- */
 
 /* --- BEGIN: utilities --- */
-static khash_t(64) *bsw2_connectivity(const bwtl_t *b)
-{
+static khash_t(64) *bsw2_connectivity(const bwtl_t *b) {
     khash_t(64) *h;
     uint32_t k, l, cntk[4], cntl[4]; // this is fine
     uint64_t x;
@@ -120,14 +128,14 @@ static khash_t(64) *bsw2_connectivity(const bwtl_t *b)
     kv_push(uint64_t, stack, x);
     while (kv_size(stack)) {
         x = kv_pop(stack);
-        k = x>>32;
-        l = (uint32_t)x;
-        bwtl_2occ4(b, k-1, l, cntk, cntl);
+        k = x >> 32;
+        l = (uint32_t) x;
+        bwtl_2occ4(b, k - 1, l, cntk, cntl);
         for (j = 0; j != 4; ++j) {
             k = b->L2[j] + cntk[j] + 1;
             l = b->L2[j] + cntl[j];
             if (k > l) continue;
-            x = (uint64_t)k << 32 | l;
+            x = (uint64_t) k << 32 | l;
             iter = kh_put(64, h, x, &ret);
             if (ret) { // if not present
                 kh_value(h, iter) = 1;
@@ -139,16 +147,16 @@ static khash_t(64) *bsw2_connectivity(const bwtl_t *b)
     //fprintf(stderr, "[bsw2_connectivity] %u nodes in the DAG\n", kh_size(h));
     return h;
 }
+
 // pick up top T matches at a node
-static void cut_tail(bsw2entry_t *u, int T, bsw2entry_t *aux)
-{
+static void cut_tail(bsw2entry_t *u, int T, bsw2entry_t *aux) {
     int i, *a, n, x;
     if (u->n <= T) return;
     if (aux->max < u->n) {
         aux->max = u->n;
-        aux->array = (bsw2cell_t*)realloc(aux->array, aux->max * sizeof(bsw2cell_t));
+        aux->array = (bsw2cell_t *) realloc(aux->array, aux->max * sizeof(bsw2cell_t));
     }
-    a = (int*)aux->array;
+    a = (int *) aux->array;
     for (i = n = 0; i != u->n; ++i)
         if (u->array[i].ql && u->array[i].G > 0)
             a[n++] = -u->array[i].G;
@@ -165,9 +173,9 @@ static void cut_tail(bsw2entry_t *u, int T, bsw2entry_t *aux)
         }
     }
 }
+
 // remove duplicated cells
-static inline void remove_duplicate(bsw2entry_t *u, khash_t(qintv) *hash)
-{
+static inline void remove_duplicate(bsw2entry_t *u, khash_t(qintv) *hash) {
     int i, ret, j;
     khiter_t k;
     qintv_t key;
@@ -182,10 +190,11 @@ static inline void remove_duplicate(bsw2entry_t *u, khash_t(qintv) *hash)
         if (ret == 0) {
             if ((uint32_t)kh_value(hash, k) >= p->G) j = i;
             else {
-                j = kh_value(hash, k)>>32;
-                kh_value(hash, k) = (uint64_t)i<<32 | p->G;
+                j = kh_value(hash, k) >> 32;
+                kh_value(hash, k) = (uint64_t) i << 32 | p->G;
             }
-        } else kh_value(hash, k) = (uint64_t)i<<32 | p->G;
+        } else
+            kh_value(hash, k) = (uint64_t) i << 32 | p->G;
         if (j >= 0) {
             p = u->array + j;
             p->qk = p->ql = 0;
@@ -194,13 +203,13 @@ static inline void remove_duplicate(bsw2entry_t *u, khash_t(qintv) *hash)
         }
     }
 }
+
 // merge two entries
-static void merge_entry(const bsw2opt_t * __restrict opt, bsw2entry_t *u, bsw2entry_t *v, bwtsw2_t *b)
-{
+static void merge_entry(const bsw2opt_t *__restrict opt, bsw2entry_t *u, bsw2entry_t *v, bwtsw2_t *b) {
     int i;
     if (u->n + v->n >= u->max) {
         u->max = u->n + v->n;
-        u->array = (bsw2cell_t*)realloc(u->array, u->max * sizeof(bsw2cell_t));
+        u->array = (bsw2cell_t *) realloc(u->array, u->max * sizeof(bsw2cell_t));
     }
     for (i = 0; i != v->n; ++i) {
         bsw2cell_t *p = v->array + i;
@@ -214,26 +223,23 @@ static void merge_entry(const bsw2opt_t * __restrict opt, bsw2entry_t *u, bsw2en
     u->n += v->n;
 }
 
-static inline bsw2cell_t *push_array_p(bsw2entry_t *e)
-{
+static inline bsw2cell_t *push_array_p(bsw2entry_t *e) {
     if (e->n == e->max) {
-        e->max = e->max? e->max<<1 : 256;
-        e->array = (bsw2cell_t*)realloc(e->array, sizeof(bsw2cell_t) * e->max);
+        e->max = e->max ? e->max << 1 : 256;
+        e->array = (bsw2cell_t *) realloc(e->array, sizeof(bsw2cell_t) * e->max);
     }
     return e->array + e->n;
 }
 
-static inline double time_elapse(const struct rusage *curr, const struct rusage *last)
-{
+static inline double time_elapse(const struct rusage *curr, const struct rusage *last) {
     long t1 = (curr->ru_utime.tv_sec - last->ru_utime.tv_sec) + (curr->ru_stime.tv_sec - last->ru_stime.tv_sec);
     long t2 = (curr->ru_utime.tv_usec - last->ru_utime.tv_usec) + (curr->ru_stime.tv_usec - last->ru_stime.tv_usec);
-    return (double)t1 + t2 * 1e-6;
+    return (double) t1 + t2 * 1e-6;
 }
 /* --- END: utilities --- */
 
 /* --- BEGIN: processing partial hits --- */
-static void save_hits(const bwtl_t *bwt, int thres, bsw2hit_t *hits, bsw2entry_t *u)
-{
+static void save_hits(const bwtl_t *bwt, int thres, bsw2hit_t *hits, bsw2entry_t *u) {
     int i;
     uint32_t k; // this is fine
     for (i = 0; i < u->n; ++i) {
@@ -244,10 +250,10 @@ static void save_hits(const bwtl_t *bwt, int thres, bsw2hit_t *hits, bsw2entry_t
             bsw2hit_t *q = 0;
             beg = bwt->sa[k];
             end = beg + p->tlen;
-            if (p->G > hits[beg*2].G) {
-                hits[beg*2+1] = hits[beg*2];
+            if (p->G > hits[beg * 2].G) {
+                hits[beg * 2 + 1] = hits[beg * 2];
                 q = hits + beg * 2;
-            } else if (p->G > hits[beg*2+1].G) q = hits + beg * 2 + 1;
+            } else if (p->G > hits[beg * 2 + 1].G) q = hits + beg * 2 + 1;
             if (q) {
                 q->k = p->qk;
                 q->l = p->ql;
@@ -255,23 +261,23 @@ static void save_hits(const bwtl_t *bwt, int thres, bsw2hit_t *hits, bsw2entry_t
                 q->G = p->G;
                 q->beg = beg;
                 q->end = end;
-                q->G2 = q->k == q->l? 0 : q->G;
+                q->G2 = q->k == q->l ? 0 : q->G;
                 q->flag = q->n_seeds = 0;
             }
         }
     }
 }
+
 /* "narrow hits" are node-to-node hits that have a high score and
  * are not so repetitive (|SA interval|<=IS). */
-static void save_narrow_hits(const bwtl_t *bwtl, bsw2entry_t *u, bwtsw2_t *b1, int t, int IS)
-{
+static void save_narrow_hits(const bwtl_t *bwtl, bsw2entry_t *u, bwtsw2_t *b1, int t, int IS) {
     int i;
     for (i = 0; i < u->n; ++i) {
         bsw2hit_t *q;
         bsw2cell_t *p = u->array + i;
         if (p->G >= t && p->ql - p->qk + 1 <= IS) { // good narrow hit
             if (b1->max == b1->n) {
-                b1->max = b1->max? b1->max<<1 : 4;
+                b1->max = b1->max ? b1->max << 1 : 4;
                 b1->hits = realloc(b1->hits, b1->max * sizeof(bsw2hit_t));
             }
             q = &b1->hits[b1->n++];
@@ -290,10 +296,10 @@ static void save_narrow_hits(const bwtl_t *bwtl, bsw2entry_t *u, bwtsw2_t *b1, i
         }
     }
 }
+
 /* after this, "narrow SA hits" will be expanded and the coordinates
  * will be obtained and stored in b->hits[*].k. */
-int bsw2_resolve_duphits(const bntseq_t *bns, const bwt_t *bwt, bwtsw2_t *b, int IS)
-{
+int bsw2_resolve_duphits(const bntseq_t *bns, const bwt_t *bwt, bwtsw2_t *b, int IS) {
     int i, j, n, is_rev;
     if (b->n == 0) return 0;
     if (bwt && bns) { // convert to chromosomal coordinates if requested
@@ -342,12 +348,13 @@ int bsw2_resolve_duphits(const bntseq_t *bns, const bwt_t *bwt, bwtsw2_t *b, int
             int compatible = 1;
             if (p->is_rev != q->is_rev) continue; // hits from opposite strands are not duplicates
             if (p->l == 0 && q->l == 0) {
-                int qol = (p->end < q->end? p->end : q->end) - (p->beg > q->beg? p->beg : q->beg); // length of query overlap
+                int qol = (p->end < q->end ? p->end : q->end) -
+                          (p->beg > q->beg ? p->beg : q->beg); // length of query overlap
                 if (qol < 0) qol = 0;
-                if ((float)qol / (p->end - p->beg) > MASK_LEVEL || (float)qol / (q->end - q->beg) > MASK_LEVEL) {
-                    int64_t tol = (int64_t)(p->k + p->len < q->k + q->len? p->k + p->len : q->k + q->len)
-                                  - (int64_t)(p->k > q->k? p->k : q->k); // length of target overlap
-                    if ((double)tol / p->len > MASK_LEVEL || (double)tol / q->len > MASK_LEVEL)
+                if ((float) qol / (p->end - p->beg) > MASK_LEVEL || (float) qol / (q->end - q->beg) > MASK_LEVEL) {
+                    int64_t tol = (int64_t)(p->k + p->len < q->k + q->len ? p->k + p->len : q->k + q->len)
+                                  - (int64_t)(p->k > q->k ? p->k : q->k); // length of target overlap
+                    if ((double) tol / p->len > MASK_LEVEL || (double) tol / q->len > MASK_LEVEL)
                         compatible = 0;
                 }
             }
@@ -368,8 +375,7 @@ int bsw2_resolve_duphits(const bntseq_t *bns, const bwt_t *bwt, bwtsw2_t *b, int
     return b->n;
 }
 
-int bsw2_resolve_query_overlaps(bwtsw2_t *b, float mask_level)
-{
+int bsw2_resolve_query_overlaps(bwtsw2_t *b, float mask_level) {
     int i, j, n;
     if (b->n == 0) return 0;
     ks_introsort(hitG, b->n, b->hits);
@@ -377,7 +383,7 @@ int bsw2_resolve_query_overlaps(bwtsw2_t *b, float mask_level)
         int G0 = b->hits[0].G;
         for (i = 1; i < b->n; ++i)
             if (b->hits[i].G != G0) break;
-        j = (int)(i * drand48());
+        j = (int) (i * drand48());
         if (j) {
             bsw2hit_t tmp;
             tmp = b->hits[0];
@@ -395,14 +401,14 @@ int bsw2_resolve_query_overlaps(bwtsw2_t *b, float mask_level)
             int qol, compatible = 0;
             float fol;
             if (q->G == 0) continue;
-            qol = (p->end < q->end? p->end : q->end) - (p->beg > q->beg? p->beg : q->beg);
+            qol = (p->end < q->end ? p->end : q->end) - (p->beg > q->beg ? p->beg : q->beg);
             if (qol < 0) qol = 0;
             if (p->l == 0 && q->l == 0) {
-                tol = (int64_t)(p->k + p->len < q->k + q->len? p->k + p->len : q->k + q->len)
-                      - (p->k > q->k? p->k : q->k);
+                tol = (int64_t)(p->k + p->len < q->k + q->len ? p->k + p->len : q->k + q->len)
+                      - (p->k > q->k ? p->k : q->k);
                 if (tol < 0) tol = 0;
             }
-            fol = (float)qol / (p->end - p->beg < q->end - q->beg? p->end - p->beg : q->end - q->beg);
+            fol = (float) qol / (p->end - p->beg < q->end - q->beg ? p->end - p->beg : q->end - q->beg);
             if (fol < mask_level || (tol > 0 && qol < p->end - p->beg && qol < q->end - q->beg)) compatible = 1;
             if (!compatible) {
                 if (q->G2 < p->G) q->G2 = p->G;
@@ -423,41 +429,38 @@ int bsw2_resolve_query_overlaps(bwtsw2_t *b, float mask_level)
 /* --- END: processing partial hits --- */
 
 /* --- BEGIN: global mem pool --- */
-bsw2global_t *bsw2_global_init()
-{
+bsw2global_t *bsw2_global_init() {
     bsw2global_t *pool;
     bsw2stack_t *stack;
     pool = calloc(1, sizeof(bsw2global_t));
     stack = calloc(1, sizeof(bsw2stack_t));
-    stack->pool = (mempool_t*)calloc(1, sizeof(mempool_t));
-    pool->stack = (void*)stack;
+    stack->pool = (mempool_t *) calloc(1, sizeof(mempool_t));
+    pool->stack = (void *) stack;
     return pool;
 }
 
-void bsw2_global_destroy(bsw2global_t *pool)
-{
-    stack_destroy((bsw2stack_t*)pool->stack);
+void bsw2_global_destroy(bsw2global_t *pool) {
+    stack_destroy((bsw2stack_t *) pool->stack);
     free(pool->aln_mem);
     free(pool);
 }
+
 /* --- END: global mem pool --- */
 
-static inline int fill_cell(const bsw2opt_t *o, int match_score, bsw2cell_t *c[4])
-{
-    int G = c[3]? c[3]->G + match_score : MINUS_INF;
+static inline int fill_cell(const bsw2opt_t *o, int match_score, bsw2cell_t *c[4]) {
+    int G = c[3] ? c[3]->G + match_score : MINUS_INF;
     if (c[1]) {
-        c[0]->I = c[1]->I > c[1]->G - o->q? c[1]->I - o->r : c[1]->G - o->qr;
+        c[0]->I = c[1]->I > c[1]->G - o->q ? c[1]->I - o->r : c[1]->G - o->qr;
         if (c[0]->I > G) G = c[0]->I;
     } else c[0]->I = MINUS_INF;
     if (c[2]) {
-        c[0]->D = c[2]->D > c[2]->G - o->q? c[2]->D - o->r : c[2]->G - o->qr;
+        c[0]->D = c[2]->D > c[2]->G - o->q ? c[2]->D - o->r : c[2]->G - o->qr;
         if (c[0]->D > G) G = c[0]->D;
     } else c[0]->D = MINUS_INF;
-    return(c[0]->G = G);
+    return (c[0]->G = G);
 }
 
-static void init_bwtsw2(const bwtl_t *target, const bwt_t *query, bsw2stack_t *s)
-{
+static void init_bwtsw2(const bwtl_t *target, const bwt_t *query, bsw2stack_t *s) {
     bsw2entry_t *u;
     bsw2cell_t *x;
 
@@ -472,10 +475,11 @@ static void init_bwtsw2(const bwtl_t *target, const bwt_t *query, bsw2stack_t *s
     u->n++;
     stack_push0(s, u);
 }
+
 /* On return, ret[1] keeps not-so-repetitive hits (narrow SA hits); ret[0] keeps all hits (right?) */
-bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *target, const bwt_t *query, bsw2global_t *pool)
-{
-    bsw2stack_t *stack = (bsw2stack_t*)pool->stack;
+bwtsw2_t **
+bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *target, const bwt_t *query, bsw2global_t *pool) {
+    bsw2stack_t *stack = (bsw2stack_t *) pool->stack;
     bwtsw2_t *b, *b1, **b_ret;
     int i, j, score_mat[16], *heap, heap_size, n_tot = 0;
     struct rusage curr, last;
@@ -487,18 +491,18 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
     // calculate score matrix
     for (i = 0; i != 4; ++i)
         for (j = 0; j != 4; ++j)
-            score_mat[i<<2|j] = (i == j)? opt->a : -opt->b;
+            score_mat[i << 2 | j] = (i == j) ? opt->a : -opt->b;
     // initialize other variables
     rhash = kh_init(qintv);
     init_bwtsw2(target, query, stack);
     heap_size = opt->z;
     heap = calloc(heap_size, sizeof(int));
     // initialize the return struct
-    b = (bwtsw2_t*)calloc(1, sizeof(bwtsw2_t));
+    b = (bwtsw2_t *) calloc(1, sizeof(bwtsw2_t));
     b->n = b->max = target->seq_len * 2;
     b->hits = calloc(b->max, sizeof(bsw2hit_t));
-    b1 = (bwtsw2_t*)calloc(1, sizeof(bwtsw2_t));
-    b_ret = calloc(2, sizeof(void*));
+    b1 = (bwtsw2_t *) calloc(1, sizeof(bwtsw2_t));
+    b_ret = calloc(2, sizeof(void *));
     b_ret[0] = b;
     b_ret[1] = b1;
     // initialize timer
@@ -517,7 +521,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
         for (i = 0; i < v->n; ++i) { // test max depth and band width
             bsw2cell_t *p = v->array + i;
             if (p->ql == 0) continue;
-            if (p->tlen - (int)p->qlen > opt->bw || (int)p->qlen - p->tlen > opt->bw) {
+            if (p->tlen - (int) p->qlen > opt->bw || (int) p->qlen - p->tlen > opt->bw) {
                 p->qk = p->ql = 0;
                 if (p->ppos >= 0) v->array[p->ppos].cpos[p->pj] = -5;
             }
@@ -535,7 +539,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
             l = target->L2[tj] + tcntl[tj];
             if (k > l) continue;
             // update counter
-            iter = kh_get(64, chash, (uint64_t)k<<32 | l);
+            iter = kh_get(64, chash, (uint64_t) k << 32 | l);
             --kh_value(chash, iter);
             // initialization
             u = mp_alloc(stack->pool);
@@ -551,7 +555,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
                 x->G = MINUS_INF;
                 p->upos = x->upos = -1;
                 if (p->ppos >= 0) { // parent has been visited
-                    c[1] = (v->array[p->ppos].upos >= 0)? u->array + v->array[p->ppos].upos : 0;
+                    c[1] = (v->array[p->ppos].upos >= 0) ? u->array + v->array[p->ppos].upos : 0;
                     c[3] = v->array + p->ppos;
                     c[2] = p;
                     if (fill_cell(opt, curr_score_mat[p->pj], c) > 0) { // then update topology at p and x
@@ -561,7 +565,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
                         is_added = 1;
                     }
                 } else {
-                    x->D = p->D > p->G - opt->q? p->D - opt->r : p->G - opt->qr;
+                    x->D = p->D > p->G - opt->q ? p->D - opt->r : p->G - opt->qr;
                     if (x->D > 0) {
                         x->G = x->D;
                         x->I = MINUS_INF;
@@ -612,14 +616,14 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
             {   // push u to the stack (or to the pending array)
                 uint32_t cnt, pos;
                 cnt = (uint32_t)kh_value(chash, iter);
-                pos = kh_value(chash, iter)>>32;
+                pos = kh_value(chash, iter) >> 32;
                 if (pos) { // something in the pending array, then merge
-                    bsw2entry_t *w = kv_A(stack->pending, pos-1);
+                    bsw2entry_t *w = kv_A(stack->pending, pos - 1);
                     if (u->n) {
                         if (w->n < u->n) { // swap
                             w = u;
-                            u = kv_A(stack->pending, pos-1);
-                            kv_A(stack->pending, pos-1) = w;
+                            u = kv_A(stack->pending, pos - 1);
+                            kv_A(stack->pending, pos - 1) = w;
                         }
                         merge_entry(opt, w, u, b);
                     }
@@ -628,7 +632,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
                         save_narrow_hits(target, w, b1, opt->t, opt->is);
                         cut_tail(w, opt->z, u);
                         stack_push0(stack, w);
-                        kv_A(stack->pending, pos-1) = 0;
+                        kv_A(stack->pending, pos - 1) = 0;
                         --stack->n_pending;
                     }
                     mp_free(stack->pool, u);
@@ -636,7 +640,7 @@ bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *ta
                     if (u->n) { // push to the pending queue
                         ++stack->n_pending;
                         kv_push(bsw2entry_p, stack->pending, u);
-                        kh_value(chash, iter) = (uint64_t)kv_size(stack->pending)<<32 | cnt;
+                        kh_value(chash, iter) = (uint64_t)kv_size(stack->pending) << 32 | cnt;
                     } else mp_free(stack->pool, u);
                 } else { // cnt == 0, then push to the stack
                     bsw2entry_t *w = mp_alloc(stack->pool);

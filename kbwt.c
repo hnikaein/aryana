@@ -9,17 +9,17 @@ inline int myflsll(uint64_t x) {
     return 0;
 }
 
-inline uint64_t before(uint64_t * kintervals, int size, uint64_t index) {
+inline uint64_t before(uint64_t *kintervals, int size, uint64_t index) {
     uint64_t i = index >> 6, s = size >> 6;
     int j = index & 63;
-    if ((kintervals[i]>>j) & 1) return index;
+    if ((kintervals[i] >> j) & 1) return index;
     int f = myflsll(kintervals[i] & ((1 << (j + 1)) - 1));
-    if (f) return ((i<<6) + f - 1);
-    for (i--; i >=0; i--) {
-        if(kintervals[i] == 0)
+    if (f) return ((i << 6) + f - 1);
+    for (i--; i >= 0; i--) {
+        if (kintervals[i] == 0)
             continue;
         f = myflsll(kintervals[i]);
-        if (f) return ((i<<6) + f - 1);
+        if (f) return ((i << 6) + f - 1);
     }
 
     return 0;
@@ -46,17 +46,17 @@ inline uint64_t before(uint64_t * kintervals, int size, uint64_t index) {
     */
 }
 
-inline uint64_t after(uint64_t * kintervals, int size, uint64_t index) {
+inline uint64_t after(uint64_t *kintervals, int size, uint64_t index) {
     uint64_t i = index >> 6, s = size >> 6;
     int j = index & 63;
     //if ((kintervals[i]>>j) & 1) return index;
     int f = ffsll(kintervals[i] >> (j + 1));
-    if (f) return ((i<<6) + (j + 1) + f - 1);
+    if (f) return ((i << 6) + (j + 1) + f - 1);
     for (i++; i < s; i++) {
-        if(kintervals[i] == 0)
+        if (kintervals[i] == 0)
             continue;
         f = ffsll(kintervals[i]);
-        if (f) return ((i<<6) + f - 2);
+        if (f) return ((i << 6) + f - 2);
     }
 
     return size - 1;
@@ -84,7 +84,7 @@ inline uint64_t after(uint64_t * kintervals, int size, uint64_t index) {
     	*/
 }
 
-void next_interval(uint64_t * kintervals, int size, uint64_t *down, uint64_t *up) {
+void next_interval(uint64_t *kintervals, int size, uint64_t *down, uint64_t *up) {
     //fprintf(stderr, "inside next_interval => size = %d, down = %lld, up = %lld\n", size, *down, *up);
     //if(*down > *up)
     //fprintf(stderr, "down > up\n");
