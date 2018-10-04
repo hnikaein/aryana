@@ -31,15 +31,17 @@
 
 #include <stdint.h>
 
-#define KEY(V, I, p, h)					( V[ I[p] + h ] )
-#define INSERT_SORT_NUM_ITEM	16
+#define KEY(V, I, p, h)                    ( V[ I[p] + h ] )
+#define INSERT_SORT_NUM_ITEM    16
 
 typedef int64_t qsint_t;
 #define QSINT_MAX INT64_MAX
 
-void QSufSortSuffixSort(qsint_t* __restrict V, qsint_t* __restrict I, const qsint_t numChar, const qsint_t largestInputSymbol,
+void QSufSortSuffixSort(qsint_t *__restrict V, qsint_t *__restrict I, const qsint_t numChar,
+                        const qsint_t largestInputSymbol,
                         const qsint_t smallestInputSymbol, const int skipTransform);
-void QSufSortGenerateSaFromInverse(const qsint_t *V, qsint_t* __restrict I, const qsint_t numChar);
+
+void QSufSortGenerateSaFromInverse(const qsint_t *V, qsint_t *__restrict I, const qsint_t numChar);
 
 
 #endif

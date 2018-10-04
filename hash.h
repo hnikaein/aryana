@@ -25,18 +25,20 @@ typedef struct {
 typedef struct {
     int paired;
     hash_element *pair_table;
-    uint64_t min_dis,max_dis;
-    uint64_t len1,len2;
+    uint64_t min_dis, max_dis;
+    uint64_t len1, len2;
     int pairID;
     char ori[3];
     int strict;
 } pair_opt;
 
 
-void add(bwt_t *const bwt, uint64_t place,uint64_t value,uint64_t level, uint64_t index, int * best, int best_size, int * best_found, hash_element * table,
-         uint64_t read_start, uint64_t read_size, uint64_t read_index, int whole_read_size,uint64_t groupid);
+void add(bwt_t *const bwt, uint64_t place, uint64_t value, uint64_t level, uint64_t index, int *best, int best_size,
+         int *best_found, hash_element *table,
+         uint64_t read_start, uint64_t read_size, uint64_t read_index, int whole_read_size, uint64_t groupid);
 
-void reset_hash(hash_element * table);
+void reset_hash(hash_element *table);
 
 uint64_t uminus(uint64_t x, uint64_t y);
+
 #endif

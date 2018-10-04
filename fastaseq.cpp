@@ -7,21 +7,24 @@
 #include <vector>
 #include <string>
 #include <sstream>
+
 using namespace std;
 
-vector <long long> chromPos, chromLen;
+vector<long long> chromPos, chromLen;
 long long gs;
-map <string, int> chromIndex;
-map <int, string> chromName;
-char * genome;
+map<string, int> chromIndex;
+map<int, string> chromName;
+char *genome;
 int chromNum = 0;
 string genomeFile;
-enum inputType {startLength, startEnd, chrLoc} inpType;
+enum inputType {
+    startLength, startEnd, chrLoc
+} inpType;
 
 void ReadGenome(string genomeFile) {
     // cerr << "Allocating memory..." << endl;
     ifstream ifile(genomeFile.c_str());
-    ifile.seekg(0, std::ios_base::end);	//seek to end
+    ifile.seekg(0, std::ios_base::end);    //seek to end
     //now get current position as length of file
     long long size = ifile.tellg();
     ifile.close();
@@ -30,19 +33,19 @@ void ReadGenome(string genomeFile) {
     chromNum = 0;
     //cerr << "Reading genome..." << endl;
     char fLineMain[10000];
-    FILE * f = fopen(genomeFile.c_str(), "r");
-    if (! f) {
+    FILE *f = fopen(genomeFile.c_str(), "r");
+    if (!f) {
         cerr << "Error: Genome file not found or could not be opened" << endl;
         exit(1);
     }
-    while (! feof(f)) {
-        if (! fgets(fLineMain, sizeof(fLineMain), f)) break;
+    while (!feof(f)) {
+        if (!fgets(fLineMain, sizeof(fLineMain), f)) break;
         int n = strlen(fLineMain), start = 0;
-        while (n > 0 && fLineMain[n-1] <= ' ') n--;
+        while (n > 0 && fLineMain[n - 1] <= ' ') n--;
         fLineMain[n] = 0;
         while (start < n && fLineMain[start] <= ' ') start++;
         if (start >= n) continue;
-        char * fLine = fLineMain + start;
+        char *fLine = fLineMain + start;
         n -= start;
         if (fLine[0] == '>') {
             chromPos.push_back(gs);
@@ -52,14 +55,14 @@ void ReadGenome(string genomeFile) {
             }
 
             string name = fLine;
-            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ")-1);
+            if (name.find(" ") != string::npos) name = name.substr(1, name.find(" ") - 1);
             else name = name.substr(1, name.size() - 1);
             //	cerr << name;
             chromIndex[name] = chromNum;
             chromName[chromNum] = name;
             chromNum++;
         } else {
-            memcpy(genome+gs, fLine, n);
+            memcpy(genome + gs, fLine, n);
             gs += n;
         }
     }
@@ -69,32 +72,32 @@ void ReadGenome(string genomeFile) {
 }
 
 
-void revcomp(char * a, long long l = 0) {
-    if (! l) l = strlen(a);
-    char * b = new char[l];
+void revcomp(char *a, long long l = 0) {
+    if (!l) l = strlen(a);
+    char *b = new char[l];
     memcpy(b, a, l);
     for (long long i = 0; i < l; i++)
         switch (b[i]) {
-        case 'a':
-        case 'A':
-            a[l - i - 1] = 'T';
-            break;
-        case 'c':
-        case 'C':
-            a[l - i - 1] = 'G';
-            break;
-        case 'g':
-        case 'G':
-            a[l - i - 1] = 'C';
-            break;
-        case 't':
-        case 'T':
-            a[l - i - 1] = 'A';
-            break;
-        default:
-            a[l-i-1] = 'N';
+            case 'a':
+            case 'A':
+                a[l - i - 1] = 'T';
+                break;
+            case 'c':
+            case 'C':
+                a[l - i - 1] = 'G';
+                break;
+            case 'g':
+            case 'G':
+                a[l - i - 1] = 'C';
+                break;
+            case 't':
+            case 'T':
+                a[l - i - 1] = 'A';
+                break;
+            default:
+                a[l - i - 1] = 'N';
         };
-    delete [] b;
+    delete[] b;
 }
 
 // Start is 1-based.
@@ -111,24 +114,22 @@ void PrintSequence(string chr, long long start, long long end, bool revComp) {
         cerr << "The end location: " << end << " is smaller than the start: " << start << endl;
         return;
     }
-    char * seq = new char[end - start + 2];
+    char *seq = new char[end - start + 2];
     if (chr != "") {
-        if (! GetSequence(chr, start, end - start + 1, seq)) {
+        if (!GetSequence(chr, start, end - start + 1, seq)) {
             cerr << "Error in the given chromosomal position." << endl;
             delete[] seq;
             return;
         }
-    }
-    else {
+    } else {
         //cerr << start << "  " << end << " " << gs << endl;
-        if (start < 0 || end >= 2 * gs)
-        {
+        if (start < 0 || end >= 2 * gs) {
             cerr << "Error in the given chromosomal position." << endl;
-            delete [] seq;
+            delete[] seq;
             return;
         }
         if (end < gs) memcpy(seq, genome + start, end - start + 1);
-        else memcpy(seq, genome + 2*gs - end - 1, end - start + 1);
+        else memcpy(seq, genome + 2 * gs - end - 1, end - start + 1);
         seq[end - start + 1] = 0;
     }
     if (revComp || end >= gs) revcomp(seq, end - start + 1);
@@ -136,7 +137,7 @@ void PrintSequence(string chr, long long start, long long end, bool revComp) {
     delete[] seq;
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
 // Parsing Arugments
     bool revComp = false;
     string chr;
@@ -153,17 +154,23 @@ int main(int argc, char * argv[]) {
         else if ((i < argc - 1) && strcmp(argv[i], "-g") == 0)
             genomeFile = argv[++i];
         else {
-            cerr << "Unrecognized argument or invalid usage: "<< argv[i] << endl;
+            cerr << "Unrecognized argument or invalid usage: " << argv[i] << endl;
             exit(1);
         }
     }
     if (genomeFile == "") {
-        cerr << "Usage: fastaseq -g <reference genome, mandatory> {-sl, -se, -c} {-r for reverse-complementing output}" << endl <<
-             "Genomic positions are then read from the standard input, according to the given argument as below:" << endl <<
-             "-sl (start length):         two columns of integers indicating absolute 0-based start position and length of the region" << endl <<
-             "-se (start end):            two columns of integers indicating absolute 0-based start and end of the region" << endl <<
-             "-c  (chromosomal location): a column of chromosome names followed by two columns of integers indicating 1-based start and end positions inside chromosome" << endl <<
-             "If absolute positions are beyong genome size, they are treated as the locations in reverse-complemented genome concatenated to the original genome" << endl;
+        cerr << "Usage: fastaseq -g <reference genome, mandatory> {-sl, -se, -c} {-r for reverse-complementing output}"
+             << endl <<
+             "Genomic positions are then read from the standard input, according to the given argument as below:"
+             << endl <<
+             "-sl (start length):         two columns of integers indicating absolute 0-based start position and length of the region"
+             << endl <<
+             "-se (start end):            two columns of integers indicating absolute 0-based start and end of the region"
+             << endl <<
+             "-c  (chromosomal location): a column of chromosome names followed by two columns of integers indicating 1-based start and end positions inside chromosome"
+             << endl <<
+             "If absolute positions are beyong genome size, they are treated as the locations in reverse-complemented genome concatenated to the original genome"
+             << endl;
         exit(1);
     }
 
@@ -172,19 +179,19 @@ int main(int argc, char * argv[]) {
     while (cin.good()) {
         start = -1;
         switch (inpType) {
-        case startLength:
-            cin >> start >> length;
-            end = start + length - 1;
-            break;
-        case startEnd:
-            cin >> start >> end;
-            break;
-        case chrLoc:
-            cin >> chr >> start >> end;
-            break;
+            case startLength:
+                cin >> start >> length;
+                end = start + length - 1;
+                break;
+            case startEnd:
+                cin >> start >> end;
+                break;
+            case chrLoc:
+                cin >> chr >> start >> end;
+                break;
         };
         if (start < 0) break;
         PrintSequence(chr, start, end, revComp);
     }
-    delete [] genome;
+    delete[] genome;
 }

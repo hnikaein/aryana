@@ -86,9 +86,9 @@ typedef struct {
 #define bam1_aux(b) ((b)->data + (b)->core.n_cigar*4 + (b)->core.l_qname + (b)->core.l_qseq + ((b)->core.l_qseq + 1)/2)
 
 #define bam_init1() ((bam1_t*)calloc(1, sizeof(bam1_t)))
-#define bam_destroy1(b) do {					\
-		if (b) { free((b)->data); free(b); }	\
-	} while (0)
+#define bam_destroy1(b) do {                    \
+        if (b) { free((b)->data); free(b); }    \
+    } while (0)
 
 extern int bam_is_be;
 
@@ -97,14 +97,21 @@ extern "C" {
 #endif
 
 bam_header_t *bam_header_init(void);
+
 void bam_header_destroy(bam_header_t *header);
+
 bam_header_t *bam_header_read(bamFile fp);
+
 int bam_read1(bamFile fp, bam1_t *b);
 
 #ifdef USE_VERBOSE_ZLIB_WRAPPERS
+
 gzFile bamlite_gzopen(const char *fn, const char *mode);
+
 int bamlite_gzread(gzFile file, void *ptr, unsigned int len);
+
 int bamlite_gzclose(gzFile file);
+
 #endif /* USE_VERBOSE_ZLIB_WRAPPERS */
 
 #ifdef __cplusplus

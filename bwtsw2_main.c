@@ -8,8 +8,7 @@
 #include "utils.h"
 #include "bwa.h"
 
-int bwa_bwtsw2(int argc, char *argv[])
-{
+int bwa_bwtsw2(int argc, char *argv[]) {
     bsw2opt_t *opt;
     bwaidx_t *idx;
     int c;
@@ -18,65 +17,65 @@ int bwa_bwtsw2(int argc, char *argv[])
     srand48(11);
     while ((c = getopt(argc, argv, "q:r:a:b:t:T:w:d:z:m:s:c:N:Hf:MI:SG:C")) >= 0) {
         switch (c) {
-        case 'q':
-            opt->q = atoi(optarg);
-            break;
-        case 'r':
-            opt->r = atoi(optarg);
-            break;
-        case 'a':
-            opt->a = atoi(optarg);
-            break;
-        case 'b':
-            opt->b = atoi(optarg);
-            break;
-        case 'w':
-            opt->bw = atoi(optarg);
-            break;
-        case 'T':
-            opt->t = atoi(optarg);
-            break;
-        case 't':
-            opt->n_threads = atoi(optarg);
-            break;
-        case 'z':
-            opt->z = atoi(optarg);
-            break;
-        case 's':
-            opt->is = atoi(optarg);
-            break;
-        case 'm':
-            opt->mask_level = atof(optarg);
-            break;
-        case 'c':
-            opt->coef = atof(optarg);
-            break;
-        case 'N':
-            opt->t_seeds = atoi(optarg);
-            break;
-        case 'M':
-            opt->multi_2nd = 1;
-            break;
-        case 'H':
-            opt->hard_clip = 1;
-            break;
-        case 'f':
-            xreopen(optarg, "w", stdout);
-            break;
-        case 'I':
-            opt->max_ins = atoi(optarg);
-            break;
-        case 'S':
-            opt->skip_sw = 1;
-            break;
-        case 'C':
-            opt->cpy_cmt = 1;
-            break;
-        case 'G':
-            opt->max_chain_gap = atoi(optarg);
-            break;
-        default:
-            return 1;
+            case 'q':
+                opt->q = atoi(optarg);
+                break;
+            case 'r':
+                opt->r = atoi(optarg);
+                break;
+            case 'a':
+                opt->a = atoi(optarg);
+                break;
+            case 'b':
+                opt->b = atoi(optarg);
+                break;
+            case 'w':
+                opt->bw = atoi(optarg);
+                break;
+            case 'T':
+                opt->t = atoi(optarg);
+                break;
+            case 't':
+                opt->n_threads = atoi(optarg);
+                break;
+            case 'z':
+                opt->z = atoi(optarg);
+                break;
+            case 's':
+                opt->is = atoi(optarg);
+                break;
+            case 'm':
+                opt->mask_level = atof(optarg);
+                break;
+            case 'c':
+                opt->coef = atof(optarg);
+                break;
+            case 'N':
+                opt->t_seeds = atoi(optarg);
+                break;
+            case 'M':
+                opt->multi_2nd = 1;
+                break;
+            case 'H':
+                opt->hard_clip = 1;
+                break;
+            case 'f':
+                xreopen(optarg, "w", stdout);
+                break;
+            case 'I':
+                opt->max_ins = atoi(optarg);
+                break;
+            case 'S':
+                opt->skip_sw = 1;
+                break;
+            case 'C':
+                opt->cpy_cmt = 1;
+                break;
+            case 'G':
+                opt->max_chain_gap = atoi(optarg);
+                break;
+            default:
+                return 1;
         }
     }
     opt->qr = opt->q + opt->r;
@@ -97,13 +96,15 @@ int bwa_bwtsw2(int argc, char *argv[])
         fprintf(stderr, "         -C       copy FASTA/Q comment to SAM output\n");
         fprintf(stderr, "         -M       mark multi-part alignments as secondary\n");
         fprintf(stderr, "         -S       skip Smith-Waterman read pairing\n");
-        fprintf(stderr, "         -I INT   ignore pairs with insert >=INT for inferring the size distr [%d]\n", opt->max_ins);
+        fprintf(stderr, "         -I INT   ignore pairs with insert >=INT for inferring the size distr [%d]\n",
+                opt->max_ins);
         fprintf(stderr, "\n");
         fprintf(stderr, "         -T INT   score threshold divided by a [%d]\n", opt->t);
         fprintf(stderr, "         -c FLOAT coefficient of length-threshold adjustment [%.1f]\n", opt->coef);
         fprintf(stderr, "         -z INT   Z-best [%d]\n", opt->z);
         fprintf(stderr, "         -s INT   maximum seeding interval size [%d]\n", opt->is);
-        fprintf(stderr, "         -N INT   # seeds to trigger rev aln; 2*INT is also the chaining threshold [%d]\n", opt->t_seeds);
+        fprintf(stderr, "         -N INT   # seeds to trigger rev aln; 2*INT is also the chaining threshold [%d]\n",
+                opt->t_seeds);
         fprintf(stderr, "         -G INT   maximum gap size during chaining [%d]\n", opt->max_chain_gap);
         fprintf(stderr, "\n");
         fprintf(stderr, "Note: For long Illumina, 454 and Sanger reads, assembly contigs, fosmids and\n");
@@ -119,8 +120,8 @@ int bwa_bwtsw2(int argc, char *argv[])
     opt->t *= opt->a;
     opt->coef *= opt->a;
 
-    if ((idx = bwa_idx_load(argv[optind], BWA_IDX_BWT|BWA_IDX_BNS)) == 0) return 1;
-    bsw2_aln(opt, idx->bns, idx->bwt, argv[optind+1], optind+2 < argc? argv[optind+2] : 0);
+    if ((idx = bwa_idx_load(argv[optind], BWA_IDX_BWT | BWA_IDX_BNS)) == 0) return 1;
+    bsw2_aln(opt, idx->bns, idx->bwt, argv[optind + 1], optind + 2 < argc ? argv[optind + 2] : 0);
     bwa_idx_destroy(idx);
     free(opt);
 

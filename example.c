@@ -5,10 +5,10 @@
 #include <assert.h>
 #include "bwamem.h"
 #include "kseq.h" // for the FASTA/Q parser
+
 KSEQ_DECLARE(gzFile)
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     bwaidx_t *idx;
     gzFile fp;
     kseq_t *ks;
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Index load failed.\n");
         exit(EXIT_FAILURE);
     }
-    fp = strcmp(argv[2], "-")? gzopen(argv[2], "r") : gzdopen(fileno(stdin), "r");
+    fp = strcmp(argv[2], "-") ? gzopen(argv[2], "r") : gzdopen(fileno(stdin), "r");
     if (NULL == fp) {
         fprintf(stderr, "Couldn't open %s : %s\n",
                 strcmp(argv[2], "-") ? argv[2] : "stdin",
@@ -41,11 +41,13 @@ int main(int argc, char *argv[])
         for (i = 0; i < ar.n; ++i) { // traverse each hit
             mem_aln_t a;
             if (ar.a[i].secondary >= 0) continue; // skip secondary alignments
-            a = mem_reg2aln(opt, idx->bns, idx->pac, ks->seq.l, ks->seq.s, &ar.a[i]); // get forward-strand position and CIGAR
+            a = mem_reg2aln(opt, idx->bns, idx->pac, ks->seq.l, ks->seq.s,
+                            &ar.a[i]); // get forward-strand position and CIGAR
             // print alignment
-            printf("%s\t%c\t%s\t%ld\t%d\t", ks->name.s, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long)a.pos, a.mapq);
+            printf("%s\t%c\t%s\t%ld\t%d\t", ks->name.s, "+-"[a.is_rev], idx->bns->anns[a.rid].name, (long) a.pos,
+                   a.mapq);
             for (k = 0; k < a.n_cigar; ++k) // print CIGAR
-                printf("%d%c", a.cigar[k]>>4, "MIDSH"[a.cigar[k]&0xf]);
+                printf("%d%c", a.cigar[k] >> 4, "MIDSH"[a.cigar[k] & 0xf]);
             printf("\t%d\n", a.NM); // print edit distance
             free(a.cigar); // don't forget to deallocate CIGAR
         }
