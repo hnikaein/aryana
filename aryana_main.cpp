@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,6 +6,10 @@
 #include "const.h"
 #include "aryana_args.h"
 #include "utils.h"
+//to call a c compiled function from a c++ source we use linkage specification as below line
+extern "C" {
+void bwa_aln_core2(aryana_args *args);
+}
 #include "bwa2.h"
 #include "main.h"
 
@@ -279,7 +284,7 @@ int main(int argc, char *argv[]) {
                 args.gap_ext_penalty = atoi(optarg);
                 break;
             case 'p':
-                args.platform = atoi(optarg);
+                args.platform = (platform_t)atoi(optarg);
                 break;
         case 'S':
             args.seed_check = MIN(MAX_SEED_COUNT, atoi(optarg));
@@ -301,7 +306,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "The ouptut name should be specified\n");
             return -1;
         }
-        char *output_temp = malloc(strlen(output) + 5);
+        char *output_temp = (char*)malloc(strlen(output) + 5);
         int i;
         for (i = 0; i < 5; i++) {
             sprintf(output_temp, "%s-%d", output, i);
