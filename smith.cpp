@@ -9,6 +9,7 @@
 extern "C" char getNuc(uint64_t place, uint64_t *reference, uint64_t seq_len);
 #include "bwa2.h"
 #include "smith.h"
+#include "probnuc.h"
 
 const int mgi = 3; // Maximum length of gap interval to check. Be careful with increasing this.
 const char delC = 'a';
@@ -111,10 +112,18 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                 d[i][j] += (insertion(arr[i - 1][j]) ? ge : go);
                 arr[i][j] = insC;
             } else {
-                char gc = getNuc(index_start + ref_i - 1, reference, seq_len), rc = read[match_start + i - 1];
+                uint64_t genome_position = index_start + ref_i - 1;
+                char gc = getNuc(genome_position, reference, seq_len);
+                char rc = read[match_start + i - 1];
                 if (gc != rc) {
                     if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) ||
                         (ignore == ignore_GA && (gc != 2 || rc != 0))) {
+                        int adjusted_mp = mp;
+                        if (pos_prob_nuc.find(genome_position) != pos_prob_nuc.end()){
+                            adjusted_mp = pos_prob_nuc[genome_position].prob[gc]*mp;
+                            //TODO: find a better cost function
+                            //TODO: is this reasonable
+                        }
                         d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch
                     }

@@ -1,10 +1,13 @@
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string.h>
 #include <getopt.h>
+#include <fstream>
+#include <inttypes.h>
 #include "const.h"
 #include "aryana_args.h"
+#include "probnuc.h"
 #include "utils.h"
 //to call a c compiled function from a c++ source we use linkage specification as below line
 extern "C" {
@@ -12,7 +15,6 @@ void bwa_aln_core2(aryana_args *args);
 }
 #include "bwa2.h"
 #include "main.h"
-
 #define aryana_version "0.1"
 #define MIN(a, b) (a < b) ? a : b
 
@@ -76,7 +78,7 @@ void Usage() {
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
     fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
     fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
-    fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
+    fprintf(stderr, "     -V/--vcf <filepath>          vcf file to be taken care of in aligning, default=no vcf file\n");
     fprintf(stderr,
             "     -d/--no-discordant           do not print discordants reads, default=if a paired alignment is not found, the best hit for each read is reported.\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing (DNA Methylation assays) reads:\n");
@@ -157,7 +159,8 @@ int main(int argc, char *argv[]) {
                     {"go",            required_argument, 0, 7},
                     {"ge",            required_argument, 0, 8},
                     {"ms",            required_argument, 0, 9},
-                    {"platform",      required_argument, 0, 'p'}
+                    {"platform",      required_argument, 0, 'p'},
+                    {"vcf",      required_argument, 0, 'V'}
             };
     char *output = NULL;
     char *inputFolder;
@@ -165,7 +168,7 @@ int main(int argc, char *argv[]) {
     int c;
     args.read_file = 0;
     while ((c = getopt_long(argc, argv,
-                            "o:x:i:1:2:345m:M:t:s:c:S:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:\x09:p:",
+                            "o:x:i:1:2:345m:M:t:s:c:S:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:\x09:p:V:",
                             long_options, &option_index)) >= 0) {
         switch (c) {
             case 'o':
@@ -286,7 +289,22 @@ int main(int argc, char *argv[]) {
             case 'p':
                 args.platform = (platform_t)atoi(optarg);
                 break;
-        case 'S':
+            case 'V':
+                {
+                    std::ifstream infile(optarg);
+                    uint64_t pos;
+                    float pa, pc, pg, pt;
+                    while(infile >> pos >> pa >> pc >> pg >> pt){
+                        probnuc pn;
+                        pn.prob[0] = pa;
+                        pn.prob[1] = pc;
+                        pn.prob[2] = pg;
+                        pn.prob[3] = pt;
+                        pos_prob_nuc[pos] = pn;
+                    }
+                }
+                break;
+            case 'S':
             args.seed_check = MIN(MAX_SEED_COUNT, atoi(optarg));
             break;
 

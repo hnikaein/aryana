@@ -143,6 +143,7 @@ int min_penalty() {
     return j;
 }
 
+//the rule of how the genome is written, remember this, A -> 0, C -> 1, G -> 2, T->3
 char getNuc(uint64_t place) {
     return genome[place];
 }
