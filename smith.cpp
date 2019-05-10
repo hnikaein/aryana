@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <assert.h>
 #include "aryana_args.h"
+extern "C" char getNuc(uint64_t place, uint64_t *reference, uint64_t seq_len);
 #include "bwa2.h"
 #include "smith.h"
 
@@ -14,6 +15,14 @@ const char delC = 'a';
 const char insC = 'n';
 const char matC = 'z';
 const char misC = 'Z';
+
+extern "C" int
+smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end,
+               char *cigar, int head, const ubyte_t *read, int len,
+               int *mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t *reference,
+               ignore_mismatch_t ignore, ubyte_t *qual);
+
+
 
 int max(int q, int p) {
     return q < p ? p : q;
