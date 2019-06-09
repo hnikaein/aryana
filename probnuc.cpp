@@ -14,3 +14,4 @@
   the second is of probnuc structure
  */
 std::map<uint64_t, probnuc> pos_prob_nuc;
+std::map<char, int> nuc_2_int = {{'A', 0},{'C', 1},{'G', 2},{'T', 3}};

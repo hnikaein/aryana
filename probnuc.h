@@ -13,6 +13,7 @@ struct probnuc{
 };
 
 extern std::map<uint64_t, probnuc> pos_prob_nuc;
+extern std::map<char, int> nuc_2_int;
 
 #endif //ARYANA_PROBNUC_H
 

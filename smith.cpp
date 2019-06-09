@@ -123,6 +123,7 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                             adjusted_mp = pos_prob_nuc[genome_position].prob[gc]*mp;
                             //TODO: find a better cost function
                             //TODO: is this reasonable
+                            //TODO: change this to float not int
                         }
                         d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch

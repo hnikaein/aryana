@@ -15,6 +15,7 @@ void bwa_aln_core2(aryana_args *args);
 }
 #include "bwa2.h"
 #include "main.h"
+#include "vcf_simplifier.h"
 #define aryana_version "0.1"
 #define MIN(a, b) (a < b) ? a : b
 
@@ -129,6 +130,7 @@ int main(int argc, char *argv[]) {
     ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
     if (strcmp(argv[1], "index") == 0) return bwa_index(argc - 1, argv + 1);
     if (strcmp(argv[1], "fa2bin") == 0) return fa2bin(argc - 1, argv + 1);
+    if (strcmp(argv[1], "vcf") == 0) return vcf_simplifier(argc - 1, argv + 1);
     static struct option long_options[] =
             {
                     {"output",        required_argument, 0, 'o'},

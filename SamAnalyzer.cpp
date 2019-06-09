@@ -349,7 +349,7 @@ void ProcessSamFile(const string &samFileName) {
 
 
 int main(int argc, char *argv[]) {
-// Parsing Arugments
+    // Parsing Arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-r") == 0) {
             realPos = true;

@@ -38,7 +38,7 @@ enum orientation_t {
     ff, fr, rf
 } orientation = ff;
 
-vector<window> islands;
+vector <window> islands;
 long long int n = 1000, ni = 0, snp = 0, readl = 100;
 double island = 0.1, cpg = 0.9, noncpg = 0.01, mismatchRate = 0, insRate = 0, delRate = 0;
 bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
