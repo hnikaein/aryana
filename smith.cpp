@@ -20,7 +20,7 @@ const char misC = 'Z';
 extern "C" int
 smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end,
                char *cigar, int head, const ubyte_t *read, int len,
-               int *mismatch_num, uint64_t seq_len, int **d, char **arr, char *tmp_cigar, uint64_t *reference,
+               int *mismatch_num, uint64_t seq_len, float **d, char **arr, char *tmp_cigar, uint64_t *reference,
                ignore_mismatch_t ignore, ubyte_t *qual);
 
 
@@ -49,7 +49,7 @@ static inline int mismatch(ubyte_t qual, int mp) {
 
 int
 smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, uint64_t index_start, uint64_t index_end,
-               char *cigar, int head, const ubyte_t *read, int len, int *mismatch_num, uint64_t seq_len, int **d,
+               char *cigar, int head, const ubyte_t *read, int len, int *mismatch_num, uint64_t seq_len, float **d,
                char **arr, char *tmp_cigar, uint64_t *reference, ignore_mismatch_t ignore, ubyte_t *qual) {
     // d: the array that stores dynamic programming penalty table
     // arr: the array that stores the best strategy for each cell of dynamic programming table
@@ -118,12 +118,9 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                 if (gc != rc) {
                     if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) ||
                         (ignore == ignore_GA && (gc != 2 || rc != 0))) {
-                        int adjusted_mp = mp;
+                        float adjusted_mp = mp;
                         if (pos_prob_nuc.find(genome_position) != pos_prob_nuc.end()){
-                            adjusted_mp = pos_prob_nuc[genome_position].prob[gc]*mp;
-                            //TODO: find a better cost function
-                            //TODO: is this reasonable
-                            //TODO: change this to float not int
+                            adjusted_mp = (1.0-pos_prob_nuc[genome_position].prob[rc])*mp;
                         }
                         d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch
