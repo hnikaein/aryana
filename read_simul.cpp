@@ -376,7 +376,7 @@ void PrintRead(int readNumber, int chr, long long p, char *quals, long long pair
         fprintf(of2, "@%d_2|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + readl + pairDis + 1,
                 off + 2 * readl + pairDis, strand2, original);
     }
-    PrintSingleRead(of, 120, quals, strand, original);
+    PrintSingleRead(of, p, quals, strand, original);
     if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original);
 }
 
