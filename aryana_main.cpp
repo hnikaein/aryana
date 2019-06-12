@@ -13,9 +13,11 @@
 extern "C" {
 void bwa_aln_core2(aryana_args *args);
 }
+
 #include "bwa2.h"
 #include "main.h"
 #include "vcf_simplifier.h"
+
 #define aryana_version "0.1"
 #define MIN(a, b) (a < b) ? a : b
 
@@ -79,7 +81,8 @@ void Usage() {
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
     fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
     fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
-    fprintf(stderr, "     -V/--vcf <filepath>          vcf file to be taken care of in aligning, default=no vcf file\n");
+    fprintf(stderr,
+            "     -V/--vcf <filepath>          vcf file to be taken care of in aligning, default=no vcf file\n");
     fprintf(stderr,
             "     -d/--no-discordant           do not print discordants reads, default=if a paired alignment is not found, the best hit for each read is reported.\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing (DNA Methylation assays) reads:\n");
@@ -91,7 +94,8 @@ void Usage() {
     fprintf(stderr, "Additional optional arguments for bisulfite-sequencing reads:\n");
     fprintf(stderr,
             "     --ct                        ignore C->T mismatches. While using -b this argument is automatically set based on the type of converted genome\n");
-    fprintf(stderr, "     -S                        to set the number of seeds to check if seed length is not specified.");
+    fprintf(stderr,
+            "     -S                        to set the number of seeds to check if seed length is not specified.");
     fprintf(stderr,
             "     --ga                        ignore G->A mismatches. This argument is also automatically set with using -b. Either --ct or --ga can be used.\n");
     fprintf(stderr, "See README.md for more details.\n");
@@ -162,7 +166,7 @@ int main(int argc, char *argv[]) {
                     {"ge",            required_argument, 0, 8},
                     {"ms",            required_argument, 0, 9},
                     {"platform",      required_argument, 0, 'p'},
-                    {"vcf",      required_argument, 0, 'V'}
+                    {"vcf",           required_argument, 0, 'V'}
             };
     char *output = NULL;
     char *inputFolder;
@@ -289,26 +293,26 @@ int main(int argc, char *argv[]) {
                 args.gap_ext_penalty = atoi(optarg);
                 break;
             case 'p':
-                args.platform = (platform_t)atoi(optarg);
+                args.platform = (platform_t) atoi(optarg);
                 break;
-            case 'V':
-                {
-                    std::ifstream infile(optarg);
-                    uint64_t pos;
-                    float pa, pc, pg, pt;
-                    while(infile >> pos >> pa >> pc >> pg >> pt){
-                        probnuc pn;
-                        pn.prob[0] = pa;
-                        pn.prob[1] = pc;
-                        pn.prob[2] = pg;
-                        pn.prob[3] = pt;
-                        pos_prob_nuc[pos] = pn;
-                    }
+            case 'V': {
+                std::ifstream infile(optarg);
+                uint64_t pos;
+                float pa, pc, pg, pt;
+                while (infile >> pos >> pa >> pc >> pg >> pt) {
+                    probnuc pn;
+                    pn.prob[0] = pa;
+                    pn.prob[1] = pc;
+                    pn.prob[2] = pg;
+                    pn.prob[3] = pt;
+                    pos_prob_nuc[pos] = pn;
                 }
+                infile.close();
+            }
                 break;
             case 'S':
-            args.seed_check = MIN(MAX_SEED_COUNT, atoi(optarg));
-            break;
+                args.seed_check = MIN(MAX_SEED_COUNT, atoi(optarg));
+                break;
 
             default:
                 fprintf(stderr, "One or more arguments are invalid. Run aryana without any argument to see a help.\n");
@@ -323,10 +327,10 @@ int main(int argc, char *argv[]) {
     args.stdout_file = stdout;
     if (args.bisulfite) {
         if (!output) {
-            fprintf(stderr, "The ouptut name should be specified\n");
+            fprintf(stderr, "The output name should be specified\n");
             return -1;
         }
-        char *output_temp = (char*)malloc(strlen(output) + 5);
+        char *output_temp = (char *) malloc(strlen(output) + 5);
         int i;
         for (i = 0; i < 5; i++) {
             sprintf(output_temp, "%s-%d", output, i);
@@ -350,15 +354,5 @@ int main(int argc, char *argv[]) {
     }
     fprintf(stderr, "Total candidates: %lld\nThe candidates filtered by --factor:%lld\n", total_candidates,
             best_factor_candidates);
-    //fprintf(stderr, "ori = %s\n", args.ori);
-    //bwa_aln_single(args.reference, args.fq);
-    /*	pair_opt options;
-    	options.paired=0;
-    	options.min_dis=0;
-    	options.max_dis=0;
-    	if (options.paired==0)
-    		bwa_aln_core2(argv[optind], argv[optind+1],NULL,NULL, opt, &options);
-    	else
-    		bwa_aln_core2(argv[optind], NULL, argv[optind+1], argv[optind+2], opt, &options);*/
     return 0;
 }

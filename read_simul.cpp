@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "probnuc.h"
 
 using namespace std;
 
@@ -41,7 +42,7 @@ enum orientation_t {
 vector <window> islands;
 long long int n = 1000, ni = 0, snp = 0, readl = 100;
 double island = 0.1, cpg = 0.9, noncpg = 0.01, mismatchRate = 0, insRate = 0, delRate = 0;
-bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
+bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired = false, vcf = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
 long long pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance between paired end reads
 char bases[4] = {'A', 'C', 'G', 'T'};
 
@@ -267,25 +268,56 @@ void FixedLengthPrint(FILE *f, char *s, long long slen, int fixedlen) {
     fprintf(f, "%s", s);
 }
 
+void apply_vcf_2_read(char *r, long long p, long long readl, char strand) {
+    for (int i = 0; i < readl; i++) {
+        //calculate nucleotide position in genome index of aryana
+        long long nuc_pos = -1;
+        if (strand == '+')
+            nuc_pos = p + i;
+        else if (strand == '-')
+            nuc_pos = p + readl - 1 - i;
+        //simulate read with VCF.simple provided information
+        if (pos_prob_nuc.find(nuc_pos) != pos_prob_nuc.end()) {
+            r[i] = sample_from_probnuc(pos_prob_nuc[nuc_pos]);
+        }//TODO: check with ali
+    }
+}
+
+void apply_bisulfite_2_read(char *r, long long p, long long readl, char strand) {
+    for (int i = 0; i < readl; i++) {
+        //calculate nucleotide position in genome index of aryana
+        long long nuc_pos = -1;
+        if (strand == '+')
+            nuc_pos = p + i;
+        else if (strand == '-')
+            nuc_pos = p + readl - 1 - i;
+
+        // Bisulfite conversion
+        if (r[i] == 'c' || r[i] == 'C') {
+            if (totalCount) totalCount[nuc_pos]++;
+            if ((double) rand() * 100.0 / RAND_MAX >= meth[nuc_pos]) r[i] = 'T';
+            else if (methylCount) methylCount[nuc_pos]++;
+        }
+    }
+}
+
+
+
 // Just generates a single read, without header line but with quality line
 
 void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char original) {
     char r[maxReadSize], R[maxReadSize];
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
+
+    //applying vcf file statistics to the generated read
+    if (vcf)
+        apply_vcf_2_read(r, p, readl, strand);
+    //apply bisulfite rules to the simulated read
     if (bisSeq)
-        for (int i = 0; i < readl; i++) // Bisulfite conversion
-            if (r[i] == 'c' || r[i] == 'C') {
-                if (strand == '+') {
-                    if (totalCount) totalCount[p + i]++;
-                    if ((double) rand() * 100.0 / RAND_MAX >= meth[i + p]) r[i] = 'T';
-                    else if (methylCount) methylCount[p + i]++;
-                } else {
-                    if (totalCount) totalCount[p + readl - 1 - i]++;
-                    if ((double) rand() * 100.0 / RAND_MAX >= meth[p + readl - 1 - i]) r[i] = 'T';
-                    else if (methylCount) methylCount[p + readl - 1 - i]++;
-                }
-            }
+        apply_bisulfite_2_read(r, p, readl, strand);
+
+
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
     int RLen = 0, num = 0;
@@ -537,11 +569,12 @@ int main(int argc, char *argv[]) {
             {"mo",     required_argument, 0, 12},
             {"co",     required_argument, 0, 13},
             {"mind",   required_argument, 0, 'd'},
-            {"maxd",   required_argument, 0, 'D'}
+            {"maxd",   required_argument, 0, 'D'},
+            {"vcf",    required_argument, 0, 'V'}
     };
     int c;
     while ((c = getopt_long(argc, argv,
-                            "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:",
+                            "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:V:",
                             long_options, &option_index)) >= 0)
         switch (c) {
             case 'm':
@@ -623,6 +656,22 @@ int main(int argc, char *argv[]) {
                 break;
             case 'D':
                 pairMaxDis = atoi(optarg);
+                break;
+            case 'V': {
+                vcf = true;
+                std::ifstream infile(optarg);
+                uint64_t pos;
+                float pa, pc, pg, pt;
+                while (infile >> pos >> pa >> pc >> pg >> pt) {
+                    probnuc pn;
+                    pn.prob[0] = pa;
+                    pn.prob[1] = pc;
+                    pn.prob[2] = pg;
+                    pn.prob[3] = pt;
+                    pos_prob_nuc[pos] = pn;
+                }
+                infile.close();
+            }
                 break;
             default:
                 fprintf(stderr, "Invalid argument: %c\n", optopt);

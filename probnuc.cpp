@@ -3,7 +3,9 @@
 //
 #include <map>
 #include <inttypes.h>
+#include<iostream>
 #include "probnuc.h"
+using namespace std;
 
 
 /*it is a global variable which is read from vcf file,
@@ -15,3 +17,18 @@
  */
 std::map<uint64_t, probnuc> pos_prob_nuc;
 std::map<char, int> nuc_2_int = {{'A', 0},{'C', 1},{'G', 2},{'T', 3}};
+std::map<int, char> int_2_nuc = {{0, 'A'},{1, 'C'},{2, 'G'},{3, 'T'}};
+
+char sample_from_probnuc(probnuc pn){
+    float cum_prob[4];
+    cum_prob[0] = pn.prob[0];
+    for(int i = 1; i<4; i++){
+        cum_prob[i] = pn.prob[i] + cum_prob[i-1];
+    }
+    double rand_number = (double) rand() / RAND_MAX;
+    for(int i = 0; i<4; i++){
+        if (rand_number < cum_prob[i])
+            return int_2_nuc[i];
+    }
+    cerr << "Should not reach here" << endl;
+}

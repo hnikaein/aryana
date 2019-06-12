@@ -1,14 +1,14 @@
 CC=			gcc
 CXX=		g++
-CFLAGS=		-Wall -Wno-unused-function -g
-CXXFLAGS=	-Wall -Wno-unused-function -g -std=c++11
+CFLAGS=		-Wall -Wno-unused-function -g3
+CXXFLAGS=	-Wall -Wno-unused-function -g3 -std=c++11
 OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o smith.o aligner.o fa2bin.o \
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
 			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
 			bwtsw2_chain.o bamlite.o bwtsw2_pair.o bwt2.o bwa.o probnuc.o vcf_simplifier.o
 PROG=		aryana
-INCLUDES=	
+INCLUDES=
 LIBS=		-lm -lz -lpthread
 SUBDIRS=	. 
 debug:		CFLAGS=-Wall -Wno-unused-function -DDEBUG -g3 -O0
@@ -36,8 +36,9 @@ align_bs:
 methyl_extract:
 		$(CXX) $(CXXFLAGS) methyl_extract.cpp -o methyl_extract
 
-read_simul:	
-		$(CXX) $(CXXFLAGS) read_simul.cpp -o read_simul
+read_simul:	read_simul.cpp
+		$(CXX) $(CXXFLAGS) read_simul.cpp -o read_simul probnuc.o
+
 
 SamAnalyzer:
 		$(CXX) $(CXXFLAGS) -std=c++17 SamAnalyzer.cpp -o SamAnalyzer
@@ -53,6 +54,8 @@ bwtcheck:
 
 QSufSort.o:QSufSort.h
 
+
+probnuc.o:probnuc.h
 bwt.o:bwt.h
 bwt2.o:bwt.h
 bwtaln.o:bwt.h bwtaln.h kseq.h bwa2.h
