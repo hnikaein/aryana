@@ -16,5 +16,4 @@ aryana_bsp
 aryana_bs
 penalty_test
 /test/*
-*.fasta
-*.fastq
+
