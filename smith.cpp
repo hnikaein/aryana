@@ -6,7 +6,9 @@
 #include <limits.h>
 #include <assert.h>
 #include "aryana_args.h"
+
 extern "C" char getNuc(uint64_t place, uint64_t *reference, uint64_t seq_len);
+
 #include "bwa2.h"
 #include "smith.h"
 #include "probnuc.h"
@@ -22,7 +24,6 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                char *cigar, int head, const ubyte_t *read, int len,
                int *mismatch_num, uint64_t seq_len, float **d, char **arr, char *tmp_cigar, uint64_t *reference,
                ignore_mismatch_t ignore, ubyte_t *qual);
-
 
 
 int max(int q, int p) {
@@ -115,18 +116,31 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                 uint64_t genome_position = index_start + ref_i - 1;
                 char gc = getNuc(genome_position, reference, seq_len);
                 char rc = read[match_start + i - 1];
+                float vcf_adjusted_penalty;
+                std::map<uint64_t, probnuc>::iterator it = pos_prob_nuc.find(genome_position);
+                if ( it != pos_prob_nuc.end()) {
+                    float read_p = it->second.prob[rc];
+                    vcf_adjusted_penalty = (1.0 - read_p) * mp - read_p * ms;
+                }
+
+
                 if (gc != rc) {
                     if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) ||
                         (ignore == ignore_GA && (gc != 2 || rc != 0))) {
-                        float adjusted_mp = mp;
-                        if (pos_prob_nuc.find(genome_position) != pos_prob_nuc.end()){
-                            adjusted_mp = (1.0-pos_prob_nuc[genome_position].prob[rc])*mp;
+                        if (it != pos_prob_nuc.end()) {
+                            d[i][j] += mismatch(qual[i], vcf_adjusted_penalty);
+                        }else {
+                            d[i][j] += mismatch(qual[i], mp);
                         }
-                        d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch
                     }
-                } else
-                    d[i][j] -= ms;
+                } else {//genome character == read character
+                    if (it != pos_prob_nuc.end()) {
+                        d[i][j] += vcf_adjusted_penalty;
+                    }else {
+                        d[i][j] -= ms;
+                    }
+                }
             }
             int k;
             for (k = 1; k <=
