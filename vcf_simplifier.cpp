@@ -8,7 +8,7 @@
 #include <map>
 #include <vector>
 #include <string>
-#include <sstream>
+#include <algorithm>
 #include "const.h"
 #include "probnuc.h"
 
@@ -19,14 +19,14 @@ using namespace std;
 vector<long long> chromPos, chromLen;
 map<string, int> chromIndex;
 map<int, string> chromName;
-map<long long, vector<int>> pos_nuc_freq;
+map<long long, vector<float>> pos_nuc_freq;
 int chromNum = 0;
 long long genome_size;
 
 //TODO: write a function to convert string to long long it from its string format
 //TODO: change string to char
 probnuc calculate_probnuc_from_freqs(long long pos) {
-    long long total_freq = 0;
+    float total_freq = 0;
     for (int i = 0; i < 4; i++)
         total_freq += pos_nuc_freq[pos][i];
 
@@ -63,6 +63,11 @@ map <string, string> digest_info(string info) {
         ans[key] = val;
     }
     return ans;
+}
+
+void remove_parenthesis(string& s){
+    s.erase(std::remove(s.begin(), s.end(), '['), s.end());
+    s.erase(std::remove(s.begin(), s.end(), ']'), s.end());
 }
 
 
@@ -146,12 +151,13 @@ void print_nuc_probs(ofstream &fout, long long &index_in_aryana, probnuc &pn) {
     fout << pn.prob[3] << endl;//fout last line separately, so we do not leave extra space at the end of sentence
 }
 
-void update_pos_nuc_freq(long long pos, string ref, string alt, long long ref_freq, long long alt_freq) {
+void update_pos_nuc_freq(long long pos, string ref, string alt, float ref_freq, float alt_freq) {
     int ref_int = nuc_2_int[ref[0]];
     int alt_int = nuc_2_int[alt[0]];
     pos_nuc_freq[pos].resize(4);
-    pos_nuc_freq[pos][ref_int] += ref_freq;
-    pos_nuc_freq[pos][alt_int] += alt_freq;
+    //TODO assume the
+    pos_nuc_freq[pos][ref_int] = ref_freq;
+    pos_nuc_freq[pos][alt_int] = alt_freq;
 }
 
 int vcf_simplifier(int argc, char *argv[]) {
@@ -183,7 +189,6 @@ int vcf_simplifier(int argc, char *argv[]) {
         if (line == "" || line[0] == '#')
             continue;
 
-        line_counter++;
         istringstream iss(line);
         string chromNum, id, ref, alt, quality, filter, info;
         long long pos;
@@ -195,8 +200,17 @@ int vcf_simplifier(int argc, char *argv[]) {
 
         map<string, string> info_map = digest_info(info);
         //TODO just use if AF is not provided?
-        long long ref_freq = stoi(info_map["AC"]);
-        long long alt_freq = stoi(info_map["AN"]);
+        string freqs_str = info_map["CAF"];
+        if (freqs_str == ""){
+            continue;
+        }
+        line_counter++;
+        remove_parenthesis(freqs_str);
+        vector<string> freqs = vector_tokenize_string(freqs_str, ",");
+        stringstream ss;
+        ss << freqs[0] << freqs[1];
+        float ref_freq, alt_freq;
+        ss >> ref_freq >> alt_freq;
         update_pos_nuc_freq(global_index_in_genome, ref, alt, ref_freq, alt_freq);
 
     }
@@ -204,7 +218,6 @@ int vcf_simplifier(int argc, char *argv[]) {
     //iterating over accumulated frequencies, calculating probabilities
     for (auto const& global_pos_freqs : pos_nuc_freq) {
         long long global_pos = global_pos_freqs.first;
-        vector<int> freqs = global_pos_freqs.second;
 
 
         probnuc pn = calculate_probnuc_from_freqs(global_pos);

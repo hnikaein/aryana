@@ -14,4 +14,4 @@
 ##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes">
 ##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA19239	NA12891
-Y	141	rs2058276	A	T	32	.	AC=2;AF=0.1;AN=2;DB;DP=182;H2;NS=65	GT:GQ:DP	0:0:14	0:0:28
+Y	141	rs2058276	A	T	32	.	CAF=[0.97,0.03];AC=2;AF=0.1;AN=2;DB;DP=182;H2;NS=65	GT:GQ:DP	0:0:14	0:0:28
