@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "str_lib.h"
 #include "probnuc.h"
 
 using namespace std;
@@ -17,11 +18,13 @@ vector<long long> chromPos, chromLen;
 long long gs;
 map<string, int> chromIndex;
 map<int, string> chromName;
+vector<pair<long long, long long>> exons; // storing exons if exons file is provided.
+vector<long long> exon_length;
 char *genome;
 unsigned short *meth = 0;
 unsigned int *totalCount = 0, *methylCount = 0;
 int chromNum = 0;
-string genomeFile, cpgIslandFile, methInFile, methOutFile, outputFileName, countOutFile;
+string genomeFile, cpgIslandFile, methInFile, methOutFile, outputFileName, countOutFile, exon_file;
 FILE *outputFile = stdout, *outputFile2 = stdout;
 
 struct window {
@@ -42,9 +45,20 @@ enum orientation_t {
 vector <window> islands;
 long long int n = 1000, ni = 0, snp = 0, readl = 100;
 double island = 0.1, cpg = 0.9, noncpg = 0.01, mismatchRate = 0, insRate = 0, delRate = 0;
-bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired = false, vcf = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
+bool bisSeq = false, repeatMask = false, neg = false, pcr = false, paired = false, vcf = false, exon = false; // Mask repeat regions, produce reads from negative strand, produce PCR amplified reads, produce paired-end reads
 long long pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance between paired end reads
 char bases[4] = {'A', 'C', 'G', 'T'};
+
+long long get_global_pose_from_chromNum_and_index(string chromNumStr, long long local_position) {
+    int chromIdx = chromIndex.at(chromNumStr);
+    long long global_position = 0;
+    for (int i = 0; i < chromIdx; i++) {
+        global_position += chromLen[i];
+    }
+    global_position += local_position;
+
+    return global_position;
+}
 
 void ReadGenome(string genomeFile) {
     cerr << "Allocating memory..." << endl;
@@ -351,7 +365,41 @@ void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char origin
 }
 
 // Can print both single and paired end reads, along with the header line
+void read_exon_file(string exon_file){
+    std::ifstream infile(exon_file);
+    long long pos_start, pos_end;
+    string line;
+    while (infile.good()) {
+        string line;
+        getline(infile, line);
+        if (line == "" || line[0] == '#')
+            continue;
+        istringstream ss(line);
+        string chr_name, temp, type;
+        ss >> chr_name >> temp >> type >> pos_start >> pos_end;
+        if(type!= "exon")
+            continue;
+        pos_start = get_global_pose_from_chromNum_and_index(chr_name, pos_start);
+        pos_end = get_global_pose_from_chromNum_and_index(chr_name, pos_end);
+        exons.push_back(make_pair(pos_start, pos_end));
+        exon_length.push_back(pos_end-pos_start+1);
+    }
+    for (int i = 1; i<exon_length.size(); i++){
+        exon_length[i] += exon_length[i-1];
+    }
+    infile.close();
+}
 
+long long sample_pos_from_exon(){
+    long long random_pos = ((double)rand()/RAND_MAX)*exon_length.back();
+    vector<long long>::iterator it = lower_bound(exon_length.begin(), exon_length.end(), random_pos);
+    if(it == exon_length.begin())
+        return random_pos+exons[0].first;
+    else
+        return random_pos-*(it-1)+exons[it-exon_length.begin()].first;
+
+
+}
 void PrintRead(int readNumber, int chr, long long p, char *quals, long long pairDis) {
     char strand = '+', strand2 = '+', original = 'o';
     FILE *of = outputFile, *of2 = (paired) ? outputFile2 : outputFile;
@@ -423,7 +471,10 @@ void SimulateReads() {
                 cerr << "Error: Could not find any suitable location for reads after " << maxTries << " tries." << endl;
                 exit(-1);
             }
-            p = lrand() % gs;
+            if(exon)
+                p = sample_pos_from_exon();
+            else
+                p = lrand() % gs;
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
         } while (true);
@@ -536,6 +587,10 @@ void Usage() {
          "     --cg           float            methylation ratio of CG dinucleotides outside CpG-Islands, between 0 and 1, default=0.9"
          << endl <<
          "     --ci           float            methylation ratio of CG dinucleotides in CpG-Islands, between 0 and 1, default=0.1"
+         << endl <<
+         "     --vcf           file           simplified vcf file for getting probabilities of genome positions "
+         << endl <<
+         "     --exon           file            file including exon locations, therefore, we can simulate reads just from there"
          << endl;
     exit(1);
 }
@@ -570,11 +625,12 @@ int main(int argc, char *argv[]) {
             {"co",     required_argument, 0, 13},
             {"mind",   required_argument, 0, 'd'},
             {"maxd",   required_argument, 0, 'D'},
-            {"vcf",    required_argument, 0, 'V'}
+            {"vcf",    required_argument, 0, 'V'},
+            {"exon",    required_argument, 0, 'E'}
     };
     int c;
     while ((c = getopt_long(argc, argv,
-                            "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:V:",
+                            "mNpP\x01\x02\x03g:i:o:n:\x04:\x05:\x06:\x07:\x08:\x09:\x0a:bs:l:\x0b:\x0c:\x0d:d:D:V:E:",
                             long_options, &option_index)) >= 0)
         switch (c) {
             case 'm':
@@ -673,6 +729,12 @@ int main(int argc, char *argv[]) {
                 infile.close();
             }
                 break;
+            case 'E': {
+                exon = true;
+                string file_name = string(optarg);
+                exon_file = file_name;
+            }
+                break;
             default:
                 fprintf(stderr, "Invalid argument: %c\n", optopt);
                 exit(1);
@@ -691,6 +753,8 @@ int main(int argc, char *argv[]) {
     }
 // Reading input
     ReadGenome(genomeFile);
+    if (exon)
+        read_exon_file(exon_file);
     ReadCpGIslands();
     ProcessSNPs();
     if (bisSeq)

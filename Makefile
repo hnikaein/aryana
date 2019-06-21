@@ -6,7 +6,7 @@ OBJS=		QSufSort.o bwt_gen.o utils.o bwt.o bwtaln.o bwa2.o bwtgap.o sam.o hash.o 
 			is.o bntseq.o bwtindex.o ksw.o stdaln.o simple_dp.o \
 			bwaseqio.o bwase.o bwape.o kstring.o cs2nt.o \
 			bwtsw2_core.o bwtsw2_main.o bwtsw2_aux.o bwt_lite.o \
-			bwtsw2_chain.o bamlite.o bwtsw2_pair.o bwt2.o bwa.o probnuc.o vcf_simplifier.o
+			bwtsw2_chain.o bamlite.o bwtsw2_pair.o bwt2.o bwa.o probnuc.o vcf_simplifier.o str_lib.o
 PROG=		aryana
 INCLUDES=
 LIBS=		-lm -lz -lpthread
