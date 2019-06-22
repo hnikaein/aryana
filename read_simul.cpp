@@ -391,7 +391,7 @@ void read_exon_file(string exon_file){
 }
 
 long long sample_pos_from_exon(){
-    long long random_pos = ((double)rand()/RAND_MAX)*exon_length.back();
+    long long random_pos = lrand()%exon_length.back();
     vector<long long>::iterator it = lower_bound(exon_length.begin(), exon_length.end(), random_pos);
     if(it == exon_length.begin())
         return random_pos+exons[0].first;
