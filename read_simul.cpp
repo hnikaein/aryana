@@ -23,7 +23,7 @@ vector<long long> exon_length;
 char *genome;
 unsigned short *meth = 0;
 unsigned int *totalCount = 0, *methylCount = 0;
-int chromNum = 0;
+int chromNum = 0, total_ignored_exones = 0, total_accepted_exones = 0;
 string genomeFile, cpgIslandFile, methInFile, methOutFile, outputFileName, countOutFile, exon_file;
 FILE *outputFile = stdout, *outputFile2 = stdout;
 
@@ -387,8 +387,11 @@ void read_exon_file(string exon_file){
             continue;
         pos_start = get_global_pose_from_chromNum_and_index(chr_name, pos_start);
         pos_end = get_global_pose_from_chromNum_and_index(chr_name, pos_end);
-        if (pos_start == -1 || pos_end == -1)
+        if (pos_start == -1 || pos_end == -1) {
+            total_ignored_exones++;
             continue;//we did not have these chromosomes
+        }
+        total_accepted_exones++;
         exons.push_back(make_pair(pos_start, pos_end));
         exon_length.push_back(pos_end-pos_start+1);
     }
@@ -396,6 +399,7 @@ void read_exon_file(string exon_file){
         exon_length[i] += exon_length[i-1];
     }
     infile.close();
+    cout << "Total Exones Accepted" << total_accepted_exones << "Total_Ignored_Exones" << total_ignored_exones << endl;
 }
 
 long long sample_pos_from_exon(){
