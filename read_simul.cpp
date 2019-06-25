@@ -51,8 +51,11 @@ char bases[4] = {'A', 'C', 'G', 'T'};
 
 long long get_global_pose_from_chromNum_and_index(string chromNumStr, long long local_position) {
     int chromIdx;
-    cout << "chromeNumStr:" << chromNumStr << endl;
-    chromIdx = chromIndex.at(chromNumStr);
+    try {
+        chromIdx = chromIndex.at(chromNumStr);
+    }catch(const std::out_of_range& e) {
+        cerr << "Our genome does not have chromosome" << chromNumStr << endl;
+    }
     long long global_position = 0;
     for (int i = 0; i < chromIdx; i++) {
         global_position += chromLen[i];
