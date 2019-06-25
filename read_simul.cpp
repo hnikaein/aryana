@@ -50,9 +50,10 @@ long long pairMinDis = 300, pairMaxDis = 1000; // Minimum and maximum distance b
 char bases[4] = {'A', 'C', 'G', 'T'};
 
 long long get_global_pose_from_chromNum_and_index(string chromNumStr, long long local_position) {
+    int chromIdx;
     try {
-        int chromIdx = chromIndex.at(chromNumStr);
-    }catch {
+        chromIdx = chromIndex.at(chromNumStr);
+    }catch(int n) {
         cerr << "chromeNumStr:" << chromNumStr << endl;
     }
     long long global_position = 0;
