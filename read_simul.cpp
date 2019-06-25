@@ -55,6 +55,7 @@ long long get_global_pose_from_chromNum_and_index(string chromNumStr, long long 
         chromIdx = chromIndex.at(chromNumStr);
     }catch(const std::out_of_range& e) {
         cerr << "Our genome does not have chromosome" << chromNumStr << endl;
+        return -1;
     }
     long long global_position = 0;
     for (int i = 0; i < chromIdx; i++) {
@@ -386,6 +387,8 @@ void read_exon_file(string exon_file){
             continue;
         pos_start = get_global_pose_from_chromNum_and_index(chr_name, pos_start);
         pos_end = get_global_pose_from_chromNum_and_index(chr_name, pos_end);
+        if (pos_start == -1 || pos_end == -1)
+            continue;//we did not have these chromosomes
         exons.push_back(make_pair(pos_start, pos_end));
         exon_length.push_back(pos_end-pos_start+1);
     }
