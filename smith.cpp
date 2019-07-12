@@ -120,7 +120,7 @@ smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_end, u
                 std::map<uint64_t, probnuc>::iterator it = pos_prob_nuc.find(genome_position);
                 if ( it != pos_prob_nuc.end()) {
                     float read_p = it->second.prob[rc];
-                    vcf_adjusted_penalty = (1.0 - read_p) * mp - read_p * ms;
+                    vcf_adjusted_penalty = -log10((1.0 - read_p) * pow(10.0,-1.0*mp) - read_p * pow(10.0, -1.0*ms));
                 }
 
 
