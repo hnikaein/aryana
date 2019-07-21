@@ -340,6 +340,10 @@ void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char origin
     if (bisSeq)
         apply_bisulfite_2_read(r, p, readl, strand);
 
+    if (!vcf_met){
+        return;
+    }
+
 
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
@@ -492,12 +496,8 @@ void SimulateReads() {
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
         } while (true);
-        if (vcf_met)
-            PrintRead(i, chr, p, quals, pairDis);
-        else{
-            vcf_met = false;
-            continue;
-        }
+        PrintRead(i, chr, p, quals, pairDis);
+        vcf_met = false;
     }
 
 // Simulating CpG-island reads
