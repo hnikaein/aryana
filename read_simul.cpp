@@ -22,6 +22,7 @@ vector<pair<long long, long long>> exons; // storing exons if exons file is prov
 vector<long long> exon_length;
 char *genome;
 unsigned short *meth = 0;
+bool vcf_met = false;
 unsigned int *totalCount = 0, *methylCount = 0;
 int chromNum = 0, total_ignored_exones = 0, total_accepted_exones = 0;
 string genomeFile, cpgIslandFile, methInFile, methOutFile, outputFileName, countOutFile, exon_file;
@@ -300,6 +301,7 @@ void apply_vcf_2_read(char *r, long long p, long long readl, char strand) {
         if (pos_prob_nuc.find(nuc_pos) != pos_prob_nuc.end()) {
             r[i] = give_probnuc_least_chance(pos_prob_nuc[nuc_pos]);
             cout << "vcf position met." << endl;
+            vcf_met = true;
         }//TODO: check with ali
     }
 }
@@ -410,9 +412,8 @@ long long sample_pos_from_exon(){
         return random_pos+exons[0].first;
     else
         return random_pos-*(it-1)+exons[it-exon_length.begin()].first;
-
-
 }
+
 void PrintRead(int readNumber, int chr, long long p, char *quals, long long pairDis) {
     char strand = '+', strand2 = '+', original = 'o';
     FILE *of = outputFile, *of2 = (paired) ? outputFile2 : outputFile;
@@ -491,7 +492,10 @@ void SimulateReads() {
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
         } while (true);
-        PrintRead(i, chr, p, quals, pairDis);
+        if (vcf_met):
+            PrintRead(i, chr, p, quals, pairDis);
+        else:
+            continue;
     }
 
 // Simulating CpG-island reads
