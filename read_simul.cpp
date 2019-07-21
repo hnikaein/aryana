@@ -492,10 +492,12 @@ void SimulateReads() {
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
         } while (true);
-        if (vcf_met):
+        if (vcf_met)
             PrintRead(i, chr, p, quals, pairDis);
-        else:
+        else{
+            vcf_met = false;
             continue;
+        }
     }
 
 // Simulating CpG-island reads
