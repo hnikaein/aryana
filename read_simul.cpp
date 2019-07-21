@@ -298,7 +298,8 @@ void apply_vcf_2_read(char *r, long long p, long long readl, char strand) {
             nuc_pos = p + readl - 1 - i;
         //simulate read with VCF.simple provided information
         if (pos_prob_nuc.find(nuc_pos) != pos_prob_nuc.end()) {
-            r[i] = sample_from_probnuc(pos_prob_nuc[nuc_pos]);
+            r[i] = give_probnuc_least_chance(pos_prob_nuc[nuc_pos]);
+            cout << "vcf position met." << endl;
         }//TODO: check with ali
     }
 }

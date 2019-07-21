@@ -17,6 +17,7 @@ extern std::map<char, int> nuc_2_int;
 extern std::map<int, char> int_2_nuc;
 
 char sample_from_probnuc(probnuc pn);
+char give_probnuc_least_chance(probnuc pn);
 
 #endif //ARYANA_PROBNUC_H
 

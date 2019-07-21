@@ -32,3 +32,14 @@ char sample_from_probnuc(probnuc pn){
     }
     cerr << "Should not reach here" << endl;
 }
+
+
+char give_probnuc_least_chance(probnuc pn){
+    int min_chance_nucleotid = 0;
+    for(int i = 1; i< 4; i++){
+        if(pn[i] < pn[min_chance_nucleotid])
+            min_chance_nucleotid = i;
+    }
+    return int_2_nuc[min_chance_nucleotid];
+}
+
