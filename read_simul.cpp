@@ -9,6 +9,7 @@
 #include <string>
 #include "str_lib.h"
 #include "probnuc.h"
+#include "const.h"
 
 using namespace std;
 
@@ -328,7 +329,7 @@ void apply_bisulfite_2_read(char *r, long long p, long long readl, char strand) 
 
 // Just generates a single read, without header line but with quality line
 
-void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char original) {
+void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char original, const char* readHeadTempStr) {
     char r[maxReadSize], R[maxReadSize];
     memcpy(r, genome + p, readl);
     if (strand == '-') revcomp(r, readl);
@@ -344,6 +345,7 @@ void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char origin
         return;
     }
 
+    fprintf(f, "%s", readHeadTempStr);
 
     if (original == 'p') revcomp(r, readl);
     r[readl] = 0;
@@ -433,17 +435,18 @@ void PrintRead(int readNumber, int chr, long long p, char *quals, long long pair
     if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
 
     long long off = p - chromPos[chr];
+    char readOneTempStr[MAX_READ_LEN], readTwoTempStr[MAX_READ_LEN];
     if (!paired)
-        fprintf(of, "@%d|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
+        sprintf(readOneTempStr, "@%d|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
                 original);
     else {
-        fprintf(of, "@%d_1|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
+        sprintf(readOneTempStr, "@%d_1|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
                 original);
-        fprintf(of2, "@%d_2|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + readl + pairDis + 1,
+        sprintf(readTwoTempStr, "@%d_2|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + readl + pairDis + 1,
                 off + 2 * readl + pairDis, strand2, original);
     }
-    PrintSingleRead(of, p, quals, strand, original);
-    if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original);
+    PrintSingleRead(of, p, quals, strand, original, readOneTempStr);
+    if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original, readTwoTempStr);
 }
 
 // Looks for a genomic region to find out any repeat regions (lower-case nucleotides)
