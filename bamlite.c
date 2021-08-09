@@ -13,39 +13,38 @@
  * from bam_endian.c *
  *********************/
 
-static inline int bam_is_big_endian()
-{
-    long one= 1;
-    return !(*((char *)(&one)));
+static inline int bam_is_big_endian() {
+    long one = 1;
+    return !(*((char *) (&one)));
 }
-static inline uint16_t bam_swap_endian_2(uint16_t v)
-{
-    return (uint16_t)(((v & 0x00FF00FFU) << 8) | ((v & 0xFF00FF00U) >> 8));
+
+static inline uint16_t bam_swap_endian_2(uint16_t v) {
+    return (uint16_t) (((v & 0x00FF00FFU) << 8) | ((v & 0xFF00FF00U) >> 8));
 }
-static inline void *bam_swap_endian_2p(void *x)
-{
-    *(uint16_t*)x = bam_swap_endian_2(*(uint16_t*)x);
+
+static inline void *bam_swap_endian_2p(void *x) {
+    *(uint16_t *) x = bam_swap_endian_2(*(uint16_t *) x);
     return x;
 }
-static inline uint32_t bam_swap_endian_4(uint32_t v)
-{
+
+static inline uint32_t bam_swap_endian_4(uint32_t v) {
     v = ((v & 0x0000FFFFU) << 16) | (v >> 16);
     return ((v & 0x00FF00FFU) << 8) | ((v & 0xFF00FF00U) >> 8);
 }
-static inline void *bam_swap_endian_4p(void *x)
-{
-    *(uint32_t*)x = bam_swap_endian_4(*(uint32_t*)x);
+
+static inline void *bam_swap_endian_4p(void *x) {
+    *(uint32_t *) x = bam_swap_endian_4(*(uint32_t *) x);
     return x;
 }
-static inline uint64_t bam_swap_endian_8(uint64_t v)
-{
+
+static inline uint64_t bam_swap_endian_8(uint64_t v) {
     v = ((v & 0x00000000FFFFFFFFLLU) << 32) | (v >> 32);
     v = ((v & 0x0000FFFF0000FFFFLLU) << 16) | ((v & 0xFFFF0000FFFF0000LLU) >> 16);
     return ((v & 0x00FF00FF00FF00FFLLU) << 8) | ((v & 0xFF00FF00FF00FF00LLU) >> 8);
 }
-static inline void *bam_swap_endian_8p(void *x)
-{
-    *(uint64_t*)x = bam_swap_endian_8(*(uint64_t*)x);
+
+static inline void *bam_swap_endian_8p(void *x) {
+    *(uint64_t *) x = bam_swap_endian_8(*(uint64_t *) x);
     return x;
 }
 
@@ -55,14 +54,12 @@ static inline void *bam_swap_endian_8p(void *x)
 
 int bam_is_be;
 
-bam_header_t *bam_header_init()
-{
+bam_header_t *bam_header_init() {
     bam_is_be = bam_is_big_endian();
-    return (bam_header_t*)calloc(1, sizeof(bam_header_t));
+    return (bam_header_t *) calloc(1, sizeof(bam_header_t));
 }
 
-void bam_header_destroy(bam_header_t *header)
-{
+void bam_header_destroy(bam_header_t *header) {
     int32_t i;
     if (header == 0) return;
     if (header->target_name) {
@@ -75,8 +72,7 @@ void bam_header_destroy(bam_header_t *header)
     free(header);
 }
 
-bam_header_t *bam_header_read(bamFile fp)
-{
+bam_header_t *bam_header_read(bamFile fp) {
     bam_header_t *header;
     char buf[4];
     int magic_len;
@@ -91,17 +87,17 @@ bam_header_t *bam_header_read(bamFile fp)
     // read plain text and the number of reference sequences
     if (bam_read(fp, &header->l_text, 4) != 4) goto fail;
     if (bam_is_be) bam_swap_endian_4p(&header->l_text);
-    header->text = (char*)calloc(header->l_text + 1, 1);
+    header->text = (char *) calloc(header->l_text + 1, 1);
     if (bam_read(fp, header->text, header->l_text) != header->l_text) goto fail;
     if (bam_read(fp, &header->n_targets, 4) != 4) goto fail;
     if (bam_is_be) bam_swap_endian_4p(&header->n_targets);
     // read reference sequence names and lengths
-    header->target_name = (char**)calloc(header->n_targets, sizeof(char*));
-    header->target_len = (uint32_t*)calloc(header->n_targets, 4);
+    header->target_name = (char **) calloc(header->n_targets, sizeof(char *));
+    header->target_len = (uint32_t *) calloc(header->n_targets, 4);
     for (i = 0; i != header->n_targets; ++i) {
         if (bam_read(fp, &name_len, 4) != 4) goto fail;
         if (bam_is_be) bam_swap_endian_4p(&name_len);
-        header->target_name[i] = (char*)calloc(name_len, 1);
+        header->target_name[i] = (char *) calloc(name_len, 1);
         if (bam_read(fp, header->target_name[i], name_len) != name_len) {
             goto fail;
         }
@@ -109,16 +105,15 @@ bam_header_t *bam_header_read(bamFile fp)
         if (bam_is_be) bam_swap_endian_4p(&header->target_len[i]);
     }
     return header;
-fail:
+    fail:
     bam_header_destroy(header);
     return NULL;
 }
 
-static void swap_endian_data(const bam1_core_t *c, int data_len, uint8_t *data)
-{
+static void swap_endian_data(const bam1_core_t *c, int data_len, uint8_t *data) {
     uint8_t *s;
-    uint32_t i, *cigar = (uint32_t*)(data + c->l_qname);
-    s = data + c->n_cigar*4 + c->l_qname + c->l_qseq + (c->l_qseq + 1)/2;
+    uint32_t i, *cigar = (uint32_t *) (data + c->l_qname);
+    s = data + c->n_cigar * 4 + c->l_qname + c->l_qseq + (c->l_qseq + 1) / 2;
     for (i = 0; i < c->n_cigar; ++i) bam_swap_endian_4p(&cigar[i]);
     while (s < data + data_len) {
         uint8_t type;
@@ -129,24 +124,20 @@ static void swap_endian_data(const bam1_core_t *c, int data_len, uint8_t *data)
         else if (type == 'S') {
             bam_swap_endian_2p(s);
             s += 2;
-        }
-        else if (type == 'I' || type == 'F') {
+        } else if (type == 'I' || type == 'F') {
             bam_swap_endian_4p(s);
             s += 4;
-        }
-        else if (type == 'D') {
+        } else if (type == 'D') {
             bam_swap_endian_8p(s);
             s += 8;
-        }
-        else if (type == 'Z' || type == 'H') {
+        } else if (type == 'Z' || type == 'H') {
             while (*s) ++s;
             ++s;
         }
     }
 }
 
-int bam_read1(bamFile fp, bam1_t *b)
-{
+int bam_read1(bamFile fp, bam1_t *b) {
     bam1_core_t *c = &b->core;
     int32_t block_len, ret, i;
     uint32_t x[8];
@@ -162,11 +153,11 @@ int bam_read1(bamFile fp, bam1_t *b)
     }
     c->tid = x[0];
     c->pos = x[1];
-    c->bin = x[2]>>16;
-    c->qual = x[2]>>8&0xff;
-    c->l_qname = x[2]&0xff;
-    c->flag = x[3]>>16;
-    c->n_cigar = x[3]&0xffff;
+    c->bin = x[2] >> 16;
+    c->qual = x[2] >> 8 & 0xff;
+    c->l_qname = x[2] & 0xff;
+    c->flag = x[3] >> 16;
+    c->n_cigar = x[3] & 0xffff;
     c->l_qseq = x[4];
     c->mtid = x[5];
     c->mpos = x[6];
@@ -175,10 +166,10 @@ int bam_read1(bamFile fp, bam1_t *b)
     if (b->m_data < b->data_len) {
         b->m_data = b->data_len;
         kroundup32(b->m_data);
-        b->data = (uint8_t*)realloc(b->data, b->m_data);
+        b->data = (uint8_t *) realloc(b->data, b->m_data);
     }
     if (bam_read(fp, b->data, b->data_len) != b->data_len) return -4;
-    b->l_aux = b->data_len - c->n_cigar * 4 - c->l_qname - c->l_qseq - (c->l_qseq+1)/2;
+    b->l_aux = b->data_len - c->n_cigar * 4 - c->l_qname - c->l_qseq - (c->l_qseq + 1) / 2;
     if (bam_is_be) swap_endian_data(c, b->data_len, b->data);
     return 4 + block_len;
 }
@@ -190,10 +181,10 @@ int bam_read1(bamFile fp, bam1_t *b)
 gzFile bamlite_gzopen(const char *fn, const char *mode) {
     gzFile fp;
     if (strcmp(fn, "-") == 0) {
-        fp = gzdopen(fileno((strstr(mode, "r"))? stdin : stdout), mode);
+        fp = gzdopen(fileno((strstr(mode, "r")) ? stdin : stdout), mode);
         if (!fp) {
             fprintf(stderr, "Couldn't open %s : %s",
-                    (strstr(mode, "r"))? "stdin" : "stdout",
+                    (strstr(mode, "r")) ? "stdin" : "stdout",
                     strerror(errno));
         }
         return fp;
@@ -226,4 +217,5 @@ int bamlite_gzclose(gzFile file) {
 
     return ret;
 }
+
 #endif /* USE_VERBOSE_ZLIB_WRAPPERS */

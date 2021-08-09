@@ -34,14 +34,13 @@ typedef unsigned char ubyte_t;
 #define chr(i) (cs == sizeof(int) ? ((const int *)T)[i]:((const unsigned char *)T)[i])
 
 /* find the start or end of each bucket */
-static void getCounts(const unsigned char *T, int *C, int n, int k, int cs)
-{
+static void getCounts(const unsigned char *T, int *C, int n, int k, int cs) {
     int i;
     for (i = 0; i < k; ++i) C[i] = 0;
     for (i = 0; i < n; ++i) ++C[chr(i)];
 }
-static void getBuckets(const int *C, int *B, int k, int end)
-{
+
+static void getBuckets(const int *C, int *B, int k, int end) {
     int i, sum = 0;
     if (end) {
         for (i = 0; i < k; ++i) {
@@ -57,13 +56,12 @@ static void getBuckets(const int *C, int *B, int k, int end)
 }
 
 /* compute SA */
-static void induceSA(const unsigned char *T, int *SA, int *C, int *B, int n, int k, int cs)
-{
+static void induceSA(const unsigned char *T, int *SA, int *C, int *B, int n, int k, int cs) {
     int *b, i, j;
-    int  c0, c1;
+    int c0, c1;
     /* compute SAl */
     if (C == B) getCounts(T, C, n, k, cs);
-    getBuckets(C, B, k, 0);	/* find starts of buckets */
+    getBuckets(C, B, k, 0);    /* find starts of buckets */
     j = n - 1;
     b = SA + B[c1 = chr(j)];
     *b++ = ((0 < j) && (chr(j - 1) < c1)) ? ~j : j;
@@ -80,7 +78,7 @@ static void induceSA(const unsigned char *T, int *SA, int *C, int *B, int n, int
     }
     /* compute SAs */
     if (C == B) getCounts(T, C, n, k, cs);
-    getBuckets(C, B, k, 1);	/* find ends of buckets */
+    getBuckets(C, B, k, 1);    /* find ends of buckets */
     for (i = n - 1, b = SA + B[c1 = 0]; 0 <= i; --i) {
         if (0 < (j = SA[i])) {
             --j;
@@ -97,12 +95,11 @@ static void induceSA(const unsigned char *T, int *SA, int *C, int *B, int n, int
  * find the suffix array SA of T[0..n-1] in {0..k-1}^n use a working
  * space (excluding T and SA) of at most 2n+O(1) for a constant alphabet
  */
-static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int cs)
-{
+static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int cs) {
     int *C, *B, *RA;
-    int  i, j, c, m, p, q, plen, qlen, name;
-    int  c0, c1;
-    int  diff;
+    int i, j, c, m, p, q, plen, qlen, name;
+    int c0, c1;
+    int diff;
 
     /* stage 1: reduce the problem by at least 1/2 sort all the
      * S-substrings */
@@ -111,7 +108,7 @@ static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int 
         B = (k <= (fs - k)) ? C + k : C;
     } else if ((C = B = (int *) malloc(k * sizeof(int))) == NULL) return -2;
     getCounts(T, C, n, k, cs);
-    getBuckets(C, B, k, 1);	/* find ends of buckets */
+    getBuckets(C, B, k, 1);    /* find ends of buckets */
     for (i = 0; i < n; ++i) SA[i] = 0;
     for (i = n - 2, c = 0, c1 = chr(n - 1); 0 <= i; --i, c1 = c0) {
         if ((c0 = chr(i)) < (c1 + c)) c = 1;
@@ -128,7 +125,7 @@ static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int 
             if ((j < n) && (c0 < c1)) SA[m++] = p;
         }
     }
-    for (i = m; i < n; ++i) SA[i] = 0;	/* init the name array buffer */
+    for (i = m; i < n; ++i) SA[i] = 0;    /* init the name array buffer */
     /* store the length of all substrings */
     for (i = n - 2, j = n, c = 0, c1 = chr(n - 1); 0 <= i; --i, c1 = c0) {
         if ((c0 = chr(i)) < (c1 + c)) c = 1;
@@ -170,7 +167,7 @@ static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int 
     } else if ((C = B = (int *) malloc(k * sizeof(int))) == NULL) return -2;
     /* put all left-most S characters into their buckets */
     getCounts(T, C, n, k, cs);
-    getBuckets(C, B, k, 1);	/* find ends of buckets */
+    getBuckets(C, B, k, 1);    /* find ends of buckets */
     for (i = m; i < n; ++i) SA[i] = 0; /* init SA[m..n-1] */
     for (i = m - 1; 0 <= i; --i) {
         j = SA[i], SA[i] = 0;
@@ -188,15 +185,14 @@ static int sais_main(const unsigned char *T, int *SA, int fs, int n, int k, int 
  * @param n The length of the given string.
  * @return 0 if no error occurred
  */
-int is_sa(const ubyte_t *T, int *SA, int n)
-{
+int is_sa(const ubyte_t *T, int *SA, int n) {
     if ((T == NULL) || (SA == NULL) || (n < 0)) return -1;
     SA[0] = n;
     if (n <= 1) {
         if (n == 1) SA[1] = 0;
         return 0;
     }
-    return sais_main(T, SA+1, 0, n, 256, 1);
+    return sais_main(T, SA + 1, 0, n, 256, 1);
 }
 
 /**
@@ -205,10 +201,9 @@ int is_sa(const ubyte_t *T, int *SA, int n)
  * @param n The length of the given string.
  * @return The primary index if no error occurred, -1 or -2 otherwise.
  */
-int is_bwt(ubyte_t *T, int n)
-{
+int is_bwt(ubyte_t *T, int n) {
     int *SA, i, primary = 0;
-    SA = (int*)calloc(n+1, sizeof(int));
+    SA = (int *) calloc(n + 1, sizeof(int));
 
     if (is_sa(T, SA, n)) return -1;
 

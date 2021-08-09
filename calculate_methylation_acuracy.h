@@ -10,7 +10,9 @@
 #define __aryana__methylation__
 
 #include <iostream>
-void calculate(char* original, char* computed);
+
+void calculate(char *original, char *computed);
+
 #endif /* defined(__aryana__methylation__) */
 
 

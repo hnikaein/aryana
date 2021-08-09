@@ -83,8 +83,7 @@
 /* This is the smallest integer. It might be CPU-dependent in very RARE cases. */
 #define MINOR_INF -1073741823
 
-typedef struct
-{
+typedef struct {
     int gap_open;
     int gap_ext;
     int gap_end;
@@ -94,14 +93,12 @@ typedef struct
     int band_width;
 } AlnParam;
 
-typedef struct
-{
+typedef struct {
     int i, j;
     unsigned char ctype;
 } path_t;
 
-typedef struct
-{
+typedef struct {
     path_t *path; /* for advanced users... :-) */
     int path_len; /* for advanced users... :-) */
     int start1, end1; /* start and end of the first sequence, coordinations are 1-based */
@@ -148,15 +145,15 @@ extern AlnParam aln_param_aa2aa; /* = { 20, 19, 19, aln_sm_read, 16, 75 }; */
 extern AlnParam aln_param_rd2rd; /* = { 12,  2,  2, aln_sm_blosum62, 22, 50 }; */
 
 /* common nucleotide score matrix for 16 bases */
-extern int           aln_sm_nt[], aln_sm_bwa[];
+extern int aln_sm_nt[], aln_sm_bwa[];
 
 /* BLOSUM62 and BLOSUM45 */
-extern int           aln_sm_blosum62[], aln_sm_blosum45[];
+extern int aln_sm_blosum62[], aln_sm_blosum45[];
 
 /* common read for 16 bases. note that read alignment is quite different from common nucleotide alignment */
-extern int           aln_sm_read[];
+extern int aln_sm_read[];
 
 /* human-mouse score matrix for 4 bases */
-extern int           aln_sm_hs[];
+extern int aln_sm_hs[];
 
 #endif

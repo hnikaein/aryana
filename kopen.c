@@ -8,10 +8,13 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+
 #ifndef _WIN32
+
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+
 #endif
 
 #ifdef USE_MALLOC_WRAPPERS
@@ -23,8 +26,8 @@
 #endif
 
 #ifndef _KO_NO_NET
-static int socket_wait(int fd, int is_read)
-{
+
+static int socket_wait(int fd, int is_read) {
     fd_set fds, *fdr = 0, *fdw = 0;
     struct timeval tv;
     int ret;
@@ -34,17 +37,16 @@ static int socket_wait(int fd, int is_read)
     FD_SET(fd, &fds);
     if (is_read) fdr = &fds;
     else fdw = &fds;
-    ret = select(fd+1, fdr, fdw, 0, &tv);
+    ret = select(fd + 1, fdr, fdw, 0, &tv);
     if (ret == -1) perror("select");
     return ret;
 }
 
-static int socket_connect(const char *host, const char *port)
-{
+static int socket_connect(const char *host, const char *port) {
 #define __err_connect(func) do { perror(func); freeaddrinfo(res); return -1; } while (0)
 
     int on = 1, fd;
-    struct linger lng = { 0, 0 };
+    struct linger lng = {0, 0};
     struct addrinfo hints, *res = 0;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC;
@@ -59,8 +61,7 @@ static int socket_connect(const char *host, const char *port)
 #undef __err_connect
 }
 
-static int write_bytes(int fd, const char *buf, size_t len)
-{
+static int write_bytes(int fd, const char *buf, size_t len) {
     ssize_t bytes;
     do {
         bytes = write(fd, buf, len);
@@ -74,8 +75,7 @@ static int write_bytes(int fd, const char *buf, size_t len)
     return 0;
 }
 
-static int http_open(const char *fn)
-{
+static int http_open(const char *fn) {
     char *p, *proxy, *q, *http_host, *host, *port, *path, *buf;
     int fd, ret, l;
     ssize_t bytes = 0, bufsz = 0x10000;
@@ -83,7 +83,7 @@ static int http_open(const char *fn)
     /* parse URL; adapted from khttp_parse_url() in knetfile.c */
     if (strstr(fn, "http://") != fn) return 0;
     // set ->http_host
-    for (p = (char*)fn + 7; *p && *p != '/'; ++p);
+    for (p = (char *) fn + 7; *p && *p != '/'; ++p);
     l = p - fn - 7;
     http_host = calloc(l + 1, 1);
     strncpy(http_host, fn + 7, l);
@@ -95,13 +95,13 @@ static int http_open(const char *fn)
     // set host, port and path
     if (proxy == 0) {
         host = strdup(http_host); // when there is no proxy, server name is identical to http_host name.
-        port = strdup(*q? q : "80");
-        path = strdup(*p? p : "/");
+        port = strdup(*q ? q : "80");
+        path = strdup(*p ? p : "/");
     } else {
-        host = (strstr(proxy, "http://") == proxy)? strdup(proxy + 7) : strdup(proxy);
+        host = (strstr(proxy, "http://") == proxy) ? strdup(proxy + 7) : strdup(proxy);
         for (q = host; *q && *q != ':'; ++q);
         if (*q == ':') *q++ = 0;
-        port = strdup(*q? q : "80");
+        port = strdup(*q ? q : "80");
         path = strdup(fn);
     }
 
@@ -117,7 +117,7 @@ static int http_open(const char *fn)
         goto out;
     }
     l = 0;
-retry:
+    retry:
     while (l < bufsz && (bytes = read(fd, buf + l, 1)) > 0) { // read HTTP header; FIXME: bad efficiency
         if (buf[l] == '\n' && l >= 3)
             if (strncmp(buf + l - 3, "\r\n\r\n", 4) == 0) break;
@@ -136,7 +136,7 @@ retry:
         close(fd);
         fd = -1;
     }
-out:
+    out:
     free(buf);
     free(http_host);
     free(host);
@@ -150,39 +150,37 @@ typedef struct {
     char *response;
 } ftpaux_t;
 
-static int kftp_get_response(ftpaux_t *aux)
-{
+static int kftp_get_response(ftpaux_t *aux) {
     unsigned char c;
     int n = 0;
     char *p;
     if (socket_wait(aux->ctrl_fd, 1) <= 0) return 0;
     while (read(aux->ctrl_fd, &c, 1)) { // FIXME: this is *VERY BAD* for unbuffered I/O
         if (n >= aux->max_response) {
-            aux->max_response = aux->max_response? aux->max_response<<1 : 256;
+            aux->max_response = aux->max_response ? aux->max_response << 1 : 256;
             aux->response = realloc(aux->response, aux->max_response);
         }
         aux->response[n++] = c;
         if (c == '\n') {
             if (n >= 4 && isdigit(aux->response[0]) && isdigit(aux->response[1]) && isdigit(aux->response[2])
-                    && aux->response[3] != '-') break;
+                && aux->response[3] != '-')
+                break;
             n = 0;
             continue;
         }
     }
     if (n < 2) return -1;
-    aux->response[n-2] = 0;
+    aux->response[n - 2] = 0;
     return strtol(aux->response, &p, 0);
 }
 
-static int kftp_send_cmd(ftpaux_t *aux, const char *cmd, int is_get)
-{
+static int kftp_send_cmd(ftpaux_t *aux, const char *cmd, int is_get) {
     if (socket_wait(aux->ctrl_fd, 0) <= 0) return -1; // socket is not ready for writing
     if (write_bytes(aux->ctrl_fd, cmd, strlen(cmd)) != 0) return -1;
-    return is_get? kftp_get_response(aux) : 0;
+    return is_get ? kftp_get_response(aux) : 0;
 }
 
-static int ftp_open(const char *fn)
-{
+static int ftp_open(const char *fn) {
     char *p, *host = 0, *port = 0, *retr = 0;
     char host2[80], port2[10];
     int v[6], l, fd = -1, ret, pasv_port, pasv_ip[4];
@@ -190,7 +188,7 @@ static int ftp_open(const char *fn)
 
     /* parse URL */
     if (strstr(fn, "ftp://") != fn) return 0;
-    for (p = (char*)fn + 6; *p && *p != '/'; ++p);
+    for (p = (char *) fn + 6; *p && *p != '/'; ++p);
     if (*p != '/') return 0;
     l = p - fn - 6;
     port = strdup("21");
@@ -215,7 +213,7 @@ static int ftp_open(const char *fn)
     ++p;
     sscanf(p, "%d,%d,%d,%d,%d,%d", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5]);
     memcpy(pasv_ip, v, 4 * sizeof(int));
-    pasv_port = (v[4]<<8&0xff00) + v[5];
+    pasv_port = (v[4] << 8 & 0xff00) + v[5];
     kftp_send_cmd(&aux, retr, 0);
     sprintf(host2, "%d.%d.%d.%d", pasv_ip[0], pasv_ip[1], pasv_ip[2], pasv_ip[3]);
     sprintf(port2, "%d", pasv_port);
@@ -228,17 +226,17 @@ static int ftp_open(const char *fn)
     }
     close(aux.ctrl_fd);
 
-ftp_open_end:
+    ftp_open_end:
     free(host);
     free(port);
     free(retr);
     free(aux.response);
     return fd;
 }
+
 #endif /* !defined(_KO_NO_NET) */
 
-static char **cmd2argv(const char *cmd)
-{
+static char **cmd2argv(const char *cmd) {
     int i, beg, end, argc;
     char **argv, *str;
     end = strlen(cmd);
@@ -249,14 +247,14 @@ static char **cmd2argv(const char *cmd)
         if (!isspace(cmd[beg])) break;
     if (beg == end) return 0;
     for (i = beg + 1, argc = 0; i < end; ++i)
-        if (isspace(cmd[i]) && !isspace(cmd[i-1]))
+        if (isspace(cmd[i]) && !isspace(cmd[i - 1]))
             ++argc;
-    argv = (char**)calloc(argc + 2, sizeof(void*));
-    argv[0] = str = (char*)calloc(end - beg + 1, 1);
+    argv = (char **) calloc(argc + 2, sizeof(void *));
+    argv[0] = str = (char *) calloc(end - beg + 1, 1);
     strncpy(argv[0], cmd + beg, end - beg);
     for (i = argc = 1; i < end - beg; ++i)
         if (isspace(str[i])) str[i] = 0;
-        else if (str[i] && str[i-1] == 0) argv[argc++] = &str[i];
+        else if (str[i] && str[i - 1] == 0) argv[argc++] = &str[i];
     return argv;
 }
 
@@ -271,8 +269,7 @@ typedef struct {
     pid_t pid;
 } koaux_t;
 
-void *kopen(const char *fn, int *_fd)
-{
+void *kopen(const char *fn, int *_fd) {
     koaux_t *aux = 0;
     *_fd = -1;
     if (strstr(fn, "http://") == fn) {
@@ -342,9 +339,8 @@ void *kopen(const char *fn, int *_fd)
     return aux;
 }
 
-int kclose(void *a)
-{
-    koaux_t *aux = (koaux_t*)a;
+int kclose(void *a) {
+    koaux_t *aux = (koaux_t *) a;
     if (aux->type == KO_PIPE) {
         int status;
         pid_t pid;

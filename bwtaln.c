@@ -5,9 +5,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "bwtaln.h"
 #include "bwtgap.h"
 #include "utils.h"
@@ -21,10 +23,9 @@
 #  include "malloc_wrap.h"
 #endif
 
-gap_opt_t *gap_init_opt()
-{
+gap_opt_t *gap_init_opt() {
     gap_opt_t *o;
-    o = (gap_opt_t*)calloc(1, sizeof(gap_opt_t));
+    o = (gap_opt_t *) calloc(1, sizeof(gap_opt_t));
     /* IMPORTANT: s_mm*10 should be about the average base error
        rate. Voilating this requirement will break pairing! */
     o->s_mm = 3;
@@ -46,8 +47,7 @@ gap_opt_t *gap_init_opt()
     return o;
 }
 
-int bwa_cal_maxdiff(int l, double err, double thres)
-{
+int bwa_cal_maxdiff(int l, double err, double thres) {
     double elambda = exp(-l * err);
     double sum, y = 1.0;
     int k, x = 1;
@@ -61,8 +61,7 @@ int bwa_cal_maxdiff(int l, double err, double thres)
 }
 
 // width must be filled as zero
-int bwt_cal_width(const bwt_t *bwt, int len, const ubyte_t *str, bwt_width_t *width)
-{
+int bwt_cal_width(const bwt_t *bwt, int len, const ubyte_t *str, bwt_width_t *width) {
     bwtint_t k, l, ok, ol;
     int i, bid;
     bid = 0;
@@ -88,8 +87,7 @@ int bwt_cal_width(const bwt_t *bwt, int len, const ubyte_t *str, bwt_width_t *wi
     return bid;
 }
 
-void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt)
-{
+void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt) {
     int i, j, max_l = 0, max_len;
     gap_stack_t *stack;
     bwt_width_t *w, *seed_w;
@@ -102,7 +100,7 @@ void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, 
     if (local_opt.max_diff < local_opt.max_gapo) local_opt.max_gapo = local_opt.max_diff;
     stack = gap_init_stack(local_opt.max_diff, local_opt.max_gapo, local_opt.max_gape, &local_opt);
 
-    seed_w = (bwt_width_t*)calloc(opt->seed_len+1, sizeof(bwt_width_t));
+    seed_w = (bwt_width_t *) calloc(opt->seed_len + 1, sizeof(bwt_width_t));
     w = 0;
     for (i = 0; i != n_seqs; ++i) {
         bwa_seq_t *p = seqs + i;
@@ -116,18 +114,19 @@ void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt, int n_seqs, bwa_seq_t *seqs, 
         p->aln = 0;
         if (max_l < p->len) {
             max_l = p->len;
-            w = (bwt_width_t*)realloc(w, (max_l + 1) * sizeof(bwt_width_t));
+            w = (bwt_width_t *) realloc(w, (max_l + 1) * sizeof(bwt_width_t));
             memset(w, 0, (max_l + 1) * sizeof(bwt_width_t));
         }
         bwt_cal_width(bwt, p->len, p->seq, w);
         if (opt->fnr > 0.0) local_opt.max_diff = bwa_cal_maxdiff(p->len, BWA_AVG_ERR, opt->fnr);
-        local_opt.seed_len = opt->seed_len < p->len? opt->seed_len : 0x7fffffff;
+        local_opt.seed_len = opt->seed_len < p->len ? opt->seed_len : 0x7fffffff;
         if (p->len > opt->seed_len)
             bwt_cal_width(bwt, opt->seed_len, p->seq + (p->len - opt->seed_len), seed_w);
         // core function
         for (j = 0; j < p->len; ++j) // we need to complement
-            p->seq[j] = p->seq[j] > 3? 4 : 3 - p->seq[j];
-        p->aln = bwt_match_gap(bwt, p->len, p->seq, w, p->len <= opt->seed_len? 0 : seed_w, &local_opt, &p->n_aln, stack);
+            p->seq[j] = p->seq[j] > 3 ? 4 : 3 - p->seq[j];
+        p->aln = bwt_match_gap(bwt, p->len, p->seq, w, p->len <= opt->seed_len ? 0 : seed_w, &local_opt, &p->n_aln,
+                               stack);
         //fprintf(stderr, "mm=%lld,ins=%lld,del=%lld,gapo=%lld\n", p->aln->n_mm, p->aln->n_ins, p->aln->n_del, p->aln->n_gapo);
         // clean up the unused data in the record
         free(p->name);
@@ -159,8 +158,7 @@ static void *worker(void *data)
 }
 #endif
 
-bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa)
-{
+bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa) {
     bwa_seqio_t *ks;
     if (mode & BWA_MODE_BAM) { // open BAM
         int which = 0;
@@ -173,8 +171,7 @@ bwa_seqio_t *bwa_open_reads(int mode, const char *fn_fa)
     return ks;
 }
 
-void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
-{
+void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt) {
     int i, n_seqs, tot_seqs = 0;
     bwa_seq_t *seqs;
     bwa_seqio_t *ks;
@@ -185,7 +182,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     ks = bwa_open_reads(opt->mode, fn_fa);
 
     {   // load BWT
-        char *str = (char*)calloc(strlen(prefix) + 10, 1);
+        char *str = (char *) calloc(strlen(prefix) + 10, 1);
         strcpy(str, prefix);
         strcat(str, ".bwt");
         bwt = bwt_restore_bwt(str);
@@ -229,7 +226,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
         bwa_cal_sa_reg_gap(0, bwt, n_seqs, seqs, opt);
 #endif
 
-        fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+        fprintf(stderr, "%.2f sec\n", (float) (clock() - t) / CLOCKS_PER_SEC);
 
         t = clock();
         fprintf(stderr, "[bwa_aln_core] write to the disk... ");
@@ -238,7 +235,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
             err_fwrite(&p->n_aln, 4, 1, stdout);
             if (p->n_aln) err_fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
         }
-        fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+        fprintf(stderr, "%.2f sec\n", (float) (clock() - t) / CLOCKS_PER_SEC);
 
         bwa_free_read_seq(n_seqs, seqs);
         fprintf(stderr, "[bwa_aln_core] %d sequences have been processed.\n", tot_seqs);
@@ -249,8 +246,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
     bwa_seq_close(ks);
 }
 
-int bwa_aln(int argc, char *argv[])
-{
+int bwa_aln(int argc, char *argv[]) {
     int c, opte = -1;
     gap_opt_t *opt;
     char *prefix;
@@ -258,82 +254,82 @@ int bwa_aln(int argc, char *argv[])
     opt = gap_init_opt();
     while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:LR:m:t:NM:O:E:q:f:b012IYB:")) >= 0) {
         switch (c) {
-        case 'n':
-            if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
-            else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
-            break;
-        case 'o':
-            opt->max_gapo = atoi(optarg);
-            break;
-        case 'e':
-            opte = atoi(optarg);
-            break;
-        case 'M':
-            opt->s_mm = atoi(optarg);
-            break;
-        case 'O':
-            opt->s_gapo = atoi(optarg);
-            break;
-        case 'E':
-            opt->s_gape = atoi(optarg);
-            break;
-        case 'd':
-            opt->max_del_occ = atoi(optarg);
-            break;
-        case 'i':
-            opt->indel_end_skip = atoi(optarg);
-            break;
-        case 'l':
-            opt->seed_len = atoi(optarg);
-            break;
-        case 'k':
-            opt->max_seed_diff = atoi(optarg);
-            break;
-        case 'm':
-            opt->max_entries = atoi(optarg);
-            break;
-        case 't':
-            opt->n_threads = atoi(optarg);
-            break;
-        case 'L':
-            opt->mode |= BWA_MODE_LOGGAP;
-            break;
-        case 'R':
-            opt->max_top2 = atoi(optarg);
-            break;
-        case 'q':
-            opt->trim_qual = atoi(optarg);
-            break;
-        case 'N':
-            opt->mode |= BWA_MODE_NONSTOP;
-            opt->max_top2 = 0x7fffffff;
-            break;
-        case 'f':
-            xreopen(optarg, "wb", stdout);
-            break;
-        case 'b':
-            opt->mode |= BWA_MODE_BAM;
-            break;
-        case '0':
-            opt->mode |= BWA_MODE_BAM_SE;
-            break;
-        case '1':
-            opt->mode |= BWA_MODE_BAM_READ1;
-            break;
-        case '2':
-            opt->mode |= BWA_MODE_BAM_READ2;
-            break;
-        case 'I':
-            opt->mode |= BWA_MODE_IL13;
-            break;
-        case 'Y':
-            opt->mode |= BWA_MODE_CFY;
-            break;
-        case 'B':
-            opt->mode |= atoi(optarg) << 24;
-            break;
-        default:
-            return 1;
+            case 'n':
+                if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
+                else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
+                break;
+            case 'o':
+                opt->max_gapo = atoi(optarg);
+                break;
+            case 'e':
+                opte = atoi(optarg);
+                break;
+            case 'M':
+                opt->s_mm = atoi(optarg);
+                break;
+            case 'O':
+                opt->s_gapo = atoi(optarg);
+                break;
+            case 'E':
+                opt->s_gape = atoi(optarg);
+                break;
+            case 'd':
+                opt->max_del_occ = atoi(optarg);
+                break;
+            case 'i':
+                opt->indel_end_skip = atoi(optarg);
+                break;
+            case 'l':
+                opt->seed_len = atoi(optarg);
+                break;
+            case 'k':
+                opt->max_seed_diff = atoi(optarg);
+                break;
+            case 'm':
+                opt->max_entries = atoi(optarg);
+                break;
+            case 't':
+                opt->n_threads = atoi(optarg);
+                break;
+            case 'L':
+                opt->mode |= BWA_MODE_LOGGAP;
+                break;
+            case 'R':
+                opt->max_top2 = atoi(optarg);
+                break;
+            case 'q':
+                opt->trim_qual = atoi(optarg);
+                break;
+            case 'N':
+                opt->mode |= BWA_MODE_NONSTOP;
+                opt->max_top2 = 0x7fffffff;
+                break;
+            case 'f':
+                xreopen(optarg, "wb", stdout);
+                break;
+            case 'b':
+                opt->mode |= BWA_MODE_BAM;
+                break;
+            case '0':
+                opt->mode |= BWA_MODE_BAM_SE;
+                break;
+            case '1':
+                opt->mode |= BWA_MODE_BAM_READ1;
+                break;
+            case '2':
+                opt->mode |= BWA_MODE_BAM_READ2;
+                break;
+            case 'I':
+                opt->mode |= BWA_MODE_IL13;
+                break;
+            case 'Y':
+                opt->mode |= BWA_MODE_CFY;
+                break;
+            case 'B':
+                opt->mode |= atoi(optarg) << 24;
+                break;
+            default:
+                return 1;
         }
     }
     if (opte > 0) {
@@ -348,8 +344,10 @@ int bwa_aln(int argc, char *argv[])
                 BWA_AVG_ERR, opt->fnr);
         fprintf(stderr, "         -o INT    maximum number or fraction of gap opens [%d]\n", opt->max_gapo);
         fprintf(stderr, "         -e INT    maximum number of gap extensions, -1 for disabling long gaps [-1]\n");
-        fprintf(stderr, "         -i INT    do not put an indel within INT bp towards the ends [%d]\n", opt->indel_end_skip);
-        fprintf(stderr, "         -d INT    maximum occurrences for extending a long deletion [%d]\n", opt->max_del_occ);
+        fprintf(stderr, "         -i INT    do not put an indel within INT bp towards the ends [%d]\n",
+                opt->indel_end_skip);
+        fprintf(stderr, "         -d INT    maximum occurrences for extending a long deletion [%d]\n",
+                opt->max_del_occ);
         fprintf(stderr, "         -l INT    seed length [%d]\n", opt->seed_len);
         fprintf(stderr, "         -k INT    maximum differences in the seed [%d]\n", opt->max_seed_diff);
         fprintf(stderr, "         -m INT    maximum entries in the queue [%d]\n", opt->max_entries);
@@ -357,8 +355,10 @@ int bwa_aln(int argc, char *argv[])
         fprintf(stderr, "         -M INT    mismatch penalty [%d]\n", opt->s_mm);
         fprintf(stderr, "         -O INT    gap open penalty [%d]\n", opt->s_gapo);
         fprintf(stderr, "         -E INT    gap extension penalty [%d]\n", opt->s_gape);
-        fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n", opt->max_top2);
-        fprintf(stderr, "         -q INT    quality threshold for read trimming down to %dbp [%d]\n", BWA_MIN_RDLEN, opt->trim_qual);
+        fprintf(stderr, "         -R INT    stop searching when there are >INT equally best hits [%d]\n",
+                opt->max_top2);
+        fprintf(stderr, "         -q INT    quality threshold for read trimming down to %dbp [%d]\n", BWA_MIN_RDLEN,
+                opt->trim_qual);
         fprintf(stderr, "         -f FILE   file to write output to instead of stdout\n");
         fprintf(stderr, "         -B INT    length of barcode\n");
         fprintf(stderr, "         -L        log-scaled gap penalty for long deletions\n");
@@ -385,7 +385,7 @@ int bwa_aln(int argc, char *argv[])
         free(opt);
         return 1;
     }
-    bwa_aln_core(prefix, argv[optind+1], opt);
+    bwa_aln_core(prefix, argv[optind + 1], opt);
     free(opt);
     free(prefix);
     return 0;

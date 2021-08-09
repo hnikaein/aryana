@@ -53,8 +53,9 @@ extern "C" {
 #endif
 
 bsw2opt_t *bsw2_init_opt();
-bwtsw2_t **bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *target, const bwt_t *query, bsw2global_t *pool);
-void bsw2_aln(const bsw2opt_t *opt, const bntseq_t *bns, bwt_t * const target, const char *fn, const char *fn2);
+bwtsw2_t **
+bsw2_core(const bntseq_t *bns, const bsw2opt_t *opt, const bwtl_t *target, const bwt_t *query, bsw2global_t *pool);
+void bsw2_aln(const bsw2opt_t *opt, const bntseq_t *bns, bwt_t *const target, const char *fn, const char *fn2);
 void bsw2_destroy(bwtsw2_t *b);
 
 bsw2global_t *bsw2_global_init();
