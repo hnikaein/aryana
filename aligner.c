@@ -28,7 +28,7 @@ extern void PrintRefSeq(uint64_t *reference, unsigned long long, unsigned long l
 extern long long total_candidates, best_factor_candidates;
 
 void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual,
-                  uint64_t seq_len, int **d, char **arr, char *tmp_cigar, penalty_t *penalty, uint64_t *reference,
+                  uint64_t seq_len, int **d, unsigned char **arr, char *tmp_cigar, penalty_t *penalty, uint64_t *reference,
                   ignore_mismatch_t ignore) {
 
     penalty->mismatch_num = 0;
@@ -103,7 +103,8 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
          best_parts_lis_maxi[max_lis_first] != -1; max_lis_first = best_parts_lis_maxi[max_lis_first])
         best_parts_lis_rev[best_parts_lis_maxi[max_lis_first]] = max_lis_first;
 
-    best->index = best->match_index[max_lis_first] - best->match_start[max_lis_first];
+    best->index = best->match_index[max_lis_first] > best->match_start[max_lis_first] ?
+                  best->match_index[max_lis_first] - best->match_start[max_lis_first] : 0;
 
     int slack = 10;
     bwtint_t head_match = 0, head_index = best->index >= slack ? best->index - slack : 0;
