@@ -31,7 +31,7 @@ void ReadChromSizes(string chromSizesFile) {
     long long len;
     while (! feof(f)) {
         len = 0;
-        fscanf(f, "%s %lld", name, &len);
+        if (!fscanf(f, "%s %lld", name, &len)) break;
         if (! len) break;
         chromIndex[name] = chromNum;
         chromName[chromNum] = name;

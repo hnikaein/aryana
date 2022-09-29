@@ -1,0 +1,10 @@
+*.o
+SamAnalyzer
+SamToNormWig
+align_bs
+aryana
+bwtcheck
+convert_genomes
+fastaseq
+methyl_extract
+read_simul

@@ -8,9 +8,8 @@
 #include <time.h>
 #include <stdint.h>
 #include <pthread.h>
-
+#include "const.h"
 #include "sam.h"
-const int sam_line=5000;
 char int_to_bp[4]= {'A','C','G','T'};
 static char star[2] = "*";
 static char equal[2] = "=";
@@ -89,7 +88,7 @@ int get_chr(bwtint_t index,  bwtint_t seq_len, bwtint_t * offset, bwtint_t offIn
 }
 
 void get_genomic_position(int * flag, bwtint_t index, genomic_location * loc, char * cigar,  uint32_t * mapq, bwtint_t seq_len, int unmapped, int reverse, bwtint_t * offset, bwtint_t offInd) {
-    if (index <= 0 || index >= seq_len)
+    if (index < 0 || index >= seq_len)
         *flag |= unmapped;
     if (((*flag) & unmapped) == 0) {
         if (index >= seq_len / 2) {
@@ -179,7 +178,7 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
         }
     }
     if (flag & sf_unmapped) cigar = star;
-    return snprintf(buffer,sam_line,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%"PRIu64"\t%lld\t%s\t%s\n",qname,flag,first.rname, first.pos, mapq, cigar,next.rname,next.pos,tlen,seq_string,quality_string);
+    return snprintf(buffer,MAX_SAM_LINE,"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%"PRIu64"\t%lld\t%s\t%s\n",qname,flag,first.rname, first.pos, mapq, cigar,next.rname,next.pos,tlen,seq_string,quality_string);
 }
 
 int sam_headers(char * buffer, bwtint_t *  offset, int size, int buf_size) {

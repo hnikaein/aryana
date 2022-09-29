@@ -10,6 +10,8 @@
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
+#include "const.h"
+#define llu unsigned long long
 //#include "bwtgap.h"
 //#include "bwtaln.h"
 #include "aligner.h"
@@ -19,6 +21,7 @@
 #define true 1
 #define bool int
 #include "bwt2.h"
+#define MAX(a, b) (a > b) ? a : b
 extern int debug;
 extern void PrintSeq(const unsigned char *, int, int);
 extern void PrintRefSeq(uint64_t * reference, unsigned long long, unsigned long long, unsigned long long, int);
@@ -28,21 +31,27 @@ extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
 extern long long total_candidates, best_factor_candidates;
 
-void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
+void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
+	
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
     int *valid=(int *)malloc(best->parts*(sizeof (int)));
     bwtint_t lastvalid=best->parts-1;
     long long i=0,j=0;
+	// This part estimated alignment position by checking all seeds, finding  a valid chain of them. TODO: Dynamic Programming rather than greedy validation and estimation of alignment pos.
     for (i=best->parts-1; i>=0; i--)
     {
+		if (args->debug > 2) fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i], (llu) best->match_start[i], (llu) best->matched[i]);
         valid[i]=1;
-        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20)
+        if (args->platform == illumina && llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20) {
+			if (args->debug > 2) fprintf(stderr, "out of chain by rule 1\n");
             valid[i]=0;
+		}
         if (valid[i]==1 && i<best->parts-1 && (best->match_start[lastvalid]+best->matched[lastvalid]>best->match_start[i]))
         {
+			if (args->debug > 2) fprintf(stderr, "out of chain by rule 2\n");
             valid[i]=0;
             if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) < llabs((signed)(best->match_index[lastvalid]-best->match_start[lastvalid])-(signed)best->index))
             {
@@ -50,12 +59,13 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
                 valid[i]=1;
             }
         }
-        if (valid[i]==1)
+        if (valid[i]==1) {
             lastvalid=i;
+			if (args->debug > 2) fprintf(stderr, "valid\n");
+		}
         if (i==0)
             break;
     }
-
     //for (i=0; i<best->parts; i++)
     //	fprintf(stderr, "part %lld: %lld %lld %d %d\n",i,best->match_start[i],best->match_index[i],best->matched[i],valid[i]);
 
@@ -63,7 +73,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     bwtint_t head_match=0,head_index=best->index >= slack ? best->index-slack : 0;
     bwtint_t slack_index=head_index;
     int print_head=0;
-    if (best->parts<=0 || best->parts > 50)
+    if (best->parts<=0 || best->parts > SEED_NUMS_PER_READ)
         fprintf(stderr , "too much parts!\n");
     if (args->debug > 0) {
 
@@ -75,7 +85,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     {
         if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
         {
-            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq ,  len, &penalty->mismatch_num ,  seq_len, d, arr, tmp_cigar, reference, ignore);
             if (args->debug > 1) {
                 fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
                 PrintSeq(seq+head_match,  best->match_start[i] - head_match, 1);
@@ -92,7 +102,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
                 print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'I');
             else {
-                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
+                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq ,  len , &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
                 //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
                 if (args->debug > 1) {
                     fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);
@@ -155,6 +165,8 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
             penalty->gap_ext_num += last_size - 1;
         }
     }
+
+    
     if (args->debug > 0)
         fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
     best->index=slack_index;
@@ -184,7 +196,7 @@ void floyd(long long down, long long up , int exactmatch_num,long long *selected
     in = N - exactmatch_num;
 
     for (; in < N && im < exactmatch_num; ++in) {
-        srand (time(NULL));
+        srand (RAND_SEED);
         long long r = rand() % (in + 1); /* generate a random number 'r' */
         if(BITTEST(is_used, r))
             /* we already have 'r' */
@@ -208,7 +220,7 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
     for (in = 0; in < N && im < exactmatch_num; ++in) {
         rn = N - in;
         rm = exactmatch_num - im;
-        srand (time(NULL));
+        srand (RAND_SEED);
         if (rand() % rn < rm)
             selected[im++] = down + in;
     }
@@ -269,7 +281,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         }
         bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
         if (args->debug > 2) {
-            fprintf(stderr, "aligner(), %llu regions have exact match with %llu score, seq: ", (unsigned long long) (up - down + 1), (unsigned long long) limit);
+            fprintf(stderr, "aligner, read position=%llu, num of exact matches of the seed in ref=%llu, score=%llu, seq: ", i, (unsigned long long) (up - down + 1), (unsigned long long) limit);
             PrintSeq(seq + i + 1 - limit, limit, 1);
         }
 
@@ -298,28 +310,37 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
                 }
             }
             bwtint_t score=limit;
-            if (index < (i-limit+1)) continue;
-            bwtint_t rindex=index- (i - limit+1);
+            bwtint_t rindex = index - (i-limit+1);
+            if (index < (i-limit+1)) rindex = 0;
             assert(rindex < bwt->seq_len);
-            add(bwt, rindex/len, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
+			int tag_size = 2 * len; // TAG SIZE IS DEFINED HERE. TODO: OVERLAPPED TAGS?
+            add(bwt, rindex/tag_size, score, level, rindex, best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
+			if (args->debug > 2) fprintf(stderr, "Scoring match, tag index: %llu, score: %llu, estimated starting pos in ref: %llu, seed ref pos: %llu, seed read pos: %llu\n", (llu) rindex/tag_size, (llu) score, (llu) index - (i - limit+1), (llu) index, (llu) i);
         }
         groupid_last++;
         if(i > k) {
             if((limit - k + 1) > 0)
                 i = i - limit + (k - 1);
             else
-                fprintf(stderr, "manfi\n");
+                fprintf(stderr, "Negative value for (limit-k+1)\n");
             if (i < k) break;
         }
     }
 	total_candidates += best_size - *best_found;
+	int bestCandidate = best[best_size-1];
+	if (args->debug > 1 && (*best_found) < best_size) {
+		fprintf(stderr, "Printing seeds of the best candidate:\n");
+		for (int i = 0; i < table[bestCandidate].parts; i++)
+			fprintf(stderr, "Length: %llu, Read: %llu\t Ref: %llu\n", (unsigned long long) table[bestCandidate].matched[i], (unsigned long long) table[bestCandidate].match_start[i], (unsigned long long) table[bestCandidate].match_index[i]);
+		for (int i = best_size - 1; i >= (*best_found); i--) if (best[i] != -1) fprintf(stderr, "Candidate %d, seeds num: %d, total score: %d\n", i, table[best[i]].parts, table[best[i]].value);
+	}
     if (args->best_factor > 0)
     {
         for (i=best_size-2; i>=(*best_found); i--)
         {
             if (best[i] == -1)
                 break;
-            if (best[i]<best[best_size-1]*args->best_factor)
+            if (table[best[i]].value<table[bestCandidate].value*args->best_factor)
             {
 				best_factor_candidates += i + 1 - *best_found;
                 (*best_found)=i+1;

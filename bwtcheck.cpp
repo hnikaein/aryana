@@ -119,7 +119,7 @@ int main(int argc, char * argv[]) {
     bool listall = (argc == 5) && (strcmp(argv[4], "-a") == 0);
     for (i = 0; i < 2 * gs; i++)
     {
-        fscanf(f, "%lld", &p);
+        if(! fscanf(f, "%lld", &p)) break;
         pos[i&1] = p;
         if (p < gs && p + l - 1 >= gs) {
             GetSequence(p, gs - 1, seq[i&1]);

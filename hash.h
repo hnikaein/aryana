@@ -1,10 +1,7 @@
 #include <stdint.h>
 #include "bwt.h"
+#include "const.h"
 
-//#define TABLESIZE 4087//4087
-#define TABLESIZE 8193//4087
-#define MAX_READ_SIZE 6020
-//extern const int TABLESIZE;
 #ifndef hash_header
 #define hash_header
 typedef struct {
@@ -18,10 +15,10 @@ typedef struct {
     //uint64_t old_left;
     uint64_t last; //last seed that updtates left
     uint64_t groupid;
-    uint64_t match_start[55];//start position in read
-    uint64_t match_index[55];//start position in reference
-    uint64_t matched[55];
-    int parts;
+    uint64_t match_start[SEED_NUMS_PER_READ];// start positions of the seeds in read
+    uint64_t match_index[SEED_NUMS_PER_READ];// start positions of the seeds in reference
+    uint64_t matched[SEED_NUMS_PER_READ]; // lengths of the seeds
+    int parts; // Number of seeds matched to a tag
     int mate;
 } hash_element;
 

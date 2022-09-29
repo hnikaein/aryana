@@ -50,11 +50,13 @@ void Usage() {
     fprintf(stderr, "    -e/--exact-match              number of exact matches of each seed to check, increasing it might increase accuracy, default=50\n");
     fprintf(stderr, "    -c/--candidates <int>         number of alignment position candidates to check, increasing it might increase accuracy, default=10\n");
     fprintf(stderr, "    -D/--debug <int>              the level of printing debug info, default=0 (no debug info)\n\n");
-    fprintf(stderr, "    -f/--factor <double>          only check the candidate positions with total seed length at least <double> times the best hit, or 0 to check all. default=0.8\n");
+    fprintf(stderr, "    -f/--factor <double>          only check the candidate positions with total seed length at least <double> times the best hit, or 0 to check all. default=0.6\n");
+	fprintf(stderr, "    -R/--read_type <int>          type of the read, 0=Illumina, 1=PacBio, 2=Oxford Nanopore. default=0 (Illumina)\n");
     fprintf(stderr, "Optional arguments for paired-end alignment:\n");
     fprintf(stderr, "     --fr/--ff/--rf               relative orientation of paired ends, default: no restriction on orientation. f=forward, r=reverse.\n");
     fprintf(stderr, "                                  only one of orientation arguments might be used.\n");
     fprintf(stderr, "     -m/--min <int>               minimum distance between paired ends, default=0\n");
+    fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
     fprintf(stderr, "     -M/--max <int>               maximum distance between paired ends, default=10000\n");
     fprintf(stderr, "     -d/--no-discordant           do not print discordants reads, default=if a paired alignment is not found, the best hit for each read is reported.\n\n");
     fprintf(stderr, "Alignment of bisulfite-sequencing (DNA Methylation assays) reads:\n");
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
     args.potents=10;
     args.debug = 0;
     args.seed_length = -1;
-    args.best_factor = 0.8;
+    args.best_factor = 0.6;
     args.bisulfite = 0;
     args.order = 0;
     args.exactmatch_num = 50;
@@ -90,7 +92,8 @@ int main(int argc, char *argv[])
     args.ignore = ignore_none;
     args.orientation = orien_all;
     args.min_dis = 0;
-    args.max_dis = 10000;
+    args.platform = 0;
+	args.max_dis = 10000;
     char *refNames[5];	// Number of bisulfite-seq reference genomes
     bzero(refNames, sizeof(refNames));
     ignore_mismatch_t ignore[5]; // We should define for each bis-Seq reference genome which type of mismatch is ignored
@@ -125,12 +128,13 @@ int main(int argc, char *argv[])
         {"mp", required_argument, 0, 6},
         {"go", required_argument, 0, 7},
         {"ge", required_argument, 0, 8},
+		{"platform", required_argument, 0, 'p'}
     };
     char* output = NULL;
     char* inputFolder;
     int option_index = 0;
     int c;
-    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:", long_options, &option_index)) >= 0) {
+    while((c = getopt_long(argc, argv, "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:p:", long_options, &option_index)) >= 0) {
         switch(c) {
         case 'o':
             output = strdup(optarg);
@@ -238,16 +242,16 @@ int main(int argc, char *argv[])
         case 5:
             args.ignore = ignore_GA;
             break;
-        case 6:
-            args.mismatch_penalty = atoi(optarg);
-            break;
         case 7:
             args.gap_open_penalty = atoi(optarg);
             break;
         case 8:
             args.gap_ext_penalty = atoi(optarg);
             break;
-        default:
+		case 'p':
+			args.platform = atoi(optarg);
+			break;
+		default:
             fprintf(stderr, "Invalid argument: %c\n", c);
             exit(1);
         }

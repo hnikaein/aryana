@@ -2,9 +2,10 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "const.h"
 #include "hash.h"
 
-//const int TABLESIZE=4087;
+//const int HASH_TABLE_SIZE=4087;
 
 uint64_t uminus(uint64_t x, uint64_t y) {
     if(x > y)
@@ -14,21 +15,21 @@ uint64_t uminus(uint64_t x, uint64_t y) {
 
 uint64_t hash_f1(uint64_t t)
 {
-    return  t%TABLESIZE;
+    return  t%HASH_TABLE_SIZE;
     //return t;
 }
 
 uint64_t hash_f2(uint64_t t)
 {
-    return 1 + (t % (TABLESIZE - 1));
+    return 1 + (t % (HASH_TABLE_SIZE - 1));
     //return 1;
 }
 
 uint64_t hash(uint64_t t,uint64_t attempt)
 {
-    //return (hash_f1(t)+attempt*hash_f2(t))%TABLESIZE;
-    //return (t + attempt) & (TABLESIZE - 1);
-    return (t + attempt) % (TABLESIZE);
+    //return (hash_f1(t)+attempt*hash_f2(t))%HASH_TABLE_SIZE;
+    //return (t + attempt) & (HASH_TABLE_SIZE - 1);
+    return (t + attempt) % (HASH_TABLE_SIZE);
 }
 
 
@@ -43,8 +44,8 @@ void update_value(bwt_t *const bwt, uint64_t h_index,uint64_t value,uint64_t lev
     //	return;
     table[h_index].groupid=groupid;
     //if(index < table[h_index].index)
-    if(uminus(table[h_index].index, index) > 10 && table[h_index].value > 3 * value)
-        return;
+    // if(uminus(table[h_index].index, index) > 10 && table[h_index].value > 3 * value)
+    //    return;
     table[h_index].index = index;
 //	fprintf(stderr,"index :: %llu\n",index);
     table[h_index].value += value;
@@ -154,7 +155,7 @@ void add(bwt_t *const bwt, uint64_t place,uint64_t value,uint64_t level, uint64_
 {
 //	fprintf(stderr,"index :: %llu\n",index);
     uint64_t i=0;
-    for (; i<TABLESIZE; i++)
+    for (; i<HASH_TABLE_SIZE; i++)
     {
         uint64_t h_index=hash(place,i);
 //		fprintf(stderr,"%d :: \n",h_index);
@@ -185,17 +186,17 @@ void add(bwt_t *const bwt, uint64_t place,uint64_t value,uint64_t level, uint64_
             break;
         }
     }
-    if (i==TABLESIZE)
+    if (i==HASH_TABLE_SIZE)
         error(level);
 }
 
 
 
 void reset_hash(hash_element  table[]) {
-    memset(table,-1,(sizeof (hash_element)) * (TABLESIZE));
+    memset(table,-1,(sizeof (hash_element)) * (HASH_TABLE_SIZE));
     int i = 0;
 
-    for (i=0; i<TABLESIZE; i++) {
+    for (i=0; i<HASH_TABLE_SIZE; i++) {
         table[i].place = table[i].value = table[i].level = table[i].index = 0;
         table[i].parts = 0;
         table[i].level=0;
@@ -211,7 +212,7 @@ void reset_hash(hash_element  table[]) {
 void print(hash_element * table)
 {
     uint64_t i=0;
-    for (i=0; i<TABLESIZE; i++) {
+    for (i=0; i<HASH_TABLE_SIZE; i++) {
         printf("%"PRIu64" , %d , %"PRIu64" \n",table[i].place,table[i].value,table[i].level);
         /*	if(table[i].value > maxvalue){
         	maxvalue = table[i].value;

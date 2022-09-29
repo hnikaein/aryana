@@ -161,7 +161,7 @@ void AssignMethylationRatio(string cpgIslandFile) {
         }
         while (! feof(f)) {
             position=0;
-            fscanf(f, "%s\t%lld\t%lf\n", chr, &position, &m);
+            if (! fscanf(f, "%s\t%lld\t%lf\n", chr, &position, &m)) break;
             if (position <= 0) continue;
             position += chromPos[chromIndex[chr]] - 1;
             meth[position] = (unsigned short) (m * 100);
@@ -250,7 +250,7 @@ void FixedLengthPrint(FILE *f, char * s, long long slen, int fixedlen) {
 /*    while (slen > fixedlen) {
 	char c = s[fixedlen];
 	s[fixedlen] = 0;
-	fprintf(f, "%s\n", s);
+	fprintf(f, "%s", s);
 	s[fixedlen] = c;
 	s += fixedlen;
 	slen -= fixedlen;

@@ -2,8 +2,6 @@
 #include "bwt.h"
 
 #define max_refs 10000
-//typedef int bwtint_t;
-//const int sam_line=1000;
 
 typedef enum {
     sf_paired	 		= 0x1,
