@@ -295,16 +295,16 @@ void PrintSingleRead(FILE *f, long long p, char *quals, char strand, char origin
         double e = (double) rand() / RAND_MAX;
         if (e < mismatchRate) {
             R[RLen++] = Mutate(r[i]); // Mutation
-            AddCigar(cigar, num, last, 'm');
+            AddCigar(cigar, num, last, 'M');
         } else if (e < insRate + mismatchRate) { // Insertion
             R[RLen++] = RandBase();
             i--;
-            AddCigar(cigar, num, last, 'i');
+            AddCigar(cigar, num, last, 'I');
         } else if (e < delRate + insRate + mismatchRate) { // Deletion
-            AddCigar(cigar, num, last, 'd');
+            AddCigar(cigar, num, last, 'D');
         } else { // Match
             R[RLen++] = r[i];
-            AddCigar(cigar, num, last, 'm');
+            AddCigar(cigar, num, last, 'M');
         }
     }
     AddCigar(cigar, num, last, 0);
@@ -335,14 +335,10 @@ void PrintRead(int readNumber, int chr, long long p, char *quals, long long pair
     if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
 
     long long off = p - chromPos[chr];
-    if (!paired)
-        fprintf(of, "@%d|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
-                original);
+    if (! paired) fprintf(of, "@%d %s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
     else {
-        fprintf(of, "@%d_1|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl, strand,
-                original);
-        fprintf(of2, "@%d_2|%s:%llu-%llu|%c%c|", readNumber + 1, chromName[chr].c_str(), off + readl + pairDis + 1,
-                off + 2 * readl + pairDis, strand2, original);
+        fprintf(of, "@%d %s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
+        fprintf(of2, "@%d %s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+readl+pairDis+1, off + 2 * readl + pairDis, strand2, original);
     }
     PrintSingleRead(of, p, quals, strand, original);
     if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original);

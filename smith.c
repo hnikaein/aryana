@@ -102,9 +102,11 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
                 arr[i][j] = insC;
             } else {
                 char gc = getNuc(index_start + ref_i - 1, reference, seq_len), rc = read[match_start + i - 1];
+//				if (j==off/2) fprintf(stderr, "Loc %lld gc %d rc %d\n", i, gc, rc);
                 if (gc != rc) {
-                    if (ignore == ignore_none || (ignore == ignore_CT && (gc != 1 || rc != 3)) ||
-                        (ignore == ignore_GA && (gc != 2 || rc != 0))) {
+					if (!((ignore == ignore_CT && gc == 1 && rc == 3) || (ignore == ignore_GA && gc==2 && rc==0)))
+//						fprintf(stderr, "Ignored, %d %d\n", gc, rc); else 
+					{
                         d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch
                     }
