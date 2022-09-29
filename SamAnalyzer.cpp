@@ -9,8 +9,6 @@
 #include <sstream>
 using namespace std;
 
-const int maxReadLen = 10000;
-const int maxSamLineLength = 3 * maxReadLen;
 vector <long long> chromPos, chromLen;
 long long gs;
 map <string, int> chromIndex;
@@ -76,10 +74,9 @@ void ReadGenome(string genomeFile) {
     fclose(f);
 }
 
-void revcomp(char * a, long long l = 0) {
-    if (! l) l = strlen(a);
-    char * b = new char[l];
-    memcpy(b, a, l);
+void revcomp(string & a, long long l = 0) {
+    if (! l) l = a.size();
+    string b = a;
     for (long long i = 0; i < l; i++)
         switch (b[i]) {
         case 'a':
@@ -101,15 +98,13 @@ void revcomp(char * a, long long l = 0) {
         default:
             a[l-i-1] = 'N';
         };
-    delete [] b;
 }
 
 // Start is 1-based.
-bool GetSequence(string chr, long long start, long long length, char *seq) {
+bool GetSequence(string chr, long long start, long long length, string & seq) {
     start--;
     if (chromIndex.find(chr) == chromIndex.end() || chromLen[chromIndex[chr]] < start + length) return false;
-    memcpy(seq, genome + chromPos[chromIndex[chr]] + start, length);
-    seq[length] = 0;
+    seq = string(genome + chromPos[chromIndex[chr]] + start, genome + chromPos[chromIndex[chr]] + start + length);
     return true;
 }
 
@@ -222,65 +217,75 @@ int EditDistance(string a, string b, string cigar, char orig_base = '\0', char c
     return penalty;
 }
 
-void PrintOutput(FILE * f, string name = "NA", bool aligned = false, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, char * samSeq = NULL, char * cigar = NULL, char * seq1 = NULL, char * cigar2 = NULL, char* seq2 = NULL) {
+string upper(string s) {
+	for (unsigned int i = 0; i < s.size(); i++) s[i] = toupper(s[i]);
+	return s;
+}
+
+void PrintOutput(FILE * f, string name = "NA", bool aligned = false, int refLength = 0, string chr1 = "NA", long long pos1 = 0, int mismatch1 = 0, int gapOpen1 = 0, int gapExt1 = 0, string chr2 = "NA", long long pos2 = 0, int mismatch2 = 0, int gapOpen2 = 0, int gapExt2 = 0, string samSeq = NULL, string cigar = NULL, string seq1 = NULL, string cigar2 = NULL, string seq2 = NULL) {
     bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
-        fprintf(f, "%d\t%d\t%d\t%d", aligned, mismatch1, gapOpen1, gapExt1);
+        fprintf(f, "%d\t%d\t%d\t%d\t%d", aligned, refLength, mismatch1, gapOpen1, gapExt1);
         if (realPos) fprintf(f, "\t%d\t%d\t%d\t%d", matchTogether, mismatch2, gapOpen2, gapExt2);
     } else {
-        fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, mismatch1, gapOpen1, gapExt1);
+        fprintf(f, "%s\t%d\t%s\t%lld\t%d\t%d\t%d\t%d", name.c_str(), aligned, chr1.c_str(), pos1, refLength, mismatch1, gapOpen1, gapExt1);
         if (realPos) fprintf(f, "\t%s\t%lld\t%d\t%d\t%d\t%d", chr2.c_str(), pos2, matchTogether, mismatch2, gapOpen2, gapExt2);
         if (seqOutput) {
-            fprintf(f, "\t%s\t%s\t%s", samSeq, cigar, seq1);
-            if (realPos) fprintf(f, "\t%s\t%s", cigar2, seq2);
+            fprintf(f, "\t%s\t%s\t%s", upper(samSeq).c_str(), cigar.c_str(), upper(seq1).c_str());
+            if (realPos) fprintf(f, "\t%s\t%s", cigar2.c_str(), upper(seq2).c_str());
         }
     }
     fprintf(f, "\n");
 }
 
+
 void ProcessSamFile(string samFileName) {
     long long int tlen, pos;
     int flag, mapq, mismatch, mismatch2, gapOpen, gapOpen2, gapExt, gapExt2, startPos;
-    char qname[1000], rname[1000], rnext[1000], pnext[1000], seq[maxReadLen], quality_string[maxReadLen], cigar[2*maxReadLen], refSeq[2*maxReadLen], refSeq2[2*maxReadLen];
-    FILE * f = stdin, * of = stdout;
-    if (samFileName != "") f = fopen(samFileName.c_str(), "r");
-    if (outputFileName != "") of = fopen(outputFileName.c_str(), "w");
-    if (! f) {
+    string qname, rname, rnext, pnext, seq, quality_string, cigar, refSeq, refSeq2, buf;
+    if (samFileName != "") 
+	if (! freopen(samFileName.c_str(), "r", stdin)) {
         cerr << "Error opening SAM file" << endl;
         exit(-1);
     }
-    char buf[maxSamLineLength];
+    if (outputFileName != "") 
+	if (! freopen(outputFileName.c_str(), "w", stdout)) {
+        cerr << "Error opening output file" << endl;
+        exit(-1);
+    }
     if (onlyPenalties) {
-        fprintf(of, "Aligned\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
-        if (realPos) fprintf(of, "\tCorrectPos\tRealMismatch\tRealGapOpen\tRealGapExt");
+        cout << "Aligned\tRefLength\tAlnMismatch\tAlnGapOpen\tAlnGapExt";
+        if (realPos) cout << "\tCorrectPos\tRealMismatch\tRealGapOpen\tRealGapExt";
     } else {
-        fprintf(of, "ReadName\tAligned\tAlnChr\tAlnPos\tAlnMismatch\tAlnGapOpen\tAlnGapExt");
-        if (realPos) fprintf(of, "\tRealChr\tRealPos\tCorrectPos\tRealMismatch\tRealGapOpen\tRealGapExt");
+        cout << "ReadName\tAligned\tAlnChr\tAlnPos\tRefLength\tAlnMismatch\tAlnGapOpen\tAlnGapExt";
+        if (realPos) cout << "\tRealChr\tRealPos\tCorrectPos\tRealMismatch\tRealGapOpen\tRealGapExt";
         if (seqOutput) {
-            fprintf(of, "\tSamSeq\tAlnCIGAR\tAlnSeq");
-            if (realPos) fprintf(of, "\tRealCIGAR\tRealSeq");
+            cout << "\tSamSeq\tAlnCIGAR\tAlnSeq";
+            if (realPos) cout << "\tRealCIGAR\tRealSeq";
         }
     }
-    fprintf(of, "\n");
-    while (! feof(f)) {
-        buf[0] = 0;
+    cout << "\n";
+    while (true) {
+	int cigLen = 0;
         bool aligned = true;
         mismatch = mismatch2 = gapOpen = gapOpen2 = gapExt = gapExt2 = 0;
         startPos = 0;
         string tmp, chr = "NA", start, end, type, cigar2;
-        if (! fgets(buf, sizeof(buf), f) || !buf[0]) break;
+	getline(cin, buf);
+        if (buf.empty()) break;
         if (buf[0] == '@') continue;
 //		cerr << "SAM line: " << buf << endl;
-        sscanf(buf,"%s\t%d\t%s\t%lld\t%d\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag, rname, &pos, &mapq, cigar, rnext, pnext, &tlen, seq, quality_string);
+	istringstream bufstream(buf);
+        bufstream >> qname >> flag >> rname >> pos >> mapq >> cigar >> rnext >> pnext >> tlen >> seq >> quality_string;
 //		cerr << "Position: " << rname << ":" << pos << endl;
         if (! keepSecondary && (flag & (2048 + 256))) continue;
-        if ((flag & 4) || strcmp(cigar, "*") == 0 || strcmp(rname, "*") == 0) {
-            strcpy(rname, "NA");
-            strcpy(refSeq, "NA");
+        if ((flag & 4) || cigar == "*" || rname == "*") {
+	    rname = "NA"; 
+	    refSeq = "NA";
             pos = 0;
             aligned = false;
         } else {
-            int cigLen = CigarLen(cigar, gapOpen, gapExt);
+            cigLen = CigarLen(cigar, gapOpen, gapExt);
             if (cigLen <= 0) continue;
             if (! GetSequence(rname, pos, cigLen, refSeq)) continue;
             if (bisSeq)
@@ -308,8 +313,10 @@ void ProcessSamFile(string samFileName) {
                     mismatch2 = EditDistance(refSeq2, seq, cigar2.c_str());
             }
         }
-        PrintOutput(of, qname, aligned, rname, pos, mismatch, gapOpen, gapExt, chr, startPos, mismatch2, gapOpen2, gapExt2, seq, cigar, refSeq, (char *) cigar2.c_str(), refSeq2);
+        PrintOutput(stdout, qname, aligned, cigLen, rname, pos, mismatch, gapOpen, gapExt, chr, startPos, mismatch2, gapOpen2, gapExt2, seq, cigar, refSeq, (char *) cigar2.c_str(), refSeq2);
     }
+	fclose(stdin);
+	fclose(stdout);
 }
 
 

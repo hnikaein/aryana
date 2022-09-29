@@ -275,17 +275,17 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
     while (1) {
         if (!isdigit(cigar[pos])) {
             if (value > 0) {
-                if (cigar[pos] == 'm') {
+                if (cigar[pos] == 'M' || cigar[pos] == 'm') {
                     int j;
                     for (j = 0; j < value; j++) {
                         CalcPenalties(ref_index, seq_string[read_index], readNum,chr,chrPos,flag,refNum);
                         ref_index++;
                         read_index++;
                     }
-                } else if (cigar[pos] == 'd') {
+                } else if (cigar[pos] == 'D'||cigar[pos]=='d') {
                     ref_index += value;
                     readPenalties[readNum] += highPenalty * value;      //high penalty for insertion
-                } else if (cigar[pos] == 'i') {
+                } else if (cigar[pos] == 'I'||cigar[pos]=='i') {
                     read_index += value;
                     readPenalties[readNum] += highPenalty * value;      //high penalty for deletion
                 }
@@ -383,6 +383,7 @@ void Process() {
                     if (index != index2 || llabs((signed) (pos[i] - pos2[i])) < minD || llabs((signed)(pos[i] - pos2[i])) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
                 }
             }
+			cerr << i << "\t" <<readPenalties[i] <<endl;
         }
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
