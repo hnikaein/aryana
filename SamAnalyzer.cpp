@@ -237,8 +237,8 @@ void PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const
                  long long pos1 = 0, int cigLen = 0, int mismatch1 = 0, int insOpen1 = 0, int insExt1 = 0,
                  int delOpen1 = 0, int delExt1 = 0, int clipFirst1 = 0, int clipNext1 = 0, const string &chr2 = "NA",
                  long long pos2 = 0, int mismatch2 = 0, int insOpen2 = 0, int insExt2 = 0, int delOpen2 = 0,
-                 int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0, char *samSeq = nullptr, char *cigar = nullptr,
-                 char *seq1 = nullptr, char *cigar2 = nullptr, char *seq2 = nullptr) {
+                 int delExt2 = 0, int clipFirst2 = 0, int clipNext2 = 0, string samSeq = NULL, string cigar = NULL,
+                 string seq1 = NULL, string cigar2 = NULL, string seq2 = NULL) {
     bool matchTogether = realPos && chr1 == chr2 && pos1 == pos2;
     if (onlyPenalties) {
         fprintf(f, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", name.c_str(), aligned, mismatch1, insOpen1, insExt1, delOpen1,
