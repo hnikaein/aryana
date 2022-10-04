@@ -136,7 +136,7 @@ void ReadCpGIslands() {
         cerr << "Error: CpG island locations file not found or could not be opened" << endl;
         exit(1);
     }
-    char fLine[10000], chrom[10];
+    char fLine[10000], chrom[100];
     long long wStart, wEnd;
     while (f.good()) {
         fLine[0] = 0;

@@ -892,12 +892,12 @@ void bwa_aln_core2(aryana_args *args) {
             pthread_join(threads[j], 0);
     else { // This thread is now writing results in the SAM file
         unsigned long long o = outBufIndex;
-        while (running_threads_num > 0 || outBuf[o].read_num > 0) {
+        while (*running_threads_num > 0 || outBuf[o].read_num > 0) {
             if (!outBuf[o].read_num) usleep(sleep_time);
             else {
                 if (outBuf[o].read_num != outBufIndex)
                     OutputBufferError();
-                fputs(outBuf[o].str, stdout);
+                fputs(outBuf[o].str, args->stdout_file);
                 free(outBuf[o].str);
                 outBuf[o].read_num = 0;
                 outBufIndex++;

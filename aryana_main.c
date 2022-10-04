@@ -155,6 +155,7 @@ int main(int argc, char *argv[]) {
     int option_index = 0;
     int c;
     args.read_file = 0;
+    args.read_file2 = 0;
     while ((c = getopt_long(argc, argv,
                             "o:x:i:1:2:345m:M:t:s:c:f:b:e:OB:D:drl:\x01\x02\x03\x04\x05\x06:\x07:\x08:\x09:p:",
                             long_options, &option_index)) >= 0) {
@@ -305,6 +306,9 @@ int main(int argc, char *argv[]) {
             fclose(sam);
         }
         free(output_temp);
+        for (i = 0; i < 5; i++)
+            free(refNames[i]);
+        free(inputFolder);
     } else {
         FILE *sam;
         if (output) {
@@ -314,9 +318,14 @@ int main(int argc, char *argv[]) {
         bwa_aln_core2(&args);
         if (output)
             fclose(sam);
+        free(args.reference);
     }
     fprintf(stderr, "Total candidates: %lld\nThe candidates filtered by --factor:%lld\n", total_candidates,
             best_factor_candidates);
+    free(output);
+    free(args.read_file);
+    if (args.read_file2)
+        free(args.read_file2);
     //fprintf(stderr, "ori = %s\n", args.ori);
     //bwa_aln_single(args.reference, args.fq);
     /*	pair_opt options;
