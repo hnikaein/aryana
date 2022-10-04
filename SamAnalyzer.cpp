@@ -299,8 +299,8 @@ void ProcessSamFile(const string &samFileName) {
         mismatch = mismatch2 = insOpen = insOpen2 = delOpen = delOpen2 = insExt = insExt2 = delExt = delExt2 = clipFirst = clipFirst2 = clipNext = clipNext2 = 0;
         startPos = 0;
         string tmp, chr = "NA", start, end, type, cigar2;
-	getline(cin, buf);
-        if (buf.empty()) break;
+        if (!getline(cin, buf))
+            break;
         if (buf[0] == '@') continue;
 //		cerr << "SAM line: " << buf << endl;
 	istringstream bufstream(buf);
