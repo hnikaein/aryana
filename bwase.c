@@ -128,7 +128,7 @@ bwtint_t bwa_sa2pos(const bntseq_t *bns, const bwt_t *bwt, bwtint_t sapos, int r
  * performed from the start or end of the read.
  */
 void bwa_cal_pac_pos_core(const bntseq_t *bns, const bwt_t *bwt, bwa_seq_t *seq, const int max_mm, const float fnr) {
-    int max_diff, strand;
+    int max_diff, strand = -1;
     if (seq->type != BWA_TYPE_UNIQUE && seq->type != BWA_TYPE_REPEAT) return;
     max_diff = fnr > 0.0 ? bwa_cal_maxdiff(seq->len, BWA_AVG_ERR, fnr) : max_mm;
     seq->seQ = seq->mapQ = bwa_approx_mapQ(seq, max_diff);
@@ -140,7 +140,7 @@ void bwa_cal_pac_pos_core(const bntseq_t *bns, const bwt_t *bwt, bwa_seq_t *seq,
 }
 
 void bwa_cal_pac_pos(const bntseq_t *bns, const char *prefix, int n_seqs, bwa_seq_t *seqs, int max_mm, float fnr) {
-    int i, j, strand, n_multi;
+    int i, j, strand = -1, n_multi;
     char str[1024];
     bwt_t *bwt;
     // load forward SA

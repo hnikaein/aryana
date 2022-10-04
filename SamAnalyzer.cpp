@@ -262,7 +262,7 @@ void PrintOutput(FILE *f, const string &name = "NA", bool aligned = false, const
 
 void ProcessSamFile(const string &samFileName) {
     long long int tlen, pos;
-    int cigLen = 0, flag, mapq, mismatch, mismatch2, insOpen, insOpen2, insExt, insExt2, startPos, clipFirst, clipNext,
+    int flag, mapq, mismatch, mismatch2, insOpen, insOpen2, insExt, insExt2, startPos, clipFirst, clipNext,
             clipFirst2, clipNext2, delOpen, delOpen2, delExt, delExt2;
     string qname, rname, rnext, pnext, seq, quality_string, cigar, refSeq, refSeq2, buf;
     if (samFileName != "") 
