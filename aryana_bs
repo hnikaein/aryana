@@ -33,5 +33,5 @@ if [ "$#" -gt 6 ]; then
 fi
 
 Echo "Aliging reads using aryana with $6 threads (additional arguments: $ar)"
-"$DIR/aryana" -b "$2" -i "$4" -o "$4_out/temp.sam" -O -t $6 "$ar"
+"$DIR/aryana" -b "$2" -i "$4" -o "$4_out/temp.sam" -O -t $6 $ar
 PostAlignment "$@"

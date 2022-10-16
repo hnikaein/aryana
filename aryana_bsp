@@ -33,5 +33,5 @@ if [ "$#" -gt 7 ]; then
 fi
 
 Echo "Aliging reads using aryana with $7 threads (additional arguments: $ar)"
-"$DIR/aryana" -b "$2" -1 "$4" -2 "$5" -o "$4_out/temp.sam" -O -t $7 "$ar"
+"$DIR/aryana" -b "$2" -1 "$4" -2 "$5" -o "$4_out/temp.sam" -O -t $7 $ar
 PostAlignment "$@"
