@@ -1,39 +1,30 @@
 #define __STDC_FORMAT_MACROS
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
+#include <cstdio>
+#include <cstring>
+#include <cinttypes>
 #include <getopt.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <inttypes.h>
-#include <math.h>
 #include <cmath>
-#include <limits.h>
-#include <ctype.h>
-#include <libgen.h>
-#include "utils.h"
+#include <cctype>
 #include "bwt.h"
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
 #include <vector>
 #include <iostream>
+
+#include "const.h"
 using namespace std;
 
-#define numberOfGenomes 5
-#define maxReadLength 10000
-#define maxChrNameLength 10000
-#define maxSamFileLineLength 20000
 const int unalignedPenalty = 1000000;
 const int discordPenalty = 100000;
 unsigned long long gs;
 vector <string> chromName;
 char * genome;
-int chromNum, minD = 0, maxD = 10000, limit = 5;
-char * genomeFile, *annotationFile, *samFilePath, *referenceName;
-FILE * outputFile = NULL, * headerFile = NULL;
+int chromNum, minD = 0, maxD = 10000;
+FILE * outputFile = nullptr, * headerFile = nullptr;
 bool paired = false;
-int chosen[numberOfGenomes];
-char line[numberOfGenomes][maxSamFileLineLength], line2[numberOfGenomes][maxSamFileLineLength];
+int chosen[BS_GENOMES_COUNT];
 
 enum orientation_t {fr, rf, ff, all} orientation = all;
 
@@ -51,15 +42,12 @@ struct Island {
 };
 
 vector <Island> islands;
-long islandsNum = 0;
-int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
-long penalties;
-long long readNum;
-long readPenalties[numberOfGenomes];
+int highPenalty = 0, lowPenalty = 0;
+long readPenalties[BS_GENOMES_COUNT];
 
-char *samNames[numberOfGenomes];
-FILE *samFiles[numberOfGenomes];
-char str[maxReadLength];
+char *samNames[BS_GENOMES_COUNT];
+FILE *samFiles[BS_GENOMES_COUNT];
+char str[MAX_READ_LENGTH];
 
 
 struct Chrom
@@ -128,7 +116,7 @@ int ReadGenome(char * genomeFile) {
 int min_penalty() {
     int j = 0;
     long min = readPenalties[0];
-    for (int i = 1; i< numberOfGenomes ; i++) {
+    for (int i = 1; i < BS_GENOMES_COUNT ; i++) {
         // cerr<<readPenalties[i]<<endl;
         if(min > readPenalties[i]) {
             min = readPenalties[i];
@@ -143,15 +131,14 @@ char getNuc(uint64_t place) {
 }
 
 inline void ToLower(char * s) {
-    unsigned int i = 0;
-    for (i = 0; i < strlen(s); i++)
+    for (unsigned int i = 0; i < strlen(s); i++)
         if (s[i] >= 'A' && s[i] <= 'Z')
             s[i] += 'a' - 'A';
 }
 
 
 int ChromIndex(char * chr) {
-    for(unsigned int i=0; i < chrom.size(); i++) {
+    for(int i=0; i < chrom.size(); i++) {
         if(chrom[i].chrName == chr)
             return i;
     }
@@ -162,24 +149,17 @@ int ChromIndex(char * chr) {
 
 void ReadCpGIslands(char * annotationFile) {
     FILE* file = fopen(annotationFile, "r"); /* should check the result */
-    char fLine[10000], chrom[maxChrNameLength];
+    char fLine[10000], chrom_name[MAX_CHR_NAME_LENGTH];
     unsigned long long start, end;
     do {
-        if(NULL==fgets(fLine, sizeof(fLine), file)) {
+        if(nullptr==fgets(fLine, sizeof(fLine), file)) {
             fclose(file);
             break;
         }
-        sscanf(fLine, "%s %llu %llu", chrom, &start, &end);
-        islands.push_back(Island(ChromIndex(chrom), start, end));
+        sscanf(fLine, "%s %llu %llu", chrom_name, &start, &end);
+        islands.emplace_back(ChromIndex(chrom_name), start, end);
     } while (true);
     sort(islands.begin(), islands.end());
-}
-
-void setPenalties(int p1, int p2, int p3) {
-    highPenalty = p1;
-    medPenalty = p2;
-    lowPenalty = p3;
-    return;
 }
 
 bool isInIsland(int chr, long long pos) {
@@ -272,7 +252,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
     uint64_t ref_index = ref_i;
     long read_index = 0;
     strcpy(str, seq_string);
-    while (1) {
+    while (true) {
         if (!isdigit(cigar[pos])) {
             if (value > 0) {
                 if (cigar[pos] == 'M' || cigar[pos] == 'm') {
@@ -306,7 +286,7 @@ void readCigar(char * cigar, uint64_t ref_i, char *seq_string, long long readNum
 
 void WriteHeader() {
     // Printing header of original samfile to standard output
-    char line[maxSamFileLineLength];
+    char line[MAX_SAM_LINE_LENGTH];
     string header;
     FILE *samFile = fopen(samNames[0], "r");
     fgets(line, 10000, samFile);
@@ -321,33 +301,34 @@ void WriteHeader() {
 
 bool ReadLine(char * line, int len, FILE * f) {
     do {
-        if(fgets(line, len, f) == NULL) return false;
+        if(fgets(line, len, f) == nullptr) return false;
     } while (line[0] == '@');
     return true;
 }
 
 void Process() {
-    for (int i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
-    char *rname[numberOfGenomes], *cigar[numberOfGenomes],*rname2[numberOfGenomes], *cigar2[numberOfGenomes];
-    int flag[numberOfGenomes],flagTwo[numberOfGenomes];
-    uint64_t pos[numberOfGenomes],pos2[numberOfGenomes];
-    uint32_t mapq[numberOfGenomes],mapq2[numberOfGenomes];
+    for (int i = 0; i < BS_GENOMES_COUNT; i++) samFiles[i] = fopen(samNames[i], "r");
+    char *rname[BS_GENOMES_COUNT], *cigar[BS_GENOMES_COUNT],*rname2[BS_GENOMES_COUNT], *cigar2[BS_GENOMES_COUNT];
+    int flag[BS_GENOMES_COUNT],flagTwo[BS_GENOMES_COUNT];
+    uint64_t pos[BS_GENOMES_COUNT],pos2[BS_GENOMES_COUNT];
+    uint32_t mapq[BS_GENOMES_COUNT],mapq2[BS_GENOMES_COUNT];
     long long int tlen,tlen2;
-    for (int i = 0; i < numberOfGenomes; i++) {
-        rname[i] = new char[maxChrNameLength];
-        cigar[i] = new char[maxReadLength * 2];
-        rname2[i] = new char[maxChrNameLength];
-        cigar2[i] = new char[maxReadLength * 2];
+    for (int i = 0; i < BS_GENOMES_COUNT; i++) {
+        rname[i] = new char[MAX_CHR_NAME_LENGTH];
+        cigar[i] = new char[MAX_READ_LENGTH * 2];
+        rname2[i] = new char[MAX_CHR_NAME_LENGTH];
+        cigar2[i] = new char[MAX_READ_LENGTH * 2];
     }
-    char qname[10000], rnext[10000], pnext[10000], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
-    char qname2[10000], rnext2[10000], pnext2[10000], seq_string2[maxReadLength], quality_string2[maxReadLength];
+    char qname[10000], rnext[10000], pnext[10000], seq_string[MAX_READ_LENGTH], quality_string[MAX_READ_LENGTH]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
+    char qname2[10000], rnext2[10000], pnext2[10000], seq_string2[MAX_READ_LENGTH], quality_string2[MAX_READ_LENGTH];
+    char line[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH], line2[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH];
     bzero(chosen, sizeof(chosen));
 
     while (true) {
-        for (int i = 0; i < numberOfGenomes; i++) {
+        for (int i = 0; i < BS_GENOMES_COUNT; i++) {
             readPenalties[i] = 0;
-            if (! ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
-            sscanf(line[i],"%s\t%d\t%s\t%"PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
+            if (! ReadLine(line[i], MAX_SAM_LINE_LENGTH, samFiles[i])) return;
+            sscanf(line[i],"%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n",qname, &flag[i], rname[i], &pos[i],&mapq[i], cigar[i],rnext,pnext, &tlen,seq_string,quality_string);
             int index = ChromIndex(rname[i]);
             if(index == -1) readPenalties[i] += unalignedPenalty;
             else {
@@ -360,7 +341,7 @@ void Process() {
             }
 
             if (paired) {
-                if (! ReadLine(line2[i], maxSamFileLineLength, samFiles[i])) {
+                if (! ReadLine(line2[i], MAX_SAM_LINE_LENGTH, samFiles[i])) {
                     cerr << "Error: unexpected end of input SAM file while reading the paired end.\n";
                     return;
                 }
@@ -383,7 +364,7 @@ void Process() {
                     if (index != index2 || llabs((signed) (pos[i] - pos2[i])) < minD || llabs((signed)(pos[i] - pos2[i])) > maxD || (orientation != all && orientation != orien)) readPenalties[i] += discordPenalty;
                 }
             }
-			cerr << i << "\t" <<readPenalties[i] <<endl;
+            cerr << i << "\t" <<readPenalties[i] <<endl;
         }
         int min = min_penalty();
         chosen[min]++; // shows how many times a genome has been selected
@@ -400,74 +381,74 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     static struct option long_options[] = {
-        { "samfiles", required_argument, 0, 's' },
-        { "reference", required_argument, 0, 'x' },
-        { "CpG-islands", required_argument, 0, 'c' },
-        { "penalties", required_argument, 0, 'p' },
-        { "output", required_argument, 0, 'o' },
-        { "header", required_argument, 0, 'h' },
-        { "paired-end", no_argument, 0, 'U' },
-        { "min", required_argument, 0, 'm'},
-        { "max", required_argument, 0, 'M'},
-        { "fr", no_argument, 0, 1},
-        { "rf", no_argument, 0, 2},
-        { "ff", no_argument, 0, 3},
-        { "limit", required_argument, 0, 'l'}
+            { "samfiles", required_argument, nullptr, 's' },
+            { "reference", required_argument, nullptr, 'x' },
+            { "CpG-islands", required_argument, nullptr, 'c' },
+            { "penalties", required_argument, nullptr, 'p' },
+            { "output", required_argument, nullptr, 'o' },
+            { "header", required_argument, nullptr, 'h' },
+            { "paired-end", no_argument, nullptr, 'U' },
+            { "min", required_argument, nullptr, 'm'},
+            { "max", required_argument, nullptr, 'M'},
+            { "fr", no_argument, nullptr, 1},
+            { "rf", no_argument, nullptr, 2},
+            { "ff", no_argument, nullptr, 3},
+            { "limit", required_argument, nullptr, 'l'}
     };
     int option_index = 0;
     char* samFileName = 0, *tmp, c;
+    char  *annotationFile, *referenceName;
     outputFile = stdout;
     while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:Pm:M:123l:", long_options, &option_index)) >= 0) {
         switch (c) {
-        case 'x':
-            referenceName = strdup(optarg);
-            break;
-        case 's':
-            samFileName = strdup(optarg);
-            tmp = strdup(samFileName);
-            samFilePath = dirname(tmp);
-            for(int i=0; i<numberOfGenomes; i++) {
-                samNames[i] = (char *) malloc(strlen(samFileName) + 10);
-                sprintf(samNames[i], "%s-%d", samFileName, i);
-            }
-            break;
-        case 'c':
-            annotationFile = (char *) malloc(strlen(optarg)+1);
-            strcpy(annotationFile, optarg);
-            break;
-        case 'p':
-            lowPenalty = atoi(optarg);
-            medPenalty = atoi(argv[optind]);
-            highPenalty = atoi(argv[optind + 1]);
-            optind = optind + 2;
-            break;
-        case 'o':
-            outputFile = fopen(optarg, "w");
-            break;
-        case 'h':
-            headerFile = fopen(optarg, "w");
-            break;
-        case 'P':
-            paired = true;
-            break;
-        case 'm':
-            minD = atoi(optarg);
-            break;
-        case 'M':
-            maxD = atoi(optarg);
-            break;
-        case 1:
-            orientation = fr;
-            break;
-        case 2:
-            orientation = rf;
-            break;
-        case 3:
-            orientation = ff;
-            break;
-        case 'l':
-            limit = atoi(optarg);
-            break;
+            case 'x':
+                referenceName = strdup(optarg);
+                break;
+            case 's':
+                samFileName = strdup(optarg);
+                tmp = strdup(samFileName);
+                for(int i=0; i < BS_GENOMES_COUNT; i++) {
+                    samNames[i] = (char *) malloc(strlen(samFileName) + 10);
+                    sprintf(samNames[i], "%s-%d", samFileName, i);
+                }
+                break;
+            case 'c':
+                annotationFile = (char *) malloc(strlen(optarg)+1);
+                strcpy(annotationFile, optarg);
+                break;
+            case 'p':
+                lowPenalty = atoi(optarg);
+//            medPenalty = atoi(argv[optind]);
+                highPenalty = atoi(argv[optind + 1]);
+                optind = optind + 2;
+                break;
+            case 'o':
+                outputFile = fopen(optarg, "w");
+                break;
+            case 'h':
+                headerFile = fopen(optarg, "w");
+                break;
+            case 'P':
+                paired = true;
+                break;
+            case 'm':
+                minD = atoi(optarg);
+                break;
+            case 'M':
+                maxD = atoi(optarg);
+                break;
+            case 1:
+                orientation = fr;
+                break;
+            case 2:
+                orientation = rf;
+                break;
+            case 3:
+                orientation = ff;
+                break;
+            case 'l':
+                // limit = atoi(optarg);
+                break;
         }
     }
     if (! headerFile) headerFile = outputFile;
@@ -480,7 +461,7 @@ int main(int argc, char *argv[]) {
     ReadCpGIslands(annotationFile);
     WriteHeader();
     Process();
-    for (int j=0; j < numberOfGenomes; j++)
+    for (int j=0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
 
     if (outputFile != stdout) fclose(outputFile);
