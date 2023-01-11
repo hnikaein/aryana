@@ -13,6 +13,7 @@
 
 #define max(a, b) (((a)>(b))?(a):(b))
 
+#define RAND_SEED (14)
 #define MAX_READ_LENGTH 10000
 #define MAX_READ_NAME_LENGTH 1000
 #define MAX_CHR_NAME_LENGTH 1000

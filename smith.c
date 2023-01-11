@@ -1,10 +1,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <limits.h>
-#include <assert.h>
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
@@ -70,6 +68,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
         arr[0][i] = delC;
     }
 
+    d[0][off/2] = 0;
     int cur_off = 0, best_pen = INT_MAX;
     for (i=1; i<=match_end-match_start; i++) // The position in read
         for (j=0; j<off; j++)                // The real position - read position + off/2
@@ -88,14 +87,14 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
             arr[i][j]=matC; // match
 
             if (index_start+ref_i-1 >= seq_len) {
-                d[i][j] += (insertion(arr[i-j][j])?ge:go);
+                d[i][j] += (insertion(arr[i-1][j])?ge:go);
                 arr[i][j] = insC;
             } else {
                 char gc = getNuc(index_start+ref_i-1,reference, seq_len), rc= read[match_start+i-1];
 //				if (j==off/2) fprintf(stderr, "Loc %lld gc %d rc %d\n", i, gc, rc);
                 if (gc != rc) {
 					if (!((ignore == ignore_CT && gc == 1 && rc == 3) || (ignore == ignore_GA && gc==2 && rc==0)))
-//						fprintf(stderr, "Ignored, %d %d\n", gc, rc); else 
+//						fprintf(stderr, "Ignored, %d %d\n", gc, rc); else
 					{
                         d[i][j]+= mp;
                         arr[i][j] = misC; // mismatch

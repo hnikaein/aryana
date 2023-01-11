@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "bwa2.h"
 #include "main.h"
+#include "const.h"
 #define aryana_version "0.1"
 
 long long total_candidates = 0, best_factor_candidates = 0;
@@ -70,6 +71,7 @@ void Usage() {
 
 int main(int argc, char *argv[])
 {
+    srand(RAND_SEED);
     if (argc < 3) Usage();
     aryana_args args;
     args.discordant=1;
