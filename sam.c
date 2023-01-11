@@ -14,6 +14,7 @@
 char int_to_bp[4] = {'A', 'C', 'G', 'T'};
 static char star[2] = "*";
 static char equal[2] = "=";
+char name[max_refs][1000];
 
 uint64_t cigar_len(char *cigar) {
     int i = 0, cigar_size = strlen(cigar);

@@ -247,9 +247,11 @@ void ProcessCpGIslands(char *annotationFile, int CT) {
         if (!wStart) continue;
         // cerr << chrom << '\t' << wStart << '\t' << wEnd << endl;
         if (chromIndex.find(chrom) == chromIndex.end()) {
-            if (last != chrom)
-                cerr << "Error: chromosome name " << chrom
-                     << " does not exist in the reference genome.\nCheck the reference genome FASTA file and make sure the chromosome names match the CpG-islands file.\n";
+            if (last != chrom) {
+                cerr << "Warning: chromosome name " << chrom << " does not exist in the reference genome." << endl;
+                cerr << "Check the reference genome FASTA file and make sure the chromosome names match the "
+                        "CpG-islands file." << endl;
+            }
             last = chrom;
             failed = true;
         }
@@ -257,7 +259,7 @@ void ProcessCpGIslands(char *annotationFile, int CT) {
         islands.push_back(window(chr, wStart, wEnd));
         ConvertSequence(chr, wStart, wEnd, CT);
     }
-    if (failed) exit(1);
+//    if (failed) exit(1);
 }
 
 void WriteGenome(char *outputFile) {

@@ -29,7 +29,7 @@ int sam_generator(char *buffer, char *qname, int flag, uint32_t mapq, bwtint_t i
                   char *cigar2, ubyte_t *seq, ubyte_t *quality, int len, int len2, bwt_t *bwt, bwtint_t *offset,
                   bwtint_t offInd);
 
-char name[max_refs][1000];
+extern char name[max_refs][1000];
 
 //int sam_headers(char * buffer,char ** name, long long*  offset, int size);
 int sam_headers(char *buffer, bwtint_t *offset, int size, int buf_size);

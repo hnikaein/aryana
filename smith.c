@@ -1,10 +1,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <limits.h>
-#include <assert.h>
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
@@ -105,7 +103,7 @@ int smith_waterman(aryana_args *options, uint64_t match_start, uint64_t match_en
 //				if (j==off/2) fprintf(stderr, "Loc %lld gc %d rc %d\n", i, gc, rc);
                 if (gc != rc) {
 					if (!((ignore == ignore_CT && gc == 1 && rc == 3) || (ignore == ignore_GA && gc==2 && rc==0)))
-//						fprintf(stderr, "Ignored, %d %d\n", gc, rc); else 
+//						fprintf(stderr, "Ignored, %d %d\n", gc, rc); else
 					{
                         d[i][j] += mismatch(qual[i], mp);
                         arr[i][j] = misC; // mismatch

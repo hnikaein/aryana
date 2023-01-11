@@ -1,41 +1,33 @@
 #define __STDC_FORMAT_MACROS
 
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
+#include <cstdio>
+#include <cstring>
+#include <cinttypes>
 #include <getopt.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <inttypes.h>
-#include <math.h>
 #include <cmath>
-#include <limits.h>
-#include <ctype.h>
-#include <libgen.h>
-#include "utils.h"
+#include <cctype>
 #include "bwt.h"
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
 #include <vector>
 #include <iostream>
 
+#include "const.h"
+
 using namespace std;
 
-#define numberOfGenomes 5
-#define maxReadLength 10000
-#define maxChrNameLength 10000
-#define maxSamFileLineLength 20000
-const int unalignedPenalty = 1000000;
-const int discordPenalty = 100000;
+#define UNALIGNED_PENALTY  1000000
+#define DISCORD_PENALTY  100000
+
 unsigned long long gs;
 vector<string> chromName;
 char *genome;
-int chromNum, minD = 0, maxD = 10000, limit = 5;
-char *genomeFile, *annotationFile, *samFilePath, *referenceName;
-FILE *outputFile = NULL, *headerFile = NULL;
+int chromNum, paired_min_distance = 0, paired_max_distance = 10000;
+FILE *outputFile = nullptr, *headerFile = nullptr;
 bool paired = false;
-int chosen[numberOfGenomes];
-char line[numberOfGenomes][maxSamFileLineLength], line2[numberOfGenomes][maxSamFileLineLength];
+int chosen[BS_GENOMES_COUNT];
 
 enum orientation_t {
     fr, rf, ff, all
@@ -57,15 +49,16 @@ struct Island {
 };
 
 vector<Island> islands;
-long islandsNum = 0;
-int highPenalty = 0, medPenalty = 0, lowPenalty = 0;
-long penalties;
-long long readNum;
-long readPenalties[numberOfGenomes];
+int highPenalty = 0, lowPenalty = 0;
 
-char *samNames[numberOfGenomes];
-FILE *samFiles[numberOfGenomes];
-char str[maxReadLength];
+char *samNames[BS_GENOMES_COUNT];
+FILE *samFiles[BS_GENOMES_COUNT];
+char str[MAX_READ_LENGTH];
+
+int readPenalties[2 * BS_GENOMES_COUNT];
+char rname[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH], rname2[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH];
+int flag[BS_GENOMES_COUNT], flagTwo[BS_GENOMES_COUNT];
+uint64_t pos[BS_GENOMES_COUNT], pos2[BS_GENOMES_COUNT];
 
 
 struct Chrom {
@@ -129,34 +122,19 @@ int ReadGenome(char *genomeFile) {
 }
 
 
-// returns minimum penalty from scores for each genome , if penalties are equal , returns original genome
-int min_penalty() {
-    int j = 0;
-    long min = readPenalties[0];
-    for (int i = 1; i < numberOfGenomes; i++) {
-        // cerr<<readPenalties[i]<<endl;
-        if (min > readPenalties[i]) {
-            min = readPenalties[i];
-            j = i;
-        }
-    }
-    return j;
-}
-
 char getNuc(uint64_t place) {
     return genome[place];
 }
 
 inline void ToLower(char *s) {
-    unsigned int i = 0;
-    for (i = 0; i < strlen(s); i++)
+    for (unsigned int i = 0; i < strlen(s); i++)
         if (s[i] >= 'A' && s[i] <= 'Z')
             s[i] += 'a' - 'A';
 }
 
 
 int ChromIndex(char *chr) {
-    for (unsigned int i = 0; i < chrom.size(); i++) {
+    for (int i = 0; i < chrom.size(); i++) {
         if (chrom[i].chrName == chr)
             return i;
     }
@@ -164,27 +142,57 @@ int ChromIndex(char *chr) {
 
 }
 
+void find_min_penalties(int *min, int *min2) {
+    *min = *min2 = 0;
+    int min_penalty = readPenalties[0] + (paired ? readPenalties[0 + BS_GENOMES_COUNT] : 0);
+    for (int i = 0; i < BS_GENOMES_COUNT; i++) {
+        if (!paired) {
+            if (min_penalty > readPenalties[i]) {
+                min_penalty = readPenalties[i];
+                *min = i;
+            }
+        } else {
+            for (int j = 0; j < BS_GENOMES_COUNT; j++) {
+                int new_penalty = readPenalties[i] + readPenalties[j + BS_GENOMES_COUNT];
+                orientation_t orien;
+                int index = ChromIndex(rname[i]);
+                int index2 = ChromIndex(rname2[i]);
+                if (index >= 0 && index2 >= 0) {
+                    if ((flag[i] & 16) == (flagTwo[j] & 16))
+                        orien = ff;
+                    else if (((flag[i] & 16) == 0 && pos[i] < pos2[j]) ||
+                             ((flag[i] & 16) != 0 && pos[i] > pos2[j]))
+                        orien = fr;
+                    else
+                        orien = rf;
+                    if (index != index2 || llabs((signed) (pos[i] - pos2[j])) < paired_min_distance ||
+                        llabs((signed) (pos[i] - pos2[j])) > paired_max_distance ||
+                        (orientation != all && orientation != orien))
+                        new_penalty += DISCORD_PENALTY;
+                }
+                if (min_penalty > new_penalty) {
+                    min_penalty = new_penalty;
+                    *min = i;
+                    *min2 = j;
+                }
+            }
+        }
+    }
+}
 
 void ReadCpGIslands(char *annotationFile) {
     FILE *file = fopen(annotationFile, "r"); /* should check the result */
-    char fLine[10000], chrom[maxChrNameLength];
+    char fLine[10000], chrom_name[MAX_CHR_NAME_LENGTH];
     unsigned long long start, end;
     do {
-        if (NULL == fgets(fLine, sizeof(fLine), file)) {
+        if (nullptr == fgets(fLine, sizeof(fLine), file)) {
             fclose(file);
             break;
         }
-        sscanf(fLine, "%s %llu %llu", chrom, &start, &end);
-        islands.push_back(Island(ChromIndex(chrom), start, end));
+        sscanf(fLine, "%s %llu %llu", chrom_name, &start, &end);
+        islands.emplace_back(ChromIndex(chrom_name), start, end);
     } while (true);
     sort(islands.begin(), islands.end());
-}
-
-void setPenalties(int p1, int p2, int p3) {
-    highPenalty = p1;
-    medPenalty = p2;
-    lowPenalty = p3;
-    return;
 }
 
 bool isInIsland(int chr, long long pos) {
@@ -192,7 +200,7 @@ bool isInIsland(int chr, long long pos) {
 }
 
 
-void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr, uint64_t chrPos, int flag, int flag2) {
+void CalcPenalties(uint64_t ref_i, char read, long read_penalties_id, int chr, uint64_t chrPos, int flag, int flag2) {
     read = toupper(read);
     genome[ref_i] = toupper(genome[ref_i]);
     genome[ref_i + 1] = toupper(genome[ref_i + 1]);
@@ -201,66 +209,66 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr, uint64_t ch
     if (flag2) {
         if (read == 'A' || read == 'G') {
             if (getNuc(ref_i) != read)
-                readPenalties[readNum] += highPenalty;
+                readPenalties[read_penalties_id] += highPenalty;
         } else { //read = C or T
 
             if (read == 'T' && getNuc(ref_i) == 'C') {
                 if (getNuc(ref_i + 1) == 'G') { // in the CpG context
                     if (isInIsland(chr, chrPos)) // in CpG and also island
-                        readPenalties[readNum] += 0;
+                        readPenalties[read_penalties_id] += 0;
                     else
-                        readPenalties[readNum] += highPenalty;
+                        readPenalties[read_penalties_id] += highPenalty;
 
                 } else // out of CpG context
 
-                    readPenalties[readNum] += lowPenalty;
+                    readPenalties[read_penalties_id] += lowPenalty;
 
             } else if (read == 'C' && getNuc(ref_i) == 'C') {
                 if (getNuc(ref_i + 1) == 'G') { // in the CpG context
                     int temp = isInIsland(chr, chrPos);
                     if (temp == 1)  // in CpG and also island
-                        readPenalties[readNum] += highPenalty;
+                        readPenalties[read_penalties_id] += highPenalty;
                     else            // in CpG and out of island
-                        readPenalties[readNum] += lowPenalty;
+                        readPenalties[read_penalties_id] += lowPenalty;
 
                 } else              // out of CpG context
-                    readPenalties[readNum] += highPenalty;
+                    readPenalties[read_penalties_id] += highPenalty;
 
             } else if (read == 'C' && getNuc(ref_i) == 'T')
-                readPenalties[readNum] += highPenalty;
+                readPenalties[read_penalties_id] += highPenalty;
 
         }
     } else {
         if (read == 'C' || read == 'T') {
             if (getNuc(ref_i) != read)
-                readPenalties[readNum] += highPenalty;
+                readPenalties[read_penalties_id] += highPenalty;
         } else { //read = G or A
 
             if (read == 'A' && getNuc(ref_i) == 'G') {
                 if (getNuc(ref_i - 1) == 'C') { // in the CpG context
                     if (isInIsland(chr, chrPos)) { // in CpG and also island
-                        readPenalties[readNum] += 0;
+                        readPenalties[read_penalties_id] += 0;
                     } else {
-                        readPenalties[readNum] += highPenalty;
+                        readPenalties[read_penalties_id] += highPenalty;
                     }
                 } else { // out of CpG context
 
-                    readPenalties[readNum] += lowPenalty;
+                    readPenalties[read_penalties_id] += lowPenalty;
                 }
             } else if (read == 'G' && getNuc(ref_i) == 'G') {
                 if (getNuc(ref_i - 1) == 'C') { // in the CpG context
                     int temp = isInIsland(chr, chrPos);
                     if (temp == 1) { // in CpG and also island
-                        readPenalties[readNum] += highPenalty;
+                        readPenalties[read_penalties_id] += highPenalty;
                     } else {
-                        readPenalties[readNum] += lowPenalty;
+                        readPenalties[read_penalties_id] += lowPenalty;
                     }
                 } else { // out of CpG context
-                    readPenalties[readNum] += highPenalty;
+                    readPenalties[read_penalties_id] += highPenalty;
                 }
 
             } else if (read == 'G' && getNuc(ref_i) == 'A')
-                readPenalties[readNum] += highPenalty;
+                readPenalties[read_penalties_id] += highPenalty;
         }
 
     }
@@ -268,32 +276,32 @@ void CalcPenalties(uint64_t ref_i, char read, long readNum, int chr, uint64_t ch
 }
 
 // Reads Cigar sequence and call CalcPenalties for calculating penalties for each base
-void readCigar(char *cigar, uint64_t ref_i, char *seq_string, long long readNum, int chr, uint64_t chrPos, int flag,
+void readCigar(char *cigar, uint64_t ref_i, char *seq_string, int read_penalties_id, int chr, uint64_t chrPos, int flag,
                int refNum) {
     int pos = 0;
     int value = 0;
     uint64_t ref_index = ref_i;
     long read_index = 0;
     strcpy(str, seq_string);
-    while (1) {
+    while (true) {
         if (!isdigit(cigar[pos])) {
             if (value > 0) {
                 if (cigar[pos] == 'M' || cigar[pos] == 'm') {
                     int j;
                     for (j = 0; j < value; j++) {
-                        CalcPenalties(ref_index, seq_string[read_index], readNum, chr, chrPos, flag, refNum);
+                        CalcPenalties(ref_index, seq_string[read_index], read_penalties_id, chr, chrPos, flag, refNum);
                         ref_index++;
                         read_index++;
                     }
-                } else if (cigar[pos] == 'D'||cigar[pos]=='d') {
+                } else if (cigar[pos] == 'D' || cigar[pos] == 'd') {
                     ref_index += value;
-                    readPenalties[readNum] += highPenalty * value;      //high penalty for insertion
-                } else if (cigar[pos] == 'I'||cigar[pos]=='i') {
+                    readPenalties[read_penalties_id] += highPenalty * value;      //high penalty for insertion
+                } else if (cigar[pos] == 'I' || cigar[pos] == 'i') {
                     read_index += value;
-                    readPenalties[readNum] += highPenalty * value;      //high penalty for deletion
+                    readPenalties[read_penalties_id] += highPenalty * value;      //high penalty for deletion
                 }
             } else if (cigar[pos] == '*') {
-                readPenalties[readNum] += unalignedPenalty;     // maximum penalty for not aligned reads
+                readPenalties[read_penalties_id] += UNALIGNED_PENALTY;     // maximum penalty for not aligned reads
                 break;
             }
             if (cigar[pos] == 0)
@@ -308,13 +316,14 @@ void readCigar(char *cigar, uint64_t ref_i, char *seq_string, long long readNum,
 
 void WriteHeader() {
     // Printing header of original samfile to standard output
-    char line[maxSamFileLineLength];
+    char line[MAX_SAM_LINE_LENGTH];
     string header;
     FILE *samFile = fopen(samNames[0], "r");
     if (fgets(line, 10000, samFile))
         while (line[0] == '@') {
             header += line;
-            if (!fgets(line, 10000, samFile)) break;
+            if (!fgets(line, 10000, samFile))
+                break;
         }
     fprintf(headerFile, "%s", header.c_str());
     fclose(samFile);
@@ -323,36 +332,29 @@ void WriteHeader() {
 
 bool ReadLine(char *line, int len, FILE *f) {
     do {
-        if (fgets(line, len, f) == NULL) return false;
+        if (fgets(line, len, f) == nullptr) return false;
     } while (line[0] == '@');
     return true;
 }
 
 void Process() {
-    for (int i = 0; i < numberOfGenomes; i++) samFiles[i] = fopen(samNames[i], "r");
-    char *rname[numberOfGenomes], *cigar[numberOfGenomes], *rname2[numberOfGenomes], *cigar2[numberOfGenomes];
-    int flag[numberOfGenomes], flagTwo[numberOfGenomes];
-    uint64_t pos[numberOfGenomes], pos2[numberOfGenomes];
-    uint32_t mapq[numberOfGenomes], mapq2[numberOfGenomes];
+    for (int i = 0; i < BS_GENOMES_COUNT; i++) samFiles[i] = fopen(samNames[i], "r");
+    char line[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH], cigar[BS_GENOMES_COUNT][MAX_READ_LENGTH * 2],
+            qname[MAX_READ_NAME_LENGTH], rnext[MAX_CHR_NAME_LENGTH], pnext[30], seq_string[MAX_READ_LENGTH], quality_string[MAX_READ_LENGTH],
+            line2[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH], cigar2[BS_GENOMES_COUNT][MAX_READ_LENGTH * 2],
+            qname2[MAX_READ_NAME_LENGTH], rnext2[MAX_CHR_NAME_LENGTH], pnext2[30], seq_string2[MAX_READ_LENGTH], quality_string2[MAX_READ_LENGTH];
+    uint32_t mapq[BS_GENOMES_COUNT], mapq2[BS_GENOMES_COUNT];
     long long int tlen, tlen2;
-    for (int i = 0; i < numberOfGenomes; i++) {
-        rname[i] = new char[maxChrNameLength];
-        cigar[i] = new char[maxReadLength * 2];
-        rname2[i] = new char[maxChrNameLength];
-        cigar2[i] = new char[maxReadLength * 2];
-    }
-    char qname[10000], rnext[10000], pnext[10000], seq_string[maxReadLength], quality_string[maxReadLength]; // (Ali) please double check the limitations for qname, rnext, pnext and copy
-    char qname2[10000], rnext2[10000], pnext2[10000], seq_string2[maxReadLength], quality_string2[maxReadLength];
     bzero(chosen, sizeof(chosen));
 
     while (true) {
-        for (int i = 0; i < numberOfGenomes; i++) {
+        for (int i = 0; i < BS_GENOMES_COUNT; i++) {
             readPenalties[i] = 0;
-            if (!ReadLine(line[i], maxSamFileLineLength, samFiles[i])) return;
-            sscanf(line[i], "%s\t%d\t%s\t%" PRIu64 "\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", qname, &flag[i], rname[i],
+            if (!ReadLine(line[i], MAX_SAM_LINE_LENGTH, samFiles[i])) return;
+            sscanf(line[i], "%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", qname, &flag[i], rname[i],
                    &pos[i], &mapq[i], cigar[i], rnext, pnext, &tlen, seq_string, quality_string);
             int index = ChromIndex(rname[i]);
-            if (index == -1) readPenalties[i] += unalignedPenalty;
+            if (index == -1) readPenalties[i] += UNALIGNED_PENALTY;
             else {
                 int flag2 = 0;
                 if (i <= 2) // if read has been aligned to first four genomes
@@ -363,41 +365,36 @@ void Process() {
             }
 
             if (paired) {
-                if (!ReadLine(line2[i], maxSamFileLineLength, samFiles[i])) {
+                readPenalties[i + BS_GENOMES_COUNT] = 0;
+                if (!ReadLine(line2[i], MAX_SAM_LINE_LENGTH, samFiles[i])) {
                     cerr << "Error: unexpected end of input SAM file while reading the paired end.\n";
                     return;
                 }
                 sscanf(line2[i], "%s\t%d\t%s\t%" PRIu64"\t%u\t%s\t%s\t%s\t%lld\t%s\t%s\n", qname2, &flagTwo[i],
                        rname2[i], &pos2[i], &mapq2[i], cigar2[i], rnext2, pnext2, &tlen2, seq_string2, quality_string2);
                 int index2 = ChromIndex(rname2[i]);
-                if (index2 == -1) readPenalties[i] += unalignedPenalty;
+                if (index2 == -1) readPenalties[i + BS_GENOMES_COUNT] += UNALIGNED_PENALTY;
                 else {
                     int flag2 = 0;
                     if (i <= 2) // if read has been aligned to first four genomes
                         flag2 = 1;
                     if (i > 2) // if read has been aligned to last three genome
                         flag2 = 0;
-                    readCigar(cigar2[i], pos2[i] + chrom[index2].chrStart - 1, seq_string2, i, index2, pos2[i],
-                              flagTwo[i], flag2);
-                }
-                orientation_t orien;
-                if (index >= 0 && index2 >= 0) {
-                    if ((flag[i] & 16) == (flagTwo[i] & 16)) orien = ff;
-                    else if (((flag[i] & 16) == 0 && pos[i] < pos2[i]) ||
-                             ((flag[i] & 16) != 0 && pos[i] > pos2[i]))
-                        orien = fr;
-                    else orien = rf;
-                    if (index != index2 || llabs((signed) (pos[i] - pos2[i])) < minD ||
-                        llabs((signed) (pos[i] - pos2[i])) > maxD || (orientation != all && orientation != orien))
-                        readPenalties[i] += discordPenalty;
+                    readCigar(cigar2[i], pos2[i] + chrom[index2].chrStart - 1, seq_string2, i + BS_GENOMES_COUNT,
+                              index2, pos2[i], flagTwo[i], flag2);
                 }
             }
-			cerr << i << "\t" <<readPenalties[i] <<endl;
+            cerr << i << "\t" << readPenalties[i] << "\t" << readPenalties[i + BS_GENOMES_COUNT] << endl;
         }
-        int min = min_penalty();
+
+        int min, min2;
+        find_min_penalties(&min, &min2);
         chosen[min]++; // shows how many times a genome has been selected
         fprintf(outputFile, "%s", line[min]);
-        if (paired) fprintf(outputFile, "%s", line2[min]);
+        if (paired) {
+            chosen[min2]++; // shows how many times a genome has been selected
+            fprintf(outputFile, "%s", line2[min2]);
+        }
     }
 }
 
@@ -411,22 +408,23 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     static struct option long_options[] = {
-            {"samfiles",    required_argument, 0, 's'},
-            {"reference",   required_argument, 0, 'x'},
-            {"CpG-islands", required_argument, 0, 'c'},
-            {"penalties",   required_argument, 0, 'p'},
-            {"output",      required_argument, 0, 'o'},
-            {"header",      required_argument, 0, 'h'},
-            {"paired-end",  no_argument,       0, 'U'},
-            {"min",         required_argument, 0, 'm'},
-            {"max",         required_argument, 0, 'M'},
-            {"fr",          no_argument,       0, 1},
-            {"rf",          no_argument,       0, 2},
-            {"ff",          no_argument,       0, 3},
-            {"limit",       required_argument, 0, 'l'}
+            {"samfiles",    required_argument, nullptr, 's'},
+            {"reference",   required_argument, nullptr, 'x'},
+            {"CpG-islands", required_argument, nullptr, 'c'},
+            {"penalties",   required_argument, nullptr, 'p'},
+            {"output",      required_argument, nullptr, 'o'},
+            {"header",      required_argument, nullptr, 'h'},
+            {"paired-end",  no_argument,       nullptr, 'U'},
+            {"min",         required_argument, nullptr, 'm'},
+            {"max",         required_argument, nullptr, 'M'},
+            {"fr",          no_argument,       nullptr, 1},
+            {"rf",          no_argument,       nullptr, 2},
+            {"ff",          no_argument,       nullptr, 3},
+            {"limit",       required_argument, nullptr, 'l'}
     };
     int option_index = 0;
     char *samFileName = 0, *tmp, c;
+    char *annotationFile, *referenceName;
     outputFile = stdout;
     while ((c = getopt_long(argc, argv, "x:s:c:p:o:h:Pm:M:123l:", long_options, &option_index)) >= 0) {
         switch (c) {
@@ -436,8 +434,7 @@ int main(int argc, char *argv[]) {
             case 's':
                 samFileName = strdup(optarg);
                 tmp = strdup(samFileName);
-                samFilePath = dirname(tmp);
-                for (int i = 0; i < numberOfGenomes; i++) {
+                for (int i = 0; i < BS_GENOMES_COUNT; i++) {
                     samNames[i] = (char *) malloc(strlen(samFileName) + 10);
                     sprintf(samNames[i], "%s-%d", samFileName, i);
                 }
@@ -448,7 +445,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'p':
                 lowPenalty = atoi(optarg);
-                medPenalty = atoi(argv[optind]);
+//            medPenalty = atoi(argv[optind]);
                 highPenalty = atoi(argv[optind + 1]);
                 optind = optind + 2;
                 break;
@@ -462,10 +459,10 @@ int main(int argc, char *argv[]) {
                 paired = true;
                 break;
             case 'm':
-                minD = atoi(optarg);
+                paired_min_distance = atoi(optarg);
                 break;
             case 'M':
-                maxD = atoi(optarg);
+                paired_max_distance = atoi(optarg);
                 break;
             case 1:
                 orientation = fr;
@@ -477,7 +474,7 @@ int main(int argc, char *argv[]) {
                 orientation = ff;
                 break;
             case 'l':
-                limit = atoi(optarg);
+                // limit = atoi(optarg);
                 break;
         }
     }
@@ -491,7 +488,7 @@ int main(int argc, char *argv[]) {
     ReadCpGIslands(annotationFile);
     WriteHeader();
     Process();
-    for (int j = 0; j < numberOfGenomes; j++)
+    for (int j = 0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
 
     if (outputFile != stdout) fclose(outputFile);
