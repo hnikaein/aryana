@@ -214,7 +214,7 @@ void find_best_candidates(global_vars * g, int candidates_num, int candidates_nu
                 }
             }
         }
-    if (best_num > 0)
+    if (*best_num > 0)
         compute_mapq(g, best_candidates, best_candidates2, *best_num, penalty, penalty2, table, table2, cigar, cigar2, paired);
 }
 

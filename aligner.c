@@ -263,8 +263,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     for(i=len - 1; i>=k; i--) {
         bwt_match_limit_rev(bwt, k, seq+i - k + 1, &down, &up,&limit);
         if(limit < k) {
-            i = i - k + limit;
-            if (i < k) break;
+            i = i - k + limit + 1;
             continue;
         }
         bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
@@ -319,7 +318,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         {
             if (best[i] == -1)
                 break;
-            if (best[i]<best[best_size-1]*args->best_factor)
+            if (table[best[i]].value<table[best[best_size-1]].value*args->best_factor)
             {
 				best_factor_candidates += i + 1 - *best_found;
                 (*best_found)=i+1;
