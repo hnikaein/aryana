@@ -9,7 +9,6 @@ fi
 
 Echo () {
 	echo "[aryana_bs "`date +%Y-%m-%d\ %H:%M:%S`"] $1"
-	pwd
 }
 
 PostAlignment() {

@@ -1,15 +1,16 @@
 #include <iostream>
-#include <iomanip>
 #include <fstream>
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 #include <getopt.h>
 #include <map>
 #include <vector>
 #include <string>
+#include <cmath>
+#include "const.h"
+
 using namespace std;
 
-const int maxReadSize = 10000;
 const int maxTries = 10000; // Maximum number of tries to find a suitable location for each read
 vector<long long> chromPos, chromLen;
 long long gs;
@@ -246,75 +247,86 @@ void AddCigar(char * cigar, int & num, char & last, char a) {
     }
 }
 
-void FixedLengthPrint(FILE *f, char * s, long long slen, int fixedlen) {
-/*    while (slen > fixedlen) {
-	char c = s[fixedlen];
-	s[fixedlen] = 0;
-	fprintf(f, "%s\n", s);
-	s[fixedlen] = c;
-	s += fixedlen;
-	slen -= fixedlen;
-    } */
-	s[slen] = 0;
-    fprintf(f, "%s", s);
-}
-
 // Just generates a single read, without header line but with quality line
+void PrintSingleRead(FILE *f, long long p, char strand, char original) {
+    char r[2 * MAX_READ_LENGTH], R[MAX_READ_LENGTH], quals[MAX_READ_LENGTH];
+    long long int readl2 = readl * 2;
+    memcpy(r, genome + p, readl2);
 
-void PrintSingleRead(FILE *f, long long p, char * quals, char strand, char original) {
-    char r[maxReadSize], R[maxReadSize];
-    memcpy(r, genome + p, readl);
-    if (strand == '-') revcomp(r, readl);
+    bool isReverse = (original == 'o' && strand == '-') || (original == 'p' && strand == '+');
+    char original_char, meth_char, unmeth_char;
+    if (strand == '+')
+        original_char = 'C'; // The letter in the reference genome, which should we care about its bisulfite conversion
+    else
+        original_char = 'G';
+    if (original == 'o') {
+        meth_char = 'C';    // The letter in read in case of original_char being methylated
+        unmeth_char = 'T';  // The letter in read in case of original_char being unmethylated
+    } else {
+        meth_char = 'G';
+        unmeth_char = 'A';
+    }
+
+    if (strand == '-') revcomp(r, readl2);
     if (bisSeq)
-        for (int i = 0; i < readl; i++) // Bisulfite conversion
+        for (int i = 0; i < readl2; i++) // Bisulfite conversion
             if (r[i] == 'c' || r[i] == 'C') {
                 if (strand == '+') {
-                    if (totalCount) totalCount[p + i]++;
-                    if ((double) rand() * 100.0 / RAND_MAX >= meth[i+p]) r[i] = 'T';
-                    else if (methylCount) methylCount[p+i]++;
-                }
-                else {
-                    if (totalCount) totalCount[p+readl-1-i]++;
-                    if ((double) rand() * 100.0 / RAND_MAX >= meth[p+readl-1-i]) r[i] = 'T';
-                    else  if (methylCount) methylCount[p+readl-1-i]++;
+                    if ((double) rand() * 100.0 / RAND_MAX >= meth[i + p]) r[i] = 'T';
+                } else {
+                    if ((double) rand() * 100.0 / RAND_MAX >= meth[p + readl2 - 1 - i]) r[i] = 'T';
                 }
             }
-    if (original == 'p') revcomp(r, readl);
-    r[readl] = 0;
-    int RLen = 0, num = 0;
-    char cigar[1000] = "";
+    if (original == 'p') revcomp(r, readl2);
+    r[readl2] = 0;
+    int num = 0, i = 0;
+    char cigar[MAX_READ_LENGTH] = "";
     char last = 0;
-    for (int i = 0; i < readl; i++) {
+    for (int RLen = 0; RLen < readl; RLen++) {
         double e = (double) rand() / RAND_MAX;
+        bool add_meth = !countOutFile.empty();
         if (e < mismatchRate) {
-            R[RLen++] = Mutate(r[i]); // Mutation
+            quals[RLen] = (char) (42 + (log(rand())));
+            R[RLen] = Mutate(r[i]); // Mutation
             AddCigar(cigar, num, last, 'M');
-        }
-        else if (e < insRate + mismatchRate) { // Insertion
-            R[RLen++] = RandBase();
-            i--;
+        } else if (e < insRate + mismatchRate) { // Insertion
+            quals[RLen] = (char) (37 + (log(rand())));
+            R[RLen] = RandBase();
             AddCigar(cigar, num, last, 'I');
+            add_meth = false;
         } else if (e < delRate + insRate + mismatchRate) { // Deletion
             AddCigar(cigar, num, last, 'D');
+            i++;
+            RLen--;
+            add_meth = false;
         } else { // Match
-            R[RLen++] = r[i];
+            quals[RLen] = (char) (52 + (log(rand())));
+            R[RLen] = r[i];
             AddCigar(cigar, num, last, 'M');
+        }
+        if (add_meth) {
+            long long genome_loc = isReverse ? p + readl2 - 1 - i : p + i;
+            i++;
+            if (genome[genome_loc] == original_char) {
+                if (R[RLen] == meth_char) {
+                    methylCount[genome_loc]++;
+                    totalCount[genome_loc]++;
+                }
+                if (R[RLen] == unmeth_char) {
+                    totalCount[genome_loc]++;
+                }
+            }
         }
     }
     AddCigar(cigar, num, last, 0);
-    R[RLen] = 0;
-    quals[RLen] = 0;
-    fprintf(f, "%s\n", cigar);
-    FixedLengthPrint(f, R, RLen, 60);
-    fprintf(f, "\n+\n");
-    FixedLengthPrint(f, quals, RLen, 60);
-    fprintf(f, "\n");
-    quals[RLen] = 'I';
+    R[readl] = 0;
+    quals[readl] = 0;
+    fprintf(f, "%s\n%s\n+\n%s\n", cigar, R, quals);
 }
 
 // Can print both single and paired end reads, along with the header line
 
-void PrintRead(int readNumber, int chr, long long p, char *quals, long long pairDis) {
+void PrintRead(int readNumber, int chr, long long p, long long pairDis) {
     char strand = '+', strand2='+', original='o';
     FILE * of=outputFile, *of2 = (paired)?outputFile2:outputFile;
     //if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
@@ -334,8 +346,8 @@ void PrintRead(int readNumber, int chr, long long p, char *quals, long long pair
         fprintf(of, "@%d %s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+1, off + readl, strand, original);
         fprintf(of2, "@%d %s:%llu-%llu|%c%c|", readNumber+1, chromName[chr].c_str(), off+readl+pairDis+1, off + 2 * readl + pairDis, strand2, original);
     }
-    PrintSingleRead(of, p, quals, strand, original);
-    if (paired) PrintSingleRead(of2, p + readl + pairDis, quals, strand2, original);
+    PrintSingleRead(of, p, strand, original);
+    if (paired) PrintSingleRead(of2, p + readl + pairDis, strand2, original);
 }
 
 // Looks for a genomic region to find out any repeat regions (lower-case nucleotides)
@@ -364,8 +376,6 @@ int CheckPosition(long long p, long long pairDis) {
 // Simulates the reads
 
 void SimulateReads() {
-    char quals[maxReadSize];
-    memset(quals, 'I', sizeof(quals));
     long long p, pairDis = 0;
     int chr;
     if (! gs) {
@@ -385,7 +395,7 @@ void SimulateReads() {
             pairDis = lrand() % (long long) (pairMaxDis - pairMinDis + 1) + pairMinDis;
             if ((chr = CheckPosition(p, pairDis)) >= 0) break;
         } while (true);
-        PrintRead(i, chr, p, quals, pairDis);
+        PrintRead(i, chr, p, pairDis);
     }
 
 // Simulating CpG-island reads
@@ -407,7 +417,7 @@ void SimulateReads() {
 //			cerr << islands.size() << " " << is << " " << p << " " << islands[is].chr << " " << CheckPosition(p, pairDis) << endl;
             if ((chr = CheckPosition(p, pairDis)) == islands[is].chr) break;
         } while (true);
-        PrintRead(n+i, chr, p, quals, pairDis);
+        PrintRead(n+i, chr, p, pairDis);
     }
 
 // Closing output
