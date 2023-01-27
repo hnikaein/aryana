@@ -244,7 +244,7 @@ char RandBase() {
 void CompactCigar(char * cigar, int cigarLen, bool isReverse) {
     char last = ' ', newCigar[2 * MAX_READ_LENGTH];
     int num = 0, newCigar_i = 0, i = isReverse ? cigarLen - 1 : 0, i_direction = isReverse ? -1 : 1;
-    for (; -1 < i < cigarLen; i += i_direction) {
+    for (; -1 < i && i < cigarLen; i += i_direction) {
         if (cigar[i] == last)
             num++;
         else {
@@ -264,27 +264,23 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
     memcpy(r, genome + p, readl2);
 
     bool isReverse = (original == 'o' && strand == '-') || (original == 'p' && strand == '+');
-    char original_char, meth_char, unmeth_char;
-    if (strand == '+')
+    char original_char, unmeth_char;
+    if (strand == '+') {
         original_char = 'C'; // The letter in the reference genome, which should we care about its bisulfite conversion
-    else
-        original_char = 'G';
-    if (original == 'o') {
-        meth_char = 'C';    // The letter in read in case of original_char being methylated
         unmeth_char = 'T';  // The letter in read in case of original_char being unmethylated
     } else {
-        meth_char = 'G';
+        original_char = 'G';
         unmeth_char = 'A';
     }
 
     if (bisSeq)  // Bisulfite conversion
         for (int i = 0; i < readl2; i++)
-            if (toupper(r[i]) == original_char && rand() * 100.0 / RAND_MAX >= meth[i + p])
+            if (toupper(r[i]) == original_char && rand() / (double) RAND_MAX * 100.0 >= meth[i + p])
                 r[i] = unmeth_char;
 
     char cigar[2 * MAX_READ_LENGTH];
     int cigar_i = 0;
-    for (int R_i = 0, r_i = 0; R_i < readl; ) {
+    for (int R_i = 0, r_i = 0; R_i < readl;) {
         double e = (double) rand() / RAND_MAX;
         bool add_meth = !countOutFile.empty();
         if (e < mismatchRate) {
@@ -313,7 +309,7 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
         if (add_meth) {
             long long genome_loc = p + (r_i - 1);
             if (toupper(genome[genome_loc]) == original_char) {
-                if (R[R_i - 1] == meth_char) {
+                if (R[R_i - 1] == original_char) {
                     methylCount[genome_loc]++;
                     totalCount[genome_loc]++;
                 }
@@ -329,19 +325,19 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
     R[readl] = 0;
     quals[readl] = 0;
     long long off = p - chromPos[chr];
-    fprintf(f, "@%d %s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, chromName[chr].c_str(), off + 1, off + readl,
+    fprintf(f, "@%d %s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, chromName[chr].c_str(), off + 1, off + cigar_i,
             strand, original, cigar, R, quals);
 }
 
 // Can print both single and paired end reads
 void PrintRead(int readNumber, int chr, long long p, long long pairDis) {
-    char strand = '+', strand2='+', original='o';
-    FILE * of=outputFile, *of2 = (paired)?outputFile2:outputFile;
+    char strand = '+', strand2 = '+', original = 'o';
+    FILE *of = outputFile, *of2 = (paired) ? outputFile2 : outputFile;
     //if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
     if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
-    if (paired && orientation==fr) strand2 = '-';
-    if (paired && orientation==rf) strand='-';
-    if ((! paired || orientation == ff) && neg && (double) rand() / RAND_MAX < 0.5) strand=strand2='-';
+    if (paired && orientation == fr) strand2 = '-';
+    if (paired && orientation == rf) strand = '-';
+    if ((!paired || orientation == ff) && neg && (double) rand() / RAND_MAX < 0.5) strand = strand2 = '-';
     if (original == 'p') {
         swap(of, of2);
         swap(strand, strand2);
