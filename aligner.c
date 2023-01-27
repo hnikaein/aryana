@@ -244,6 +244,8 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             k=18;
         if (len <40)
             k=15;
+        if (args->bisulfite)
+            k = k * 2 / 3;
     }
     else
         k=args->seed_length;
