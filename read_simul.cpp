@@ -133,7 +133,7 @@ void ReadCpGIslands() {
         cerr << "Error: CpG island locations file not found or could not be opened" << endl;
         exit(1);
     }
-    char fLine[10000], chrom[10];
+    char fLine[10000], chrom[MAX_CHR_NAME_LENGTH];
     long long wStart, wEnd;
     while (f.good()) {
         fLine[0] = 0;
@@ -254,12 +254,14 @@ void CompactCigar(char * cigar, int cigarLen, bool isReverse) {
             num = 1;
         }
     }
+    if (num > 0)
+        newCigar_i += sprintf(newCigar + newCigar_i, "%d%c", num, last);
     memcpy(cigar, newCigar, newCigar_i);
     cigar[newCigar_i] = 0;
 }
 
 // Generates a single read, and print all related lines
-void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand, char original) {
+void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand, char original, int paired_id) {
     char r[2 * MAX_READ_LENGTH], R[MAX_READ_LENGTH], quals[MAX_READ_LENGTH];
     memcpy(r, genome + p, readl2);
 
@@ -325,8 +327,12 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
     R[readl] = 0;
     quals[readl] = 0;
     long long off = p - chromPos[chr];
-    fprintf(f, "@%d %s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, chromName[chr].c_str(), off + 1, off + cigar_i,
-            strand, original, cigar, R, quals);
+    if (!paired)
+        fprintf(f, "@%d|%s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, chromName[chr].c_str(),
+                off + 1, off + cigar_i, strand, original, cigar, R, quals);
+    else
+        fprintf(f, "@%d_%d|%s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, paired_id, chromName[chr].c_str(),
+                off + 1, off + cigar_i, strand, original, cigar, R, quals);
 }
 
 // Can print both single and paired end reads
@@ -344,8 +350,8 @@ void PrintRead(int readNumber, int chr, long long p, long long pairDis) {
     }
     if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
 
-    PrintSingleRead(of, chr, readNumber, p, strand, original);
-    if (paired) PrintSingleRead(of2, chr, readNumber, p + readl + pairDis, strand2, original);
+    PrintSingleRead(of, chr, readNumber, p, strand, original, paired ? 1 : 0);
+    if (paired) PrintSingleRead(of2, chr, readNumber, p + readl + pairDis, strand2, original, 2);
 }
 
 // Looks for a genomic region to find out any repeat regions (lower-case nucleotides)
