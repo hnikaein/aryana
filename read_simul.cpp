@@ -339,6 +339,7 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
 void PrintRead(int readNumber, int chr, long long p, long long pairDis) {
     char strand = '+', strand2 = '+', original = 'o';
     FILE *of = outputFile, *of2 = (paired) ? outputFile2 : outputFile;
+    int paired_id = 1, paired_id_2 = 2;
     //if (paired && (double) rand() / RAND_MAX < 0.5) swap(of, of2);
     if (pcr && (double) rand() / RAND_MAX < 0.5) original = 'p';
     if (paired && orientation == fr) strand2 = '-';
@@ -347,11 +348,12 @@ void PrintRead(int readNumber, int chr, long long p, long long pairDis) {
     if (original == 'p') {
         swap(of, of2);
         swap(strand, strand2);
+        swap(paired_id, paired_id_2);
     }
     if ((orientation == ff && strand == '-') || (orientation != ff && (double) rand() / RAND_MAX < 0.5)) swap(of, of2);
 
-    PrintSingleRead(of, chr, readNumber, p, strand, original, paired ? 1 : 0);
-    if (paired) PrintSingleRead(of2, chr, readNumber, p + readl + pairDis, strand2, original, 2);
+    PrintSingleRead(of, chr, readNumber, p, strand, original, paired_id);
+    if (paired) PrintSingleRead(of2, chr, readNumber, p + readl + pairDis, strand2, original, paired_id_2);
 }
 
 // Looks for a genomic region to find out any repeat regions (lower-case nucleotides)
