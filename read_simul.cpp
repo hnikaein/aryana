@@ -262,7 +262,9 @@ void CompactCigar(char * cigar, int cigarLen, bool isReverse) {
 
 // Generates a single read, and print all related lines
 void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand, char original, int paired_id) {
-    char r[2 * MAX_READ_LENGTH], R[MAX_READ_LENGTH], quals[MAX_READ_LENGTH];
+    char r[2 * MAX_READ_LENGTH],// part of genome
+    R[MAX_READ_LENGTH],// simulated read
+    quals[MAX_READ_LENGTH];
     memcpy(r, genome + p, readl2);
 
     bool isReverse = (original == 'o' && strand == '-') || (original == 'p' && strand == '+');
@@ -281,41 +283,38 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
                 r[i] = unmeth_char;
 
     char cigar[2 * MAX_READ_LENGTH];
-    int cigar_i = 0;
-    for (int R_i = 0, r_i = 0; R_i < readl;) {
+    int cigar_i = 0, r_i = 0;// r_i: position on reference genome
+    // R_i: position on simulated read
+    for (int R_i = 0; R_i < readl;R_i++, r_i++) {
         double e = (double) rand() / RAND_MAX;
         bool add_meth = !countOutFile.empty();
         if (e < mismatchRate) {
             quals[R_i] = (char) (42 + (log(rand())));
             R[R_i] = Mutate(r[r_i]); // Mutation
             cigar[cigar_i++] = 'M';
-            R_i++;
-            r_i++;
         } else if (e < insRate + mismatchRate) { // Insertion
             quals[R_i] = (char) (37 + (log(rand())));
             R[R_i] = RandBase();
             cigar[cigar_i++] = 'I';
             add_meth = false;
-            R_i++;
+            r_i--; // because of insertion, don't move genome pointer
         } else if (e < delRate + insRate + mismatchRate) { // Deletion
             cigar[cigar_i++] = 'D';
             add_meth = false;
-            r_i++;
+            R_i--; // because of deletion, don't move generated read pointer
         } else { // Match
             quals[R_i] = (char) (52 + (log(rand())));
             R[R_i] = (char) toupper(r[r_i]);
             cigar[cigar_i++] = 'M';
-            r_i++;
-            R_i++;
         }
         if (add_meth) {
-            long long genome_loc = p + (r_i - 1);
+            long long genome_loc = p + r_i;
             if (toupper(genome[genome_loc]) == original_char) {
-                if (R[R_i - 1] == original_char) {
+                if (R[R_i] == original_char) {
                     methylCount[genome_loc]++;
                     totalCount[genome_loc]++;
                 }
-                if (R[R_i - 1] == unmeth_char) {
+                if (R[R_i] == unmeth_char) {
                     totalCount[genome_loc]++;
                 }
             }
@@ -329,10 +328,10 @@ void PrintSingleRead(FILE *f, int chr, int readNumber, long long p, char strand,
     long long off = p - chromPos[chr];
     if (!paired)
         fprintf(f, "@%d|%s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, chromName[chr].c_str(),
-                off + 1, off + cigar_i, strand, original, cigar, R, quals);
+                off + 1, off + r_i, strand, original, cigar, R, quals);
     else
         fprintf(f, "@%d_%d|%s:%llu-%llu|%c%c|%s\n%s\n+\n%s\n", readNumber + 1, paired_id, chromName[chr].c_str(),
-                off + 1, off + cigar_i, strand, original, cigar, R, quals);
+                off + 1, off + r_i, strand, original, cigar, R, quals);
 }
 
 // Can print both single and paired end reads

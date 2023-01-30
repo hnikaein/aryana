@@ -184,7 +184,6 @@ void floyd(long long down, long long up , int exactmatch_num,long long *selected
     in = N - exactmatch_num;
 
     for (; in < N && im < exactmatch_num; ++in) {
-        srand (time(NULL));
         long long r = rand() % (in + 1); /* generate a random number 'r' */
         if(BITTEST(is_used, r))
             /* we already have 'r' */
@@ -208,7 +207,6 @@ void knuth(long long down, long long up , int exactmatch_num,long long *selected
     for (in = 0; in < N && im < exactmatch_num; ++in) {
         rn = N - in;
         rm = exactmatch_num - im;
-        srand (time(NULL));
         if (rand() % rn < rm)
             selected[im++] = down + in;
     }
@@ -244,8 +242,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             k=18;
         if (len <40)
             k=15;
-        if (args->bisulfite)
-            k = k * 2 / 3;
     }
     else
         k=args->seed_length;
@@ -262,8 +258,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     }
     //inexact match
     bwtint_t groupid_last=1;
-    long long prev_i = -10000;
-    bwtint_t prev_limit = 0;
     for(i=len - 1; i>=k; i--) {
         bwt_match_limit_rev(bwt, k, seq+i - k + 1, &down, &up,&limit);
         if(limit < k) {
@@ -271,8 +265,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             continue;
         }
         bwt_match_limit(bwt, i+1, seq, &down, &up,&limit);
-        if (prev_i - i == prev_limit - limit)
-            continue;
         if (args->debug > 2) {
             fprintf(stderr, "aligner(), %llu regions have exact match with %llu score, seq: ", (unsigned long long) (up - down + 1), (unsigned long long) limit);
             PrintSeq(seq + i + 1 - limit, limit, 1);
@@ -309,8 +301,13 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
             add(bwt, rindex/len, score, level, index - (i - limit+1), best, best_size, best_found, table, i - limit+1, limit, index,len, groupid_last); // if level changed, check the find_value in hash.c
         }
         groupid_last++;
-        prev_i = i;
-        prev_limit = limit;
+        if (i > k) { // two seeds should have at most k overlaps as a heuristic
+            if ((limit - k + 1) > 0)
+                i = i - limit + (k - 1) + 1;
+            else
+                fprintf(stderr, "manfi\n");
+            if (i < k) break;
+        }
     }
 	total_candidates += best_size - *best_found;
     if (args->best_factor > 0)
