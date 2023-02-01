@@ -230,7 +230,6 @@ void floyd(long long down, long long up, int exactmatch_num, long long *selected
     in = N - exactmatch_num;
 
     for (; in < N && im < exactmatch_num; ++in) {
-        srand(RAND_SEED);
         long long r = rand() % (in + 1); /* generate a random number 'r' */
         if (BITTEST(is_used, r))
             /* we already have 'r' */
@@ -254,7 +253,6 @@ void knuth(long long down, long long up, int exactmatch_num, long long *selected
     for (in = 0; in < N && im < exactmatch_num; ++in) {
         rn = N - in;
         rm = exactmatch_num - im;
-        srand(RAND_SEED);
         if (rand() % rn < rm)
             selected[im++] = down + in;
     }
@@ -297,8 +295,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     for (i = len - 1; i >= k; i--) {
         bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
         if (limit < k) {
-            i = (long long int) (i - k + limit);
-            if (i < k) break;
+            i = (long long int) (i - k + limit + 1);
             continue;
         }
         bwt_match_limit(bwt, (int) (i + 1), seq, &down, &up, &limit);
@@ -351,9 +348,9 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
                         (llu) rindex / tag_size_diff, (llu) score, (llu) index - (i - limit + 1), (llu) index, (llu) i);
         }
         groupid_last++;
-        if (i > k) {
+        if (i > k) { // two seeds should have at most k overlaps as a heuristic
             if ((limit - k + 1) > 0)
-                i = (long long int) (i - limit + (k - 1));
+                i = (long long int) (i - limit + (k - 1) + 1);
             else
                 fprintf(stderr, "Negative value for (limit-k+1)\n");
             if (i < k) break;
