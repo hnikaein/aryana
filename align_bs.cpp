@@ -142,7 +142,7 @@ int ChromIndex(char *chr) {
 
 }
 
-void find_min_penalties(int *min, int *min2) {
+int find_min_penalties(int *min, int *min2) {
     *min = *min2 = 0;
     int min_penalty = readPenalties[0] + (paired ? readPenalties[0 + BS_GENOMES_COUNT] : 0);
     for (int i = 0; i < BS_GENOMES_COUNT; i++) {
@@ -178,6 +178,7 @@ void find_min_penalties(int *min, int *min2) {
             }
         }
     }
+    return min_penalty;
 }
 
 void ReadCpGIslands(char *annotationFile) {
@@ -337,7 +338,9 @@ bool ReadLine(char *line, int len, FILE *f) {
     return true;
 }
 
-void Process() {
+int penalties[MAX_READ_COUNT], penalties_len, penalties_cutoff, a1[MAX_READ_COUNT], a2[MAX_READ_COUNT], a3[MAX_READ_COUNT], a4[MAX_READ_COUNT];
+
+void Process(bool print_output) {
     for (int i = 0; i < BS_GENOMES_COUNT; i++) samFiles[i] = fopen(samNames[i], "r");
     char line[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH], cigar[BS_GENOMES_COUNT][MAX_READ_LENGTH * 2],
             qname[MAX_READ_NAME_LENGTH], rnext[MAX_CHR_NAME_LENGTH], pnext[30], seq_string[MAX_READ_LENGTH], quality_string[MAX_READ_LENGTH],
@@ -384,18 +387,42 @@ void Process() {
                               index2, pos2[i], flagTwo[i], flag2);
                 }
             }
-            cerr << i << "\t" << readPenalties[i] << "\t" << readPenalties[i + BS_GENOMES_COUNT] << endl;
+//            cerr << i << "\t" << readPenalties[i] << "\t" << readPenalties[i + BS_GENOMES_COUNT] << endl;
         }
 
         int min, min2;
-        find_min_penalties(&min, &min2);
-        chosen[min]++; // shows how many times a genome has been selected
-        fprintf(outputFile, "%s", line[min]);
-        if (paired) {
-            chosen[min2]++; // shows how many times a genome has been selected
-            fprintf(outputFile, "%s", line2[min2]);
+        int min_penalty = find_min_penalties(&min, &min2);
+        if (!print_output) {
+            penalties[penalties_len++] = min_penalty;
+            a1[penalties_len] = min;
+            int read_id;
+            char *temp;
+            read_id = strtol(qname, &temp, 10);
+            a2[penalties_len] = read_id;
+        } else {
+            if (min_penalty > penalties_cutoff)
+                continue;
+            chosen[min]++; // shows how many times a genome has been selected
+            fprintf(outputFile, "%s", line[min]);
+            if (paired) {
+                chosen[min2]++; // shows how many times a genome has been selected
+                fprintf(outputFile, "%s", line2[min2]);
+            }
         }
     }
+}
+
+void findCutoff() {
+//    std::sort(penalties, penalties + penalties_len);
+    int cutoff_width = penalties_len / 200, i;
+    auto f = fopen("temptemp", "w");
+    for (i = penalties_len - 2; i > cutoff_width; i--) {
+        fprintf(f, "%d\t%d\t%d\n", a2[i], a1[i], penalties[i]);
+//        if (penalties[i] < 1.1 * penalties[i - cutoff_width])
+//            break;
+    }
+    fclose(f);
+    penalties_cutoff = penalties[i + 1];
 }
 
 int main(int argc, char *argv[]) {
@@ -487,7 +514,9 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     ReadCpGIslands(annotationFile);
     WriteHeader();
-    Process();
+    Process(false);
+    findCutoff();
+    Process(true);
     for (int j = 0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, chosen[j]);
 
