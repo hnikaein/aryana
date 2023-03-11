@@ -50,7 +50,7 @@ struct Island {
 };
 
 vector<Island> islands;
-int highPenalty = 0, lowPenalty = 0;
+int mismatch_penalty = 0, go_penatly = 0, ge_penalty = 0;
 
 char *samNames[BS_GENOMES_COUNT];
 FILE *samFiles[BS_GENOMES_COUNT];
@@ -123,7 +123,7 @@ int ReadGenome(char *genomeFile) {
 }
 
 
-char getNuc(uint64_t place) {
+inline char getNuc(uint64_t place) {
     return genome[place];
 }
 
@@ -206,74 +206,25 @@ void CalcPenalties(uint64_t ref_i, char read, long read_penalties_id, int chr, u
     genome[ref_i] = (char) toupper(genome[ref_i]);
     genome[ref_i + 1] = (char) toupper(genome[ref_i + 1]);
     genome[ref_i - 1] = (char) toupper(genome[ref_i - 1]);
-
-    if (flag2) {
-        if (read == 'A' || read == 'G') {
-            if (getNuc(ref_i) != read)
-                readPenalties[read_penalties_id] += highPenalty;
-        } else { //read = C or T
-
-            if (read == 'T' && getNuc(ref_i) == 'C') {
-                if (getNuc(ref_i + 1) == 'G') { // in the CpG context
-                    if (isInIsland(chr, chrPos)) // in CpG and also island
-                        readPenalties[read_penalties_id] += 0;
-                    else
-                        readPenalties[read_penalties_id] += highPenalty;
-
-                } else // out of CpG context
-
-                    readPenalties[read_penalties_id] += lowPenalty;
-
-            } else if (read == 'C' && getNuc(ref_i) == 'C') {
-                if (getNuc(ref_i + 1) == 'G') { // in the CpG context
-                    int temp = isInIsland(chr, chrPos);
-                    if (temp == 1)  // in CpG and also island
-                        readPenalties[read_penalties_id] += highPenalty;
-                    else            // in CpG and out of island
-                        readPenalties[read_penalties_id] += lowPenalty;
-
-                } else              // out of CpG context
-                    readPenalties[read_penalties_id] += highPenalty;
-
-            } else if (read == 'C' && getNuc(ref_i) == 'T')
-                readPenalties[read_penalties_id] += highPenalty;
-
-        }
-    } else {
-        if (read == 'C' || read == 'T') {
-            if (getNuc(ref_i) != read)
-                readPenalties[read_penalties_id] += highPenalty;
-        } else { //read = G or A
-
-            if (read == 'A' && getNuc(ref_i) == 'G') {
-                if (getNuc(ref_i - 1) == 'C') { // in the CpG context
-                    if (isInIsland(chr, chrPos)) { // in CpG and also island
-                        readPenalties[read_penalties_id] += 0;
-                    } else {
-                        readPenalties[read_penalties_id] += highPenalty;
-                    }
-                } else { // out of CpG context
-
-                    readPenalties[read_penalties_id] += lowPenalty;
-                }
-            } else if (read == 'G' && getNuc(ref_i) == 'G') {
-                if (getNuc(ref_i - 1) == 'C') { // in the CpG context
-                    int temp = isInIsland(chr, chrPos);
-                    if (temp == 1) { // in CpG and also island
-                        readPenalties[read_penalties_id] += highPenalty;
-                    } else {
-                        readPenalties[read_penalties_id] += lowPenalty;
-                    }
-                } else { // out of CpG context
-                    readPenalties[read_penalties_id] += highPenalty;
-                }
-
-            } else if (read == 'G' && getNuc(ref_i) == 'A')
-                readPenalties[read_penalties_id] += highPenalty;
-        }
-
+    char methyl_nuc = 'G', bis_methyl_nuc = 'A', CPG_next_nuc = 'C';
+    int next_nuc = -1;
+    if (refCT) {
+        methyl_nuc = 'C';
+        bis_methyl_nuc = 'T';
+        next_nuc = 1;
+        CPG_next_nuc = 'G';
     }
 
+    if ((read != bis_methyl_nuc && read != methyl_nuc) || (getNuc(ref_i) != methyl_nuc)) {
+        if (getNuc(ref_i) != read)
+            readPenalties[read_penalties_id] += mismatch_penalty;
+    } else {
+        bool is_methylated = read != bis_methyl_nuc;
+        if (getNuc(ref_i + next_nuc) == CPG_next_nuc && !isInIsland(chr, chrPos)) // in CpG and out of island
+            readPenalties[read_penalties_id] += is_methylated ? 0 : mismatch_penalty;
+        else
+            readPenalties[read_penalties_id] += is_methylated ? mismatch_penalty : 0;
+    }
 }
 
 // Reads Cigar sequence and call CalcPenalties for calculating penalties for each base
@@ -296,10 +247,10 @@ void readCigar(char *cigar, uint64_t ref_i, char *seq_string, int read_penalties
                     }
                 } else if (cigar[cpos] == 'D' || cigar[cpos] == 'd') {
                     ref_index += value;
-                    readPenalties[read_penalties_id] += highPenalty * value;      //high penalty for insertion
+                    readPenalties[read_penalties_id] += ge_penalty * (value - 1) + go_penatly;      //high penalty for insertion
                 } else if (cigar[cpos] == 'I' || cigar[cpos] == 'i') {
                     read_index += value;
-                    readPenalties[read_penalties_id] += highPenalty * value;      //high penalty for deletion
+                    readPenalties[read_penalties_id] += ge_penalty * (value - 1) + go_penatly;      //high penalty for deletion
                 }
             } else if (cigar[cpos] == '*') {
                 readPenalties[read_penalties_id] += UNALIGNED_PENALTY;     // maximum penalty for not aligned reads
@@ -440,10 +391,10 @@ int main(int argc, char *argv[]) {
                 strcpy(annotationFile, optarg);
                 break;
             case 'p':
-                lowPenalty = (int) strtol(optarg, &strtox_temp, 10);
-//            medPenalty = atoi(argv[optind]);
-                highPenalty = (int) strtol(argv[optind + 1], &strtox_temp, 10);
-                optind = optind + 2;
+                mismatch_penalty = (int) strtol(optarg, &strtox_temp, 10);
+                go_penatly = (int) strtol(argv[optind], &strtox_temp, 10);
+                ge_penalty = (int) strtol(argv[optind + 1], &strtox_temp, 10);
+                optind += 2;
                 break;
             case 'o':
                 outputFile = fopen(optarg, "w");
