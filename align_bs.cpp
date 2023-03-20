@@ -490,13 +490,16 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     ReadCpGIslands(annotationFile);
     WriteHeader();
-    while (true)
-        if (Process() == 0) {
+    while (true) {
+        unsigned long long changed_count = Process();
+        fprintf(stderr, "Numver of changed reads position: %llu\n", changed_count);
+        if (changed_count < 10) {
             if (em_flag)
                 em_flag = false;
             else
                 break;
         }
+    }
     for (int j = 0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, index_usage_count[j]);
 
