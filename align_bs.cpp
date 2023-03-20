@@ -48,7 +48,7 @@ vector<string> chromName;
 vector<Island> islands;
 map<uint64_t, int> cpg_ids;
 FILE *outputFile = nullptr, *headerFile = nullptr;
-bool paired = false;
+bool paired = false, em_flag = false;
 int chromNum, paired_min_distance = 0, paired_max_distance = 10000,
         mismatch_penalty = 0, go_penatly = 0, ge_penalty = 0,
         index_usage_count[BS_GENOMES_COUNT];
@@ -111,14 +111,15 @@ int ReadGenome(char *genomeFile) {
         } else {
             memcpy(genome + gs, fLine, n);
             uint64_t i = gs > 0 ? gs : gs + 1;
-            for (; i < gs + n; ++i) {
-                genome[i] = to_upper(genome[i]);
-                if (genome[i - 1] == 'C' && genome[i] == 'G') {
-                    cpg_ids[i - 1] = cpg_counts++;
-                    cpg_ids[i] = cpg_counts++;
-                    i++;
+            if (em_flag)
+                for (; i < gs + n; ++i) {
+                    genome[i] = to_upper(genome[i]);
+                    if (genome[i - 1] == 'C' && genome[i] == 'G') {
+                        cpg_ids[i - 1] = cpg_counts++;
+                        cpg_ids[i] = cpg_counts++;
+                        i++;
+                    }
                 }
-            }
             gs += n;
         }
     }
@@ -126,10 +127,6 @@ int ReadGenome(char *genomeFile) {
     return 0;
 }
 
-
-inline char getNuc(uint64_t place) {
-    return genome[place];
-}
 
 inline int ChromIndex(const char *chr) {
     for (unsigned int i = 0; i < chrom.size(); i++) {
@@ -202,7 +199,10 @@ bool isInIsland(int chr, uint64_t chr_pos) {
 
 double calc_base_nuc_penalty(const uint64_t ref_i, const char read_ch, const int chr, const uint64_t chrPos,
                              vector<pair<int, bool>> &read_cpg_ids, const bool refCT) {
-    const char read = (char) toupper(read_ch);
+    const char read = to_upper(read_ch);
+    genome[ref_i] = to_upper(genome[ref_i]);
+    genome[ref_i + 1] = to_upper(genome[ref_i + 1]);
+    genome[ref_i - 1] = to_upper(genome[ref_i - 1]);
     char methyl_nuc = 'G', bis_methyl_nuc = 'A', CPG_next_nuc = 'C';
     int next_nuc = -1;
     if (refCT) {
@@ -212,18 +212,23 @@ double calc_base_nuc_penalty(const uint64_t ref_i, const char read_ch, const int
         CPG_next_nuc = 'G';
     }
 
-    if ((read != bis_methyl_nuc && read != methyl_nuc) || (getNuc(ref_i) != methyl_nuc)) {
-        if (getNuc(ref_i) != read)
+    if ((read != bis_methyl_nuc && read != methyl_nuc) || (genome[ref_i] != methyl_nuc)) {
+        if (genome[ref_i] != read)
             return mismatch_penalty;
     } else {
         bool is_methylated = read != bis_methyl_nuc;
         double methyl_ratio = 0;
-        if (getNuc(ref_i + next_nuc) == CPG_next_nuc) {// is CpG
-            int cpg_id = cpg_ids[ref_i];
-            read_cpg_ids.emplace_back(cpg_id, is_methylated);
-            if (cpg_read_count[cpg_id] > 0)
-                methyl_ratio = 1.0 * cpg_methyl_count[cpg_id] / cpg_read_count[cpg_id];
-            else if (!isInIsland(chr, chrPos))
+        if (genome[ref_i + next_nuc] == CPG_next_nuc) {// is CpG
+            bool methyl_ratio_changed = false;
+            if (!cpg_ids.empty()) {
+                int cpg_id = cpg_ids[ref_i];
+                read_cpg_ids.emplace_back(cpg_id, is_methylated);
+                if (cpg_read_count[cpg_id] > 0) {
+                    methyl_ratio = 1.0 * cpg_methyl_count[cpg_id] / cpg_read_count[cpg_id];
+                    methyl_ratio_changed = true;
+                }
+            }
+            if (!methyl_ratio_changed && !isInIsland(chr, chrPos))
                 methyl_ratio = 1;
         }
         return (is_methylated ? (1 - methyl_ratio) : methyl_ratio) * mismatch_penalty;
@@ -321,7 +326,7 @@ void change_read_candidate(vector<pair<int, bool>> *read_cpg_ids, int prev_candi
     }
 }
 
-uint64_t Process(bool do_em) { // return em total changed
+uint64_t Process() { // return em total changed
     char rname[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH], rname2[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH],
             line[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH], line2[BS_GENOMES_COUNT][MAX_SAM_LINE_LENGTH];
     int flag[BS_GENOMES_COUNT], flagTwo[BS_GENOMES_COUNT];
@@ -363,7 +368,7 @@ uint64_t Process(bool do_em) { // return em total changed
 
         int min, min2;
         find_min_penalties(rname, rname2, flag, flagTwo, pos, pos2, readPenalties, &min, &min2);
-        if (do_em) {
+        if (em_flag) {
             if (read_min_penalty.size() <= read_count)
                 read_min_penalty.push_back(0);
             if (read_min_penalty[read_count] != min + 1) {
@@ -420,7 +425,6 @@ int main(int argc, char *argv[]) {
     };
     int option_index = 0;
     char *samFileName = nullptr, *annotationFile = nullptr, *referenceName = nullptr, c;
-    bool do_em = false;
     outputFile = stdout;
     while ((c = (char) getopt_long(argc, argv, "x:s:c:p:o:h:Pm:M:123l:e", long_options, &option_index)) >= 0) {
         switch (c) {
@@ -469,7 +473,7 @@ int main(int argc, char *argv[]) {
                 orientation = ff;
                 break;
             case 'e':
-                do_em = true;
+                em_flag = true;
                 break;
             case 'l':
 //                limit = (int) strtol(optarg, &strtox_temp, 10);;
@@ -487,9 +491,9 @@ int main(int argc, char *argv[]) {
     ReadCpGIslands(annotationFile);
     WriteHeader();
     while (true)
-        if (Process(do_em) == 0) {
-            if (do_em)
-                do_em = false;
+        if (Process() == 0) {
+            if (em_flag)
+                em_flag = false;
             else
                 break;
         }
