@@ -25,15 +25,21 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
 
+    if (best->parts > 1){
+        printf("salam");
+    }
+
     int longest_seeds_chain_len[best->parts], longest_seeds_chain_prev[best->parts],
             max_longest_seeds_chain_len = 0, max_longest_seeds_chain_last = 0;
     for (int i = best->parts - 1; i >= 0; i--) {
         int longest_seeds_chain_len_till_i = 0, longest_seeds_chain_len_till_i_source = -1;
         uint64_t max_distance_i_j = 0;
         for (int j = best->parts - 1; j > i; j--) {
-            uint64_t distance_in_read = best->match_start[i] - (best->match_start[j] + best->matched[j]);
-            uint64_t distance_in_index = best->match_index[i] - (best->match_index[j] + best->matched[j]);
-            if (distance_in_read >= 0 && distance_in_index >= 0) {
+            // these are unsigned, so we can not minues them
+            if (best->match_start[i] >= (best->match_start[j] + best->matched[j]) &&
+                best->match_index[i] >= best->match_index[j] + best->matched[j]) {
+                uint64_t distance_in_read = best->match_start[i] - (best->match_start[j] + best->matched[j]);
+                uint64_t distance_in_index = best->match_index[i] - (best->match_index[j] + best->matched[j]);
                 uint64_t distance_i_j = max(distance_in_read, distance_in_index);
                 if (longest_seeds_chain_len[j] > longest_seeds_chain_len_till_i ||
                     (longest_seeds_chain_len[j] == longest_seeds_chain_len_till_i && distance_i_j < max_distance_i_j)) {
@@ -255,7 +261,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     }
     //inexact match
     bwtint_t groupid_last=1;
-    for(i=len - 1; i>=k; i--) {
+    for(i=len - 1; i>=k; i--) { // the seeds should not have overlaps. this assumption used in seeds chaining
         bwt_match_limit_rev(bwt, k, seq+i - k + 1, &down, &up,&limit);
         if(limit < k) {
             i = i - k + limit + 1;

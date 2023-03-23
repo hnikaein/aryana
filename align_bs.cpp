@@ -492,7 +492,7 @@ int main(int argc, char *argv[]) {
     WriteHeader();
     while (true) {
         unsigned long long changed_count = Process();
-        fprintf(stderr, "Numver of changed reads position: %llu\n", changed_count);
+        fprintf(stderr, "Number of changed reads position: %llu\n", changed_count);
         if (changed_count < 10) {
             if (em_flag)
                 em_flag = false;
