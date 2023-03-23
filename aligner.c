@@ -25,10 +25,6 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
 
-    if (best->parts > 1){
-        printf("salam");
-    }
-
     int longest_seeds_chain_len[best->parts], longest_seeds_chain_prev[best->parts],
             max_longest_seeds_chain_len = 0, max_longest_seeds_chain_last = 0;
     for (int i = best->parts - 1; i >= 0; i--) {
