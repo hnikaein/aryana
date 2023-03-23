@@ -3,106 +3,107 @@
 #include <inttypes.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
 #include <limits.h>
 #include <assert.h>
 #include "hash.h"
 #include "aryana_args.h"
 #include "bwa2.h"
 #include "smith.h"
-//#include "bwtgap.h"
-//#include "bwtaln.h"
 #include "aligner.h"
-//#include "utils.h"
-#include <math.h>
-#define false 0
-#define true 1
-#define bool int
 #include "bwt2.h"
-extern int debug;
+#include "const.h"
+
 extern void PrintSeq(const unsigned char *, int, int);
 extern void PrintRefSeq(uint64_t * reference, unsigned long long, unsigned long long, unsigned long long, int);
-extern void GetRefSeq(unsigned long long, unsigned long long, unsigned long long, char*);
-const char atom[4]= {'A','C','G','T'};
-extern char getNuc(uint64_t place, uint64_t * reference, uint64_t seq_len);
 
 extern long long total_candidates, best_factor_candidates;
+char *strtox_temp;
 
 void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, const ubyte_t *seq, uint64_t seq_len,int **d, char **arr, char * tmp_cigar, penalty_t * penalty, uint64_t * reference, ignore_mismatch_t ignore)
 {
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
-    int *valid=(int *)malloc(best->parts*(sizeof (int)));
-    bwtint_t lastvalid=best->parts-1;
-    long long i=0,j=0;
-    for (i=best->parts-1; i>=0; i--)
-    {
-        valid[i]=1;
-        if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) > 5+best->match_start[i]/20)
-            valid[i]=0;
-        if (valid[i]==1 && i<best->parts-1 && (best->match_start[lastvalid]+best->matched[lastvalid]>best->match_start[i]))
-        {
-            valid[i]=0;
-            if (llabs((signed)(best->match_index[i]-best->match_start[i])-(signed)best->index) < llabs((signed)(best->match_index[lastvalid]-best->match_start[lastvalid])-(signed)best->index))
-            {
-                valid[lastvalid]=0;
-                valid[i]=1;
-            }
-        }
-        if (valid[i]==1)
-            lastvalid=i;
-        if (i==0)
-            break;
-    }
 
-    //for (i=0; i<best->parts; i++)
-    //	fprintf(stderr, "part %lld: %lld %lld %d %d\n",i,best->match_start[i],best->match_index[i],best->matched[i],valid[i]);
-
-    int slack=10;
-    bwtint_t head_match=0,head_index=best->index >= slack ? best->index-slack : 0;
-    bwtint_t slack_index=head_index;
-    int print_head=0;
-    if (best->parts<=0 || best->parts > 50)
-        fprintf(stderr , "too much parts!\n");
-    if (args->debug > 0) {
-
-        fprintf(stderr, "Generating Cigar, best->parts:%d, Seqs:\n", best->parts);
-        PrintSeq(seq, len, 1);
-        PrintRefSeq(reference, head_index, head_index+len+2*slack, seq_len, 1);
-    }
-    for (i=best->parts-1; i>=0; i--)
-    {
-        if (valid[i] && !(best->match_start[i] < head_match || best->match_index[i] < head_index))// && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
-        {
-            print_head=smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar, print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
-            if (args->debug > 1) {
-                fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) best->match_start[i], (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
-                PrintSeq(seq+head_match,  best->match_start[i] - head_match, 1);
-                PrintRefSeq(reference, head_index, best->match_index[i]-1, seq_len, 1);
-            }
-            print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",best->matched[i],'M');
-            head_match=best->match_start[i]+best->matched[i];
-            head_index=best->match_index[i]+best->matched[i];
-        }
-        if (i==0)
-        {
-            bwtint_t end = head_index+len-head_match+slack;
-            if (end >= seq_len) end = seq_len -1;
-            if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
-                print_head+=snprintf(cigar+print_head,10,"%"PRIu64"%c",(len-head_match),'I');
-            else {
-                print_head=smith_waterman(args, head_match,len,head_index, end, cigar, print_head,seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference, ignore);
-                //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
-                if (args->debug > 1) {
-                    fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n", (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index, (unsigned long long) end, cigar, tmp_cigar);
-                    PrintSeq(seq+head_match, len - head_match, 1);
-                    PrintRefSeq(reference, head_index, end-1, seq_len, 1);
+    int longest_seeds_chain_len[best->parts], longest_seeds_chain_prev[best->parts],
+            max_longest_seeds_chain_len = 0, max_longest_seeds_chain_last = 0;
+    for (int i = best->parts - 1; i >= 0; i--) {
+        int longest_seeds_chain_len_till_i = 0, longest_seeds_chain_len_till_i_source = -1;
+        uint64_t max_distance_i_j = 0;
+        for (int j = best->parts - 1; j > i; j--) {
+            uint64_t distance_in_read = best->match_start[i] - (best->match_start[j] + best->matched[j]);
+            uint64_t distance_in_index = best->match_index[i] - (best->match_index[j] + best->matched[j]);
+            if (distance_in_read >= 0 && distance_in_index >= 0) {
+                uint64_t distance_i_j = max(distance_in_read, distance_in_index);
+                if (longest_seeds_chain_len[j] > longest_seeds_chain_len_till_i ||
+                    (longest_seeds_chain_len[j] == longest_seeds_chain_len_till_i && distance_i_j < max_distance_i_j)) {
+                    longest_seeds_chain_len_till_i = longest_seeds_chain_len[j];
+                    longest_seeds_chain_len_till_i_source = j;
+                    max_distance_i_j = distance_i_j;
                 }
             }
-            break;
+        }
+        longest_seeds_chain_len[i] = (int) (longest_seeds_chain_len_till_i + best->matched[i]);
+        longest_seeds_chain_prev[i] = longest_seeds_chain_len_till_i_source;
+        if (longest_seeds_chain_len[i] > max_longest_seeds_chain_len) {
+            max_longest_seeds_chain_len = longest_seeds_chain_len[i];
+            max_longest_seeds_chain_last = i;
         }
     }
+    int longest_seeds_chain_next[best->parts], longest_seeds_chain_first;
+    longest_seeds_chain_next[max_longest_seeds_chain_last] = -1;
+    for (longest_seeds_chain_first = max_longest_seeds_chain_last;
+         longest_seeds_chain_prev[longest_seeds_chain_first] != -1;
+         longest_seeds_chain_first = longest_seeds_chain_prev[longest_seeds_chain_first])
+        longest_seeds_chain_next[longest_seeds_chain_prev[longest_seeds_chain_first]] = longest_seeds_chain_first;
+
+    best->index = best->match_index[longest_seeds_chain_first] > best->match_start[longest_seeds_chain_first] ?
+                  best->match_index[longest_seeds_chain_first] - best->match_start[longest_seeds_chain_first] : 0;
+
+
+    int slack = 10;
+    bwtint_t head_match = 0, head_index = best->index >= slack ? best->index - slack : 0;
+    bwtint_t slack_index = head_index;
+    int print_head = 0;
+    if (best->parts <= 0 || best->parts > 50)
+        fprintf(stderr, "too much parts!\n");
+    if (args->debug > 0) {
+        fprintf(stderr, "Generating Cigar, best->parts:%d, Seqs:\n", best->parts);
+        PrintSeq(seq, len, 1);
+        PrintRefSeq(reference, head_index, head_index + len + 2 * slack, seq_len, 1);
+    }
+    for (int i = longest_seeds_chain_first; i != -1; i = longest_seeds_chain_next[i]) {
+        print_head = smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar,
+                                    print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference,
+                                    ignore);
+        if (args->debug > 1) {
+            fprintf(stderr, "SmithWaterman1 [%"PRIu64",%"PRIu64"],[%"PRIu64",%"PRIu64"] cigar %s, tmp_cigar %s\n",
+                    head_match, best->match_start[i], head_index, best->match_index[i], cigar, tmp_cigar);
+            PrintSeq(seq + head_match, (int) (best->match_start[i] - head_match), 1);
+            PrintRefSeq(reference, head_index, best->match_index[i] - 1, seq_len, 1);
+        }
+        print_head += snprintf(cigar + print_head, 10, "%"PRIu64"%c", best->matched[i], 'M');
+        head_match = best->match_start[i] + best->matched[i];
+        head_index = best->match_index[i] + best->matched[i];
+    }
+
+    bwtint_t end = head_index + len - head_match + slack;
+    if (end >= seq_len)
+        end = seq_len - 1;
+    if (head_index > end || (signed) (len - head_match) > (signed) (end - head_index) + 10)
+        snprintf(cigar + print_head, 10, "%"PRIu64"%c", (len - head_match), 'I');
+    else {
+        smith_waterman(args, head_match, len, head_index, end, cigar, print_head, seq, len, &penalty->mismatch_num,
+                       seq_len, d, arr, tmp_cigar, reference, ignore);
+        //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
+        if (args->debug > 1) {
+            fprintf(stderr, "SmithWaterman2 [%"PRIu64",%d],[%"PRIu64",%"PRIu64"] cigar %s, tmp_cigar %s\n",
+                    head_match, len, head_index, end, cigar, tmp_cigar);
+            PrintSeq(seq + head_match, (int) (len - head_match), 1);
+            PrintRefSeq(reference, head_index, end - 1, seq_len, 1);
+        }
+    }
+
 
     //refining cigar
     int firstblood=1;
@@ -110,14 +111,14 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     char last_char='M';
     print_head=0;
 
-    for (i=0; cigar[i]; i++)
+    for (int i=0; cigar[i]; i++)
     {
         char tmp[10];
-        j=0;
+        int j=0;
         while(isdigit(cigar[i]))
             tmp[j++]=cigar[i++];
         tmp[j]=0;
-        bwtint_t num=atoi(tmp);
+        int num = (int) strtol(tmp, &strtox_temp, 10);
         if (firstblood==1)
         {
             last_size=num;
@@ -149,7 +150,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     }
     if (last_char!='D') {
         if (last_size > 0)
-            print_head+=snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
+            snprintf(cigar+print_head,10,"%d%c",last_size,last_char);
         if (last_char == 'I') {
             penalty->gap_open_num++;
             penalty->gap_ext_num += last_size - 1;
@@ -158,15 +159,13 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     if (args->debug > 0)
         fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num, penalty->gap_open_num, penalty->gap_ext_num);
     best->index=slack_index;
-    free(valid);
 }
 
 #define BITMASK(b) (1 << ((b) % CHAR_BIT))
 #define BITSLOT(b) ((b) / CHAR_BIT)
 #define BITSET(a, b) ((a)[BITSLOT(b)] |= BITMASK(b))
-#define BITCLEAR(a, b) ((a)[BITSLOT(b)] &= ~BITMASK(b))
 #define BITTEST(a, b) ((a)[BITSLOT(b)] & BITMASK(b))
-#define BITNSLOTS(nb) ((nb + CHAR_BIT - 1) / CHAR_BIT)
+#define BITNSLOTS(nb) (((nb) + CHAR_BIT - 1) / CHAR_BIT)
 
 void floyd(long long down, long long up , int exactmatch_num,long long *selected) {
     long N = up - down+1;
@@ -226,7 +225,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     // initialize
     bwtint_t down, up;
     bwtint_t limit;
-    long long i = 0, j = 0;
 
     bwtint_t k;
     if (args->seed_length==-1)
@@ -247,8 +245,7 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
         k=args->seed_length;
 
     //reversing
-    j = len-1;
-    i=0;
+    long long i = 0, j = len - 1;
     for (; i<j && j >= 0 && i < len; (i++,j--)) {
         ubyte_t tmp = seq[i];
         seq[i] = seq[j];
