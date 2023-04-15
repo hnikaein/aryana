@@ -25,6 +25,29 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
 
+    int valid[best->parts], lastvalid = best->parts - 1;
+    for (int i = best->parts - 1; i >= 0; i--) {
+        valid[i] = 1;
+//        if (llabs((signed) (best->match_index[i] - best->match_start[i]) - (signed) best->index) >
+//            5 + best->match_start[i] / 20) {
+//            valid[i] = 0;
+//            continue;
+//        }
+        if (i < best->parts - 1 &&
+            ((best->match_start[lastvalid] + best->matched[lastvalid] > best->match_start[i]) ||
+             (best->match_index[lastvalid] + best->matched[lastvalid] > best->match_index[i]))) {
+            valid[i] = 0;
+            if (llabs((signed) (best->match_index[lastvalid] - best->index) - (signed) best->match_start[lastvalid]) >
+                llabs((signed) (best->match_index[i] - best->index) - (signed) best->match_start[i])) {
+                valid[lastvalid] = 0;
+                valid[i] = 1;
+            }
+        }
+        if (valid[i] == 1)
+            lastvalid = i;
+    }
+
+    /* DYNAMIC_SEED finding has not much effect due to the fact that seeds have not overlaps
     int longest_seeds_chain_len[best->parts], longest_seeds_chain_prev[best->parts],
             max_longest_seeds_chain_len = 0, max_longest_seeds_chain_last = 0;
     for (int i = best->parts - 1; i >= 0; i--) {
@@ -61,7 +84,7 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
 
     best->index = best->match_index[longest_seeds_chain_first] > best->match_start[longest_seeds_chain_first] ?
                   best->match_index[longest_seeds_chain_first] - best->match_start[longest_seeds_chain_first] : 0;
-
+    */
 
     int slack = 10;
     bwtint_t head_match = 0, head_index = best->index >= slack ? best->index - slack : 0;
@@ -74,7 +97,10 @@ void create_cigar(aryana_args * args, hash_element *best, char *cigar, int len, 
         PrintSeq(seq, len, 1);
         PrintRefSeq(reference, head_index, head_index + len + 2 * slack, seq_len, 1);
     }
-    for (int i = longest_seeds_chain_first; i != -1; i = longest_seeds_chain_next[i]) {
+    // for (int i = longest_seeds_chain_first; i != -1; i = longest_seeds_chain_next[i]) { DYNAMIC_SEED
+    for (int i = best->parts - 1; i >= 0; i--)
+      if (valid[i] && best->match_start[i] >= head_match && best->match_index[i] >= head_index) // && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
+    {
         print_head = smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar,
                                     print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar, reference,
                                     ignore);
