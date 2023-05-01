@@ -128,48 +128,55 @@ int ReadGenome(char *genomeFile) {
 }
 
 
-inline int ChromIndex(const char *chr) {
-    for (unsigned int i = 0; i < chrom.size(); i++) {
-        if (chrom[i].chrName == chr)
-            return (int) i;
+inline int ChromIndex(const char *chr, size_t len = 100000) {
+    const char *chr_dup = nullptr, *chr_to_compare = chr;
+    if (len < strlen(chr)) {
+        chr_dup = strndup(chr, len);
+        chr_to_compare = chr_dup;
     }
+    for (unsigned int i = 0; i < chrom.size(); i++)
+        if (chrom[i].chrName == chr_to_compare)
+            return (int) i;
+    delete chr_dup;
     return -1;
-
 }
 
 void find_min_penalties(const char rname[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH],
                         const char rname2[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH], const int *flag, const int *flagTwo,
-                        const uint64_t *pos, const uint64_t *pos2, const double *readPenalties, int *min, int *min2) {
-    *min = *min2 = 0;
+                        const uint64_t *pos, const uint64_t *pos2, const double *readPenalties, int *min1, int *min2) {
+    *min1 = *min2 = 0;
     double min_penalty = readPenalties[0] + (paired ? readPenalties[0 + BS_GENOMES_COUNT] : 0);
     for (int i = 0; i < BS_GENOMES_COUNT; i++) {
         if (!paired) {
             if (min_penalty > readPenalties[i]) {
                 min_penalty = readPenalties[i];
-                *min = i;
+                *min1 = i;
             }
         } else {
+            int chr_index = ChromIndex(rname[i], strchr(rname[i], '_') - rname[i]);
+            if (chr_index < 0)
+                return;
             for (int j = 0; j < BS_GENOMES_COUNT; j++) {
                 double new_penalty = readPenalties[i] + readPenalties[j + BS_GENOMES_COUNT];
+                int chr_index2 = ChromIndex(rname2[j], strchr(rname2[j], '_') - rname2[j]);
+                if (chr_index2 < 0)
+                    continue;
                 orientation_t orien;
-                int chr_index = ChromIndex(rname[i]);
-                int chr_index2 = ChromIndex(rname2[i]);
-                if (chr_index >= 0 && chr_index2 >= 0) {
-                    if ((flag[i] & 16) == (flagTwo[j] & 16))
-                        orien = ff;
-                    else if (((flag[i] & 16) == 0 && pos[i] < pos2[j]) ||
-                             ((flag[i] & 16) != 0 && pos[i] > pos2[j]))
-                        orien = fr;
-                    else
-                        orien = rf;
-                    if (chr_index != chr_index2 || llabs((signed) (pos[i] - pos2[j])) < paired_min_distance ||
-                        llabs((signed) (pos[i] - pos2[j])) > paired_max_distance ||
-                        (orientation != all && orientation != orien))
-                        new_penalty += DISCORD_PENALTY;
-                }
+                if ((flag[i] & 16) == (flagTwo[j] & 16))
+                    orien = ff;
+                else if (((flag[i] & 16) == 0 && pos[i] < pos2[j]) ||
+                         ((flag[i] & 16) != 0 && pos[i] > pos2[j]))
+                    orien = fr;
+                else
+                    orien = rf;
+                if (chr_index != chr_index2 ||
+                    llabs((signed) (pos[i] - pos2[j])) < paired_min_distance ||
+                    llabs((signed) (pos[i] - pos2[j])) > paired_max_distance ||
+                    (orientation != all && orientation != orien))
+                    new_penalty += DISCORD_PENALTY;
                 if (min_penalty > new_penalty) {
                     min_penalty = new_penalty;
-                    *min = i;
+                    *min1 = i;
                     *min2 = j;
                 }
             }
