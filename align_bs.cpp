@@ -128,12 +128,12 @@ int ReadGenome(char *genomeFile) {
 }
 
 
-inline int ChromIndex(const char *chr, size_t len = 100000) {
+inline int ChromIndex(const char *chr) { //}, size_t len = 100000) { use "len" to make chr16_xxx to chr16
     const char *chr_dup = nullptr, *chr_to_compare = chr;
-    if (len < strlen(chr)) {
-        chr_dup = strndup(chr, len);
-        chr_to_compare = chr_dup;
-    }
+//    if (len < strlen(chr)) {
+//        chr_dup = strndup(chr, len);
+//        chr_to_compare = chr_dup;
+//    }
     for (unsigned int i = 0; i < chrom.size(); i++)
         if (chrom[i].chrName == chr_to_compare)
             return (int) i;
@@ -153,12 +153,12 @@ void find_min_penalties(const char rname[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH],
                 *min1 = i;
             }
         } else {
-            int chr_index = ChromIndex(rname[i], strchr(rname[i], '_') - rname[i]);
+            int chr_index = ChromIndex(rname[i]); //, strchr(rname[i], '_') - rname[i]);
             if (chr_index < 0)
                 return;
             for (int j = 0; j < BS_GENOMES_COUNT; j++) {
                 double new_penalty = readPenalties[i] + readPenalties[j + BS_GENOMES_COUNT];
-                int chr_index2 = ChromIndex(rname2[j], strchr(rname2[j], '_') - rname2[j]);
+                int chr_index2 = ChromIndex(rname2[j]); //, strchr(rname2[j], '_') - rname2[j]);
                 if (chr_index2 < 0)
                     continue;
                 orientation_t orien;
