@@ -155,7 +155,7 @@ void find_min_penalties(const char rname[BS_GENOMES_COUNT][MAX_CHR_NAME_LENGTH],
         } else {
             int chr_index = ChromIndex(rname[i]); //, strchr(rname[i], '_') - rname[i]);
             if (chr_index < 0)
-                return;
+                continue;
             for (int j = 0; j < BS_GENOMES_COUNT; j++) {
                 double new_penalty = readPenalties[i] + readPenalties[j + BS_GENOMES_COUNT];
                 int chr_index2 = ChromIndex(rname2[j]); //, strchr(rname2[j], '_') - rname2[j]);
