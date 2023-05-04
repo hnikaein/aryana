@@ -50,7 +50,7 @@ aligners=("aryana_old")
 # $bs/aryana/prepare_genomes.sh ref.fa ../cpg_island.txt .
 # bismark_genome_preparation  .
 # bwameth.py index ref.fa
-# bsbolt Index -G ref.fa -DB .
+# bsbolt Index -G ref.fa -DB ref.fa.db
 
 if [[ ${config} -eq 1 ]]; then
 
@@ -156,7 +156,7 @@ for ((i = 0; i <= $((total - 1)); i++)); do
     reads=${reads_dir}${real_read_name}".fastq"
     reads1=${reads_dir}${real_read_name}"_1.fastq"
     reads2=${reads_dir}${real_read_name}"_2.fastq"
-    aryana_scoring="ar=\\\"--mp 4 --go 6 --ge 1\\\""
+    aryana_scoring="mp=4 go=6 ge=1"
   elif [[ ${is_sherman} -eq 0 ]]; then
     ratio="--mi ${ref_dir}methylation_ratio.txt"
     [[ ${aryana_simul_cg} != "" ]] && ratio="--cg ${aryana_simul_cg} --ci ${aryana_simul_cg}"

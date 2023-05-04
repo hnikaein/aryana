@@ -3,7 +3,7 @@
 # If you need the mehylation ratio for all cytosines covered by the bisulfite sequencing, add "-all" argument to the end of the line started with "$DIR/methyl_extract" below.
 
 if [ "$#" -lt 7 ]; then
-  echo 'Usage: aryana_bsp <reference genome> <reference index folder> <CpG islands file> <input fastq file 1> <input fastq file 2> <output file, without extensions> <number of threads to run aryana> [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
+  echo 'Usage: aryana_bsp <reference genome> <reference index folder> <CpG islands file> <input fastq file 1> <input fastq file 2> <output file, without extensions> <number of threads to run aryana> [mp="mismatch penalty"] [go="gap open penalty"] [ge="gap extend penalty"] [em=True (to use EM)] [ar="additional arguments to aryana"] [me="additional arguments to methyl_extract"]'
   exit
 fi
 
@@ -13,7 +13,7 @@ Echo() {
 
 PostAlignment() {
   Echo "Finding the best alignment for each read..."
-  "$DIR/align_bs" -P -x "$1" -c "$3" -s "$4_out/temp.sam" -p 4 6 1 -o "$4_out/alignment_unsorted.sam" -h "$6.sam" -M 1000000000
+  "$DIR/align_bs" -P -x "$1" -c "$3" -s "$4_out/temp.sam" $em_param -p $mp $go $ge -o "$4_out/alignment_unsorted.sam" -h "$6.sam" -M 1000000000
   Echo "Sorting the alignment SAM file..."
   LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" >>"$6.sam"
   #	Echo "Computing methylation ratios with additional arguments: $me"
@@ -25,12 +25,52 @@ PostAlignment() {
   Echo "Finished."
 }
 
+# shellcheck disable=SC2046
 DIR=$(dirname $(readlink -f $0))
 mkdir "$4_out"
 if [ "$#" -gt 7 ]; then
-  declare "${*:8}"
+  declare "${*:8:1}"
+fi
+if [ "$#" -gt 8 ]; then
+  declare "${*:9:1}"
+fi
+if [ "$#" -gt 9 ]; then
+  declare "${*:10:1}"
+fi
+if [ "$#" -gt 10 ]; then
+  declare "${*:11:1}"
+fi
+if [ "$#" -gt 11 ]; then
+  declare "${*:12:1}"
+fi
+if [ "$#" -gt 12 ]; then
+  declare "${*:13:1}"
 fi
 
-Echo "Aliging reads using aryana with $7 threads (additional arguments: $ar)"
-"$DIR/aryana" -b "$2" -1 "$4" -2 "$5" -o "$4_out/temp.sam" -O -t $7 $ar
+penalty_params=""
+
+if [ -z ${mp+x} ]; then
+  mp=5
+else
+  penalty_params="${penalty_params} --mp ${mp} "
+fi
+if [ -z ${go+x} ]; then
+  go=5
+else
+  penalty_params="${penalty_params} --go ${go} "
+fi
+if [ -z ${ge+x} ]; then
+  ge=3
+else
+  penalty_params="${penalty_params} --ge ${ge} "
+fi
+
+if [ -z ${em+x} ]; then
+  em_param=""
+else
+  em_param=" -e "
+fi
+
+Echo "Aliging reads using aryana with $7 threads (additional arguments: $penalty_params $ar)"
+"$DIR/aryana" -b "$2" -1 "$4" -2 "$5" -o "$4_out/temp.sam" -O -t "$7" "$penalty_params" "$ar"
 PostAlignment "$@"
