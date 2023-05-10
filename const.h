@@ -23,3 +23,5 @@
 
 #define ME_BUFFER_SIZE (2 * MAX_READ_LENGTH + 1) // Should be higher than maximum read length
 #define BS_GENOMES_COUNT 5
+#define UNALIGNED_PENALTY  1000000
+#define DISCORD_PENALTY  100000

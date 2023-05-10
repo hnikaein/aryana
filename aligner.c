@@ -11,21 +11,19 @@
 #include "smith.h"
 #include "aligner.h"
 #include "bwt2.h"
+#include "const.h"
 
 #define llu unsigned long long
 #define MAX(a, b) ((a) > (b)) ? (a) : (b)
-#define false 0
-#define true 1
-#define bool int
 
 
-extern int debug;
 
 extern void PrintSeq(const unsigned char *, int, int);
 
 extern void PrintRefSeq(uint64_t *reference, unsigned long long, unsigned long long, unsigned long long, int);
 
 extern long long total_candidates, best_factor_candidates;
+char *strtox_temp;
 
 void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, const ubyte_t *seq, const ubyte_t *qual,
                   uint64_t seq_len, int **d, unsigned char **arr, char *tmp_cigar, penalty_t *penalty, uint64_t *reference,
@@ -34,77 +32,67 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
     penalty->mismatch_num = 0;
     penalty->gap_open_num = 0;
     penalty->gap_ext_num = 0;
-    int *valid = (int *) malloc(best->parts * (sizeof(int)));
-    bwtint_t lastvalid = (bwtint_t) (best->parts - 1);
-    long long j = 0;
-    // This part estimated alignment position by checking all seeds, finding  a valid chain of them. TODO: Dynamic Programming rather than greedy validation and estimation of alignment pos.
-    for (long long i = best->parts - 1; i >= 0; i--) {
-        if (args->debug > 2)
-            fprintf(stderr, "Seed %lld, ref pos: %llu, read pos: %llu, length: %llu: ", i, (llu) best->match_index[i],
-                    (llu) best->match_start[i], (llu) best->matched[i]);
+
+    int valid[best->parts], lastvalid = best->parts - 1;
+    for (int i = best->parts - 1; i >= 0; i--) {
         valid[i] = 1;
-        /*if (args->platform == illumina &&
-            llabs((signed) (best->match_index[i] - best->match_start[i]) - (signed) best->index) >
-            5 + best->match_start[i] / 20) {
-            if (args->debug > 2) fprintf(stderr, "out of chain by rule 1\n");
+//        if (llabs((signed) (best->match_index[i] - best->match_start[i]) - (signed) best->index) >
+//            5 + best->match_start[i] / 20) {
+//            valid[i] = 0;
+//            continue;
+//        }
+        if (i < best->parts - 1 &&
+            ((best->match_start[lastvalid] + best->matched[lastvalid] > best->match_start[i]) ||
+             (best->match_index[lastvalid] + best->matched[lastvalid] > best->match_index[i]))) {
             valid[i] = 0;
-        }*/
-        if (valid[i] == 1 && i < best->parts - 1 &&
-            (best->match_start[lastvalid] + best->matched[lastvalid] > best->match_start[i])) {
-            if (args->debug > 2) fprintf(stderr, "out of chain by rule 2\n");
-            valid[i] = 0;
-            if (llabs((signed) (best->match_index[i] - best->match_start[i]) - (signed) best->index) <
-                llabs((signed) (best->match_index[lastvalid] - best->match_start[lastvalid]) - (signed) best->index)) {
+            if (llabs((signed) (best->match_index[lastvalid] - best->index) - (signed) best->match_start[lastvalid]) >
+                llabs((signed) (best->match_index[i] - best->index) - (signed) best->match_start[i])) {
                 valid[lastvalid] = 0;
                 valid[i] = 1;
             }
         }
-        if (valid[i] == 1) {
-            lastvalid = (bwtint_t) i;
-            if (args->debug > 2) fprintf(stderr, "valid\n");
-        }
-        if (i == 0)
-            break;
+        if (valid[i] == 1)
+            lastvalid = i;
     }
 
-    int best_parts_lis_max[best->parts], best_parts_lis_maxi[best->parts], best_parts_lis_rev[best->parts];
-    int max_lis_length = 0, max_lis_last = 0, max_lis_first;
-    for (int ii = best->parts - 1; ii >= 0; ii--) {
-        if (!valid[ii])
-            continue;
-        int mmax = 1, mmaxi = -1;
-        uint64_t max_dist = 0;
-        for (int jj = best->parts - 1; jj > ii; jj--) {
-            if (!valid[jj])
-                continue;
-            uint64_t match_start_diff = best->match_start[ii] - (best->match_start[jj] + best->matched[jj]);
-            uint64_t match_index_diff = best->match_index[ii] - (best->match_index[jj] + best->matched[jj]);
-            if (match_start_diff >= 0 && match_index_diff >= 0 &&
-                match_index_diff <= args->indel_ratio_between_seeds * (match_start_diff + 1) &&
-                match_start_diff <= args->indel_ratio_between_seeds * (match_index_diff + 1)) {
-                uint64_t max_dist_ii_jj = MAX(match_start_diff, match_index_diff);
-                if (best_parts_lis_max[jj] + best->matched[ii] > mmax ||
-                    (best_parts_lis_max[jj] + best->matched[ii] == mmax && max_dist_ii_jj <= max_dist)) {
-                    mmax = (int) (best_parts_lis_max[jj] + best->matched[ii]);
-                    mmaxi = jj;
-                    max_dist = max_dist_ii_jj;
+    /* DYNAMIC_SEED finding has not much effect due to the fact that seeds have not overlaps
+    int longest_seeds_chain_len[best->parts], longest_seeds_chain_prev[best->parts],
+            max_longest_seeds_chain_len = 0, max_longest_seeds_chain_last = 0;
+    for (int i = best->parts - 1; i >= 0; i--) {
+        int longest_seeds_chain_len_till_i = 0, longest_seeds_chain_len_till_i_source = -1;
+        uint64_t max_distance_i_j = 0;
+        for (int j = best->parts - 1; j > i; j--) {
+            // these are unsigned, so we can not minues them
+            if (best->match_start[i] >= (best->match_start[j] + best->matched[j]) &&
+                best->match_index[i] >= best->match_index[j] + best->matched[j]) {
+                uint64_t distance_in_read = best->match_start[i] - (best->match_start[j] + best->matched[j]);
+                uint64_t distance_in_index = best->match_index[i] - (best->match_index[j] + best->matched[j]);
+                uint64_t distance_i_j = max(distance_in_read, distance_in_index);
+                if (longest_seeds_chain_len[j] > longest_seeds_chain_len_till_i ||
+                    (longest_seeds_chain_len[j] == longest_seeds_chain_len_till_i && distance_i_j < max_distance_i_j)) {
+                    longest_seeds_chain_len_till_i = longest_seeds_chain_len[j];
+                    longest_seeds_chain_len_till_i_source = j;
+                    max_distance_i_j = distance_i_j;
                 }
             }
         }
-        best_parts_lis_max[ii] = mmax;
-        best_parts_lis_maxi[ii] = mmaxi;
-        if (mmax > max_lis_length) {
-            max_lis_length = mmax;
-            max_lis_last = ii;
+        longest_seeds_chain_len[i] = (int) (longest_seeds_chain_len_till_i + best->matched[i]);
+        longest_seeds_chain_prev[i] = longest_seeds_chain_len_till_i_source;
+        if (longest_seeds_chain_len[i] > max_longest_seeds_chain_len) {
+            max_longest_seeds_chain_len = longest_seeds_chain_len[i];
+            max_longest_seeds_chain_last = i;
         }
     }
-    best_parts_lis_rev[max_lis_last] = -1;
-    for (max_lis_first = max_lis_last;
-         best_parts_lis_maxi[max_lis_first] != -1; max_lis_first = best_parts_lis_maxi[max_lis_first])
-        best_parts_lis_rev[best_parts_lis_maxi[max_lis_first]] = max_lis_first;
+    int longest_seeds_chain_next[best->parts], longest_seeds_chain_first;
+    longest_seeds_chain_next[max_longest_seeds_chain_last] = -1;
+    for (longest_seeds_chain_first = max_longest_seeds_chain_last;
+         longest_seeds_chain_prev[longest_seeds_chain_first] != -1;
+         longest_seeds_chain_first = longest_seeds_chain_prev[longest_seeds_chain_first])
+        longest_seeds_chain_next[longest_seeds_chain_prev[longest_seeds_chain_first]] = longest_seeds_chain_first;
 
-    best->index = best->match_index[max_lis_first] > best->match_start[max_lis_first] ?
-                  best->match_index[max_lis_first] - best->match_start[max_lis_first] : 0;
+    best->index = best->match_index[longest_seeds_chain_first] > best->match_start[longest_seeds_chain_first] ?
+                  best->match_index[longest_seeds_chain_first] - best->match_start[longest_seeds_chain_first] : 0;
+    */
 
     int slack = 10;
     bwtint_t head_match = 0, head_index = best->index >= slack ? best->index - slack : 0;
@@ -117,14 +105,16 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
         PrintSeq(seq, len, 1);
         PrintRefSeq(reference, head_index, head_index + len + 2 * slack, seq_len, 1);
     }
-    for (long long i = max_lis_first; i != -1; i = best_parts_lis_rev[i]) {
+    // for (int i = longest_seeds_chain_first; i != -1; i = longest_seeds_chain_next[i]) { DYNAMIC_SEED
+    for (int i = best->parts - 1; i >= 0; i--)
+      if (valid[i] && best->match_start[i] >= head_match && best->match_index[i] >= head_index) // && llabs((signed)(best->match_index[i]-head_index)-(signed)(best->match_start[i]-head_match)<=3+(best->match_index[i]-head_index)/20))
+    {
         print_head = smith_waterman(args, head_match, best->match_start[i], head_index, best->match_index[i], cigar,
                                     print_head, seq, len, &penalty->mismatch_num, seq_len, d, arr, tmp_cigar,
                                     reference, ignore, (ubyte_t *) qual);
         if (args->debug > 1) {
-            fprintf(stderr, "SmithWaterman1 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n",
-                    (unsigned long long) head_match, (unsigned long long) best->match_start[i],
-                    (unsigned long long) head_index, (unsigned long long) best->match_index[i], cigar, tmp_cigar);
+            fprintf(stderr, "SmithWaterman1 [%"PRIu64",%"PRIu64"],[%"PRIu64",%"PRIu64"] cigar %s, tmp_cigar %s\n",
+                    head_match, best->match_start[i], head_index, best->match_index[i], cigar, tmp_cigar);
             PrintSeq(seq + head_match, (int) (best->match_start[i] - head_match), 1);
             PrintRefSeq(reference, head_index, best->match_index[i] - 1, seq_len, 1);
         }
@@ -145,9 +135,8 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
                        (ubyte_t *) qual);
         //fprintf(stderr,"start: %llu, end: %llu, errors :: %d\n",head_match,len,errors);
         if (args->debug > 1) {
-            fprintf(stderr, "SmithWaterman2 [%llu,%llu],[%llu,%llu] cigar %s, tmp_cigar %s\n",
-                    (unsigned long long) head_match, (unsigned long long) len, (unsigned long long) head_index,
-                    (unsigned long long) end, cigar, tmp_cigar);
+            fprintf(stderr, "SmithWaterman2 [%"PRIu64",%d],[%"PRIu64",%"PRIu64"] cigar %s, tmp_cigar %s\n",
+                    head_match, len, head_index, end, cigar, tmp_cigar);
             PrintSeq(seq + head_match, (int) (len - head_match), 1);
             PrintRefSeq(reference, head_index, end - 1, seq_len, 1);
         }
@@ -161,11 +150,11 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
 
     for (long long i = 0; cigar[i]; i++) {
         char tmp[10];
-        j = 0;
+        int j=0;
         while (isdigit(cigar[i]))
             tmp[j++] = cigar[i++];
         tmp[j] = 0;
-        bwtint_t num = (bwtint_t) atoi(tmp);
+        int num = (int) strtol(tmp, &strtox_temp, 10);
         if (firstblood == 1) {
             last_size = (int) num;
             last_char = cigar[i];
@@ -204,13 +193,11 @@ void create_cigar(aryana_args *args, hash_element *best, char *cigar, int len, c
         fprintf(stderr, "Cigar: %s, Mismatch: %d, Gap Open: %d, Gap Ext: %d\n", cigar, penalty->mismatch_num,
                 penalty->gap_open_num, penalty->gap_ext_num);
     best->index = slack_index;
-    free(valid);
 }
 
 #define BITMASK(b) (1 << ((b) % CHAR_BIT))
 #define BITSLOT(b) ((b) / CHAR_BIT)
 #define BITSET(a, b) ((a)[BITSLOT(b)] |= BITMASK(b))
-//#define BITCLEAR(a, b) ((a)[BITSLOT(b)] &= ~BITMASK(b))
 #define BITTEST(a, b) ((a)[BITSLOT(b)] & BITMASK(b))
 #define BITNSLOTS(nb) (((nb) + CHAR_BIT - 1) / CHAR_BIT)
 
@@ -272,7 +259,6 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     // initialize
     bwtint_t down, up;
     bwtint_t limit;
-    long long i = 0, j = 0;
 
     bwtint_t k;
     if (args->seed_length == -1) {
@@ -290,9 +276,11 @@ void aligner(bwt_t *const bwt, int len, ubyte_t *seq, bwtint_t level, hash_eleme
     } else
         k = (bwtint_t) args->seed_length;
 
+    long long i = 0, j = len - 1;
+    //TODO IMPORTANT reversing is removed in a commit!
     //inexact match
     bwtint_t groupid_last = 1;
-    for (i = len - 1; i >= k; i--) {
+    for(i=len - 1; i>=k; i--) { // the seeds should not have overlaps. this assumption used in seeds chaining
         bwt_match_limit_rev(bwt, (int) k, seq + i - k + 1, &down, &up, &limit);
         if (limit < k) {
             i = (long long int) (i - k + limit + 1);
