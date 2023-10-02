@@ -497,8 +497,8 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     ReadCpGIslands(annotationFile);
     WriteHeader();
+    unsigned long long changed_count, old_changed_count = 0;
     while (true) {
-        unsigned long long changed_count, old_changed_count = 0;
         changed_count = Process();
         fprintf(stderr, "Number of changed reads position: %llu\n", changed_count);
         if (changed_count < 10 || (old_changed_count > 0 && changed_count > (long double) 0.9 * old_changed_count)) {
