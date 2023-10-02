@@ -498,14 +498,16 @@ int main(int argc, char *argv[]) {
     ReadCpGIslands(annotationFile);
     WriteHeader();
     while (true) {
-        unsigned long long changed_count = Process();
+        unsigned long long changed_count, old_changed_count = 0;
+        changed_count = Process();
         fprintf(stderr, "Number of changed reads position: %llu\n", changed_count);
-        if (changed_count < 10) {
+        if (changed_count < 10 || (old_changed_count > 0 && changed_count > (long double) 0.9 * old_changed_count)) {
             if (em_flag)
                 em_flag = false;
             else
                 break;
         }
+        old_changed_count = changed_count;
     }
     for (int j = 0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, index_usage_count[j]);
