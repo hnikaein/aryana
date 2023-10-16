@@ -30,7 +30,7 @@ aryana:$(OBJS) aryana_main.o
 convert_genomes:
 		$(CXX) $(CXXFLAGS) convert_genomes.cpp -o convert_genomes
 
-align_bs:
+align_bs: align_bs.cpp
 		$(CXX) $(CXXFLAGS)  align_bs.cpp -o align_bs 
 
 methyl_extract:

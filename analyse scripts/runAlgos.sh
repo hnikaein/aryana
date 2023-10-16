@@ -18,7 +18,7 @@ refs_dir=${base_dir}"refs/"
 reads_dir=${base_dir}"reads/"
 output_dir=${base_dir}"outputs/"
 thread_counts=4 # XXX
-cuncurrency=2   # XXX
+cuncurrency=1   # XXX
 
 real_read_name_arr=()
 ref_name_arr=()
@@ -40,10 +40,10 @@ sherman_er_arr=()
 
 #config -> 1: mem-time 2:indel-snp-... 3:real
 config=4 # XXX
-# aligners=("aryana" "bsmap" "bwameth" "bismark" "bsbolt" "walt" "abismal") # XXX
+# aligners=("aryana" "bsmap" "bwameth" "bismark" "bsbolt" "walt" "abismal" "aryana_em") # XXX
 # aligners=("bsmap" "aryana" "bwameth" "bismark" "bsbolt" "abismal")
 # aligners=("aryana" "bsmap" "bwameth")
-aligners=("aryana_old")
+aligners=("aryana_em")
 
 #indexing:
 # $bs/tools/abismal/bin/abismalidx -t 10 ref.fa ref.fa.db
@@ -102,19 +102,19 @@ elif [[ ${config} -eq 3 ]]; then
 
 elif [[ ${config} -eq 4 ]]; then
 
-  real_read_name_arr+=("real_read_SRR19154020" "real_read_SRR19154022" "real_read_SRR19154023" "real_read_SRR19154024" "")
-  ref_name_arr+=("hg38" "hg38" "hg38" "hg38" "chr1" "small" "hg38" "hg38")
-  paired_arr+=("1") # "1" "1" "1") # "0")
-  read_count_arr+=("" "" "" "" "10000000" "100000" "100000" "100000")
-  cpg_read_count_arr+=("" "" "" "" "0" "0" "0" "0")
-  read_length_arr+=("150" "150" "150" "150" "100")
-  aryana_simul_rm_arr+=("" "" "" "" "0" "0" "0" "")
-  aryana_simul_ri_arr+=("" "" "" "" "0" "0" "0" "")
-  aryana_simul_rd_arr+=("" "" "" "" "0" "0" "0" "")
-  aryana_simul_snp_arr+=("" "" "" "" "4000000" "4000000" "4000000" "")
+  real_read_name_arr+=("" "real_read_SRR19154020" "real_read_SRR19154022" "real_read_SRR19154023" "real_read_SRR19154024" "")
+  ref_name_arr+=("chr21" "hg38" "hg38" "hg38" "chr1" "small" "hg38" "hg38")
+  paired_arr+=("0") # "1" "1" "1") # "0")
+  read_count_arr+=("500000" "" "" "" "10000000" "100000" "100000" "100000")
+  cpg_read_count_arr+=("0" "" "" "" "0" "0" "0" "0")
+  read_length_arr+=("1000" "150" "150" "150" "100")
+  aryana_simul_rm_arr+=("0" "" "" "" "0" "0" "0" "")
+  aryana_simul_ri_arr+=("0" "" "" "" "0" "0" "0" "")
+  aryana_simul_rd_arr+=("0" "" "" "" "0" "0" "0" "")
+  aryana_simul_snp_arr+=("40000" "" "" "" "4000000" "4000000" "4000000" "")
   aryana_simul_cg_arr+=("" "" "" "" "")
-  is_sherman_arr+=("" "" "" "" "0" "0" "0" "1")
-  sherman_er_arr+=("" "" "" "" "0" "0" "0" "0.01")
+  is_sherman_arr+=("0" "" "" "" "0" "0" "0" "1")
+  sherman_er_arr+=("0" "" "" "" "0" "0" "0" "0.01")
 
 fi
 
@@ -160,9 +160,11 @@ for ((i = 0; i <= $((total - 1)); i++)); do
   elif [[ ${is_sherman} -eq 0 ]]; then
     ratio="--mi ${ref_dir}methylation_ratio.txt"
     [[ ${aryana_simul_cg} != "" ]] && ratio="--cg ${aryana_simul_cg} --ci ${aryana_simul_cg}"
+    #ratio="--ch 0.01 --ci 0.1 --cg 0.9"
+    #ratio="--ch 0.2 --ci 0.2 --cg 0.6"
 
     [[ ${paired} -eq 1 ]] && sim_paired="-P"
-    simul_command="read_simul -g ${ref_dir}ref.fa -n ${read_count} --ni ${cpg_read_count} -l ${read_length} ${sim_paired} -o ${reads_base_name} -m --rm ${aryana_simul_rm} --ri ${aryana_simul_ri} --rd ${aryana_simul_rd} -s ${aryana_simul_snp} -N -p -b  -i ${ref_dir}cpg_island.txt ${ratio}"
+    simul_command="read_simul -g ${ref_dir}ref.fa -n ${read_count} --ni ${cpg_read_count} -l ${read_length} ${sim_paired} -o ${reads_base_name} --mo ${reads_base_name}.ratio -m --rm ${aryana_simul_rm} --ri ${aryana_simul_ri} --rd ${aryana_simul_rd} -s ${aryana_simul_snp} -N -p -b  -i ${ref_dir}cpg_island.txt ${ratio}"
     [ ! -f "${reads}" ] && [ ! -f "${reads1}" ] && echo "${simul_command}" && cd ${reads_dir} && ${simul_command}
 
     [[ ${paired} -eq 1 ]] && sed -E "s/^(@[0-9]+)_(1|2)\|.*/\1/" "${reads1}" >"${reads1}".samename
@@ -197,6 +199,15 @@ for ((i = 0; i <= $((total - 1)); i++)); do
       input_param=${reads}
       [[ ${paired} -eq 1 ]] && input_param="${reads1} ${reads2}"
       aryana_bs_params="${aligner_ref_file} ${aligner_ref_dir} ${ref_dir}cpg_island.txt ${input_param} ${aligner_config_output_base_file} ${thread_counts} ${aryana_scoring} 2>&1"
+      command="aryana_bs ${aryana_bs_params}"
+      [[ ${paired} -eq 1 ]] && command="aryana_bsp ${aryana_bs_params}"
+      extra_path=${aryana_path}
+    fi
+
+    if [[ ${aligner_name} == "aryana_em" ]]; then
+      input_param=${reads}
+      [[ ${paired} -eq 1 ]] && input_param="${reads1} ${reads2}"
+      aryana_bs_params="${aligner_ref_file} ${aligner_ref_dir} ${ref_dir}cpg_island.txt ${input_param} ${aligner_config_output_base_file} ${thread_counts} ${aryana_scoring} em=True  2>&1"
       command="aryana_bs ${aryana_bs_params}"
       [[ ${paired} -eq 1 ]] && command="aryana_bsp ${aryana_bs_params}"
       extra_path=${aryana_path}
