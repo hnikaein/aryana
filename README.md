@@ -1,7 +1,9 @@
-src
+Aryana
 ===
 
 The source code of the Aryana next generation sequencing (NGS) aligner.
+
+Attention: To access the stable version of the ARYANA-BS aligner, please either check out the `aryana_bs` branch or use the following link: [ARYANA-BS v1.1 Release](https://github.com/hnikaein/aryana/releases/tag/bs_1.1).
 
 Installation
 ============
