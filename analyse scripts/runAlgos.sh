@@ -17,8 +17,8 @@ base_dir=${home_dir}"methyl/"
 refs_dir=${base_dir}"refs/"
 reads_dir=${base_dir}"reads/"
 output_dir=${base_dir}"outputs/"
-thread_counts=4 # XXX
-cuncurrency=1   # XXX
+thread_counts=1 # XXX
+cuncurrency=4   # XXX
 
 real_read_name_arr=()
 ref_name_arr=()
@@ -39,11 +39,11 @@ is_sherman_arr=()
 sherman_er_arr=()
 
 #config -> 1: mem-time 2:indel-snp-... 3:real
-config=4 # XXX
+config=1 # XXX
 # aligners=("aryana" "bsmap" "bwameth" "bismark" "bsbolt" "walt" "abismal" "aryana_em") # XXX
-# aligners=("bsmap" "aryana" "bwameth" "bismark" "bsbolt" "abismal")
+aligners=("bsmap" "aryana" "bwameth" "bismark" "bsbolt" "abismal")
 # aligners=("aryana" "bsmap" "bwameth")
-aligners=("aryana_em")
+# aligners=("aryana" "aryana_em")
 
 #indexing:
 # $bs/tools/abismal/bin/abismalidx -t 10 ref.fa ref.fa.db
@@ -57,7 +57,7 @@ if [[ ${config} -eq 1 ]]; then
   real_read_name_arr+=("" "" "" "" "")
   ref_name_arr+=("hg38" "hg38" "hg38" "hg38" "hg38")
   paired_arr+=("0" "0" "1" "1" "0")
-  read_count_arr+=("100000" "100000" "100000" "100000" "100000")
+  read_count_arr+=("1000000" "1000000" "1000000" "1000000" "1000000")
   cpg_read_count_arr+=("0" "0" "0" "0" "0")
   read_length_arr+=("100" "300" "100" "300" "100")
   aryana_simul_rm_arr+=("0" "0" "0" "0" "")
@@ -105,9 +105,9 @@ elif [[ ${config} -eq 4 ]]; then
   real_read_name_arr+=("" "real_read_SRR19154020" "real_read_SRR19154022" "real_read_SRR19154023" "real_read_SRR19154024" "")
   ref_name_arr+=("chr21" "hg38" "hg38" "hg38" "chr1" "small" "hg38" "hg38")
   paired_arr+=("0") # "1" "1" "1") # "0")
-  read_count_arr+=("500000" "" "" "" "10000000" "100000" "100000" "100000")
+  read_count_arr+=("5000000" "" "" "" "10000000" "100000" "100000" "100000")
   cpg_read_count_arr+=("0" "" "" "" "0" "0" "0" "0")
-  read_length_arr+=("1000" "150" "150" "150" "100")
+  read_length_arr+=("100" "150" "150" "150" "100")
   aryana_simul_rm_arr+=("0" "" "" "" "0" "0" "0" "")
   aryana_simul_ri_arr+=("0" "" "" "" "0" "0" "0" "")
   aryana_simul_rd_arr+=("0" "" "" "" "0" "0" "0" "")
@@ -158,13 +158,14 @@ for ((i = 0; i <= $((total - 1)); i++)); do
     reads2=${reads_dir}${real_read_name}"_2.fastq"
     aryana_scoring="mp=4 go=6 ge=1"
   elif [[ ${is_sherman} -eq 0 ]]; then
-    ratio="--mi ${ref_dir}methylation_ratio.txt"
+    #ratio="--mi ${ref_dir}methylation_ratio.txt"
+    ratio="" # TODO recheck this
     [[ ${aryana_simul_cg} != "" ]] && ratio="--cg ${aryana_simul_cg} --ci ${aryana_simul_cg}"
     #ratio="--ch 0.01 --ci 0.1 --cg 0.9"
-    #ratio="--ch 0.2 --ci 0.2 --cg 0.6"
+    #ratio="--ch 0.1 --ci 0.5 --cg 0.4"
 
     [[ ${paired} -eq 1 ]] && sim_paired="-P"
-    simul_command="read_simul -g ${ref_dir}ref.fa -n ${read_count} --ni ${cpg_read_count} -l ${read_length} ${sim_paired} -o ${reads_base_name} --mo ${reads_base_name}.ratio -m --rm ${aryana_simul_rm} --ri ${aryana_simul_ri} --rd ${aryana_simul_rd} -s ${aryana_simul_snp} -N -p -b  -i ${ref_dir}cpg_island.txt ${ratio}"
+    simul_command="read_simul -g ${ref_dir}ref.fa -n ${read_count} --ni ${cpg_read_count} -l ${read_length} ${sim_paired} -o ${reads_base_name} --mo ${reads_base_name}.ratio --rm ${aryana_simul_rm} --ri ${aryana_simul_ri} --rd ${aryana_simul_rd} -s ${aryana_simul_snp} -N -p -b  -i ${ref_dir}cpg_island.txt ${ratio}"
     [ ! -f "${reads}" ] && [ ! -f "${reads1}" ] && echo "${simul_command}" && cd ${reads_dir} && ${simul_command}
 
     [[ ${paired} -eq 1 ]] && sed -E "s/^(@[0-9]+)_(1|2)\|.*/\1/" "${reads1}" >"${reads1}".samename
