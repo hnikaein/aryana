@@ -47,9 +47,10 @@ vector<Chrom> chrom;
 vector<string> chromName;
 vector<Island> islands;
 map<uint64_t, int> cpg_ids;
-FILE *outputFile = nullptr, *headerFile = nullptr;
-bool paired = false, em_flag = false;
-int chromNum, paired_min_distance = 0, paired_max_distance = 10000,
+vector<pair<int, uint64_t>> cpg_locations;
+FILE *outputFile = nullptr, *headerFile = nullptr, *methOutputFile = nullptr;
+bool paired = false, last_process = true, use_methyl_ratio = false;
+int paired_min_distance = 0, paired_max_distance = 10000,
         mismatch_penalty = 0, go_penatly = 0, ge_penalty = 0,
         index_usage_count[BS_GENOMES_COUNT];
 vector<int> read_min_penalty, read_min_penalty2,
@@ -84,11 +85,11 @@ int ReadGenome(char *genomeFile) {
     genome = (char *) malloc(reference_size * sizeof(char));
     memset(genome, 0, reference_size * sizeof(char));
     uint64_t gs = 0;
-    chromNum = 0;
     fprintf(stderr, "Reading genome...\n");
     char fLineMain[1000000];
     Chrom ch;
     int cpg_counts = 0;
+    bool first_line = true;
     while (!feof(f)) {
         if (!fgets(fLineMain, sizeof(fLineMain), f)) break;
         int n = (int) strlen(fLineMain), start = 0;
@@ -107,19 +108,20 @@ int ReadGenome(char *genomeFile) {
             //cerr << name << endl;
             ch.chrName = name;
             chrom.push_back(ch);
-            chromNum++;
+            first_line = true;
         } else {
             memcpy(genome + gs, fLine, n);
-            uint64_t i = gs > 0 ? gs : gs + 1;
-            if (em_flag)
-                for (; i < gs + n; ++i) {
-                    genome[i] = to_upper(genome[i]);
-                    if (genome[i - 1] == 'C' && genome[i] == 'G') {
-                        cpg_ids[i - 1] = cpg_counts++;
-                        cpg_ids[i] = cpg_counts++;
-                        i++;
-                    }
+            uint64_t i = first_line ? gs + 1 : gs;
+            first_line = false;
+            for (; i < gs + n; ++i) {
+                genome[i] = to_upper(genome[i]); // No need to do on i - 1. We already did it in previous iteration.
+                if (genome[i - 1] == 'C' && genome[i] == 'G') {
+                    cpg_ids[i - 1] = cpg_counts++;
+                    cpg_ids[i] = cpg_counts++;
+                    cpg_locations.emplace_back(chrom.size() - 1, i - ch.chrStart);
+                    cpg_locations.emplace_back(chrom.size() - 1, i - ch.chrStart + 1);
                 }
+            }
             gs += n;
         }
     }
@@ -227,7 +229,7 @@ double calc_base_nuc_penalty(const uint64_t ref_i, const char read_ch, const int
         double methyl_ratio = 0;
         if (genome[ref_i + next_nuc] == CPG_next_nuc) {// is CpG
             bool methyl_ratio_changed = false;
-            if (!cpg_ids.empty()) {
+            if (use_methyl_ratio) {
                 int cpg_id = cpg_ids[ref_i];
                 read_cpg_ids.emplace_back(cpg_id, is_methylated);
                 if (cpg_read_count[cpg_id] > 0) {
@@ -375,24 +377,24 @@ uint64_t Process() { // return em total changed
 
         int min, min2;
         find_min_penalties(rname, rname2, flag, flagTwo, pos, pos2, readPenalties, &min, &min2);
-        if (em_flag) {
-            if (read_min_penalty.size() <= read_count)
-                read_min_penalty.push_back(0);
-            if (read_min_penalty[read_count] != min + 1) {
+        if (read_min_penalty.size() <= read_count)
+            read_min_penalty.push_back(0);
+        if (read_min_penalty[read_count] != min + 1) {
+            em_total_changed += 1;
+            change_read_candidate(read_cpg_ids, read_min_penalty[read_count] - 1, min);
+            read_min_penalty[read_count] = min + 1;
+        }
+        if (paired) {
+            if (read_min_penalty2.size() <= read_count)
+                read_min_penalty2.push_back(0);
+            if (read_min_penalty2[read_count] != min2 + 1) {
                 em_total_changed += 1;
-                change_read_candidate(read_cpg_ids, read_min_penalty[read_count] - 1, min);
-                read_min_penalty[read_count] = min + 1;
+                change_read_candidate(read_cpg_ids2, read_min_penalty2[read_count] - 1, min2);
+                read_min_penalty2[read_count] = min2 + 1;
             }
-            if (paired) {
-                if (read_min_penalty2.size() <= read_count)
-                    read_min_penalty2.push_back(0);
-                if (read_min_penalty2[read_count] != min2 + 1) {
-                    em_total_changed += 1;
-                    change_read_candidate(read_cpg_ids2, read_min_penalty2[read_count] - 1, min2);
-                    read_min_penalty2[read_count] = min2 + 1;
-                }
-            }
-        } else {
+        }
+
+        if (last_process) {
             index_usage_count[min]++; // shows how many times a genome has been selected
             fprintf(outputFile, "%s", line[min]);
             if (paired) {
@@ -420,6 +422,7 @@ int main(int argc, char *argv[]) {
             {"CpG-islands", required_argument, nullptr, 'c'},
             {"penalties",   required_argument, nullptr, 'p'},
             {"output",      required_argument, nullptr, 'o'},
+            {"mo",          required_argument, nullptr, 4},
             {"header",      required_argument, nullptr, 'h'},
             {"paired-end",  no_argument,       nullptr, 'U'},
             {"min",         required_argument, nullptr, 'm'},
@@ -458,6 +461,9 @@ int main(int argc, char *argv[]) {
             case 'o':
                 outputFile = fopen(optarg, "w");
                 break;
+            case 4:
+                methOutputFile = fopen(optarg, "w");
+                break;
             case 'h':
                 headerFile = fopen(optarg, "w");
                 break;
@@ -480,7 +486,8 @@ int main(int argc, char *argv[]) {
                 orientation = ff;
                 break;
             case 'e':
-                em_flag = true;
+                last_process = false;
+                use_methyl_ratio = true;
                 break;
             case 'l':
 //                limit = (int) strtol(optarg, &strtox_temp, 10);;
@@ -497,18 +504,34 @@ int main(int argc, char *argv[]) {
     ReadGenome(referenceName);
     ReadCpGIslands(annotationFile);
     WriteHeader();
+    unsigned long long changed_count, old_changed_count = 0, total_reads = 0;
     while (true) {
-        unsigned long long changed_count = Process();
+        changed_count = Process();
+        if (last_process)
+            break;
+        if (total_reads == 0)
+            total_reads = changed_count;
         fprintf(stderr, "Number of changed reads position: %llu\n", changed_count);
-        if (changed_count < 10) {
-            if (em_flag)
-                em_flag = false;
-            else
-                break;
+        if (changed_count < (long double) 0.0001 * total_reads ||
+            (old_changed_count > 0 && changed_count > (long double) 0.9 * old_changed_count)) {
+            last_process = true;
         }
+        old_changed_count = changed_count;
     }
     for (int j = 0; j < BS_GENOMES_COUNT; j++)
         fprintf(stderr, "Number of reads aligned to genome %d: %d\n", j, index_usage_count[j]);
 
     if (outputFile != stdout) fclose(outputFile);
+    if (methOutputFile != nullptr) {
+        fprintf(methOutputFile, "chr\tpos\tmeth\n");
+        for (auto cpg : cpg_ids) {
+            auto cpg_id = cpg.second;
+            auto cpg_loc = cpg_locations[cpg_id];
+            if (new_cpg_read_count[cpg_id] == 0 || new_cpg_methyl_count[cpg_id] == 0)
+                continue;
+            fprintf(methOutputFile, "%s\t%lu\t%.2f\n", chrom[cpg_loc.first].chrName.c_str(), cpg_loc.second,
+                    1.0 * new_cpg_methyl_count[cpg_id] / new_cpg_read_count[cpg_id]);
+        }
+        fclose(methOutputFile);
+    }
 }

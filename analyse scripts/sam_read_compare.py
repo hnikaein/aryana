@@ -57,8 +57,6 @@ with open(analyze_file, "r") as f:
             read_id = int(parts[0].split("|")[0])
         read_pos = reads_pos[read_id]
         total_aligned += 1
-        if read_id== 60234:
-             print(read_id,parts)
         if read_pos[0][0] != parts[2]:
             continue
         if abs(read_pos[0][1] - int(parts[3])) <= delta:
@@ -81,7 +79,7 @@ fdr = (total_aligned - correct) / total_aligned if total_aligned > 0 else 0
 if is_paired and is_samename:
     correct /= 2.0
 
-time = f"{user_time+sys_time:9.2f}"
+time = f"{user_time + sys_time:9.2f}"
 mem = f"{mem:9.2f}"
 
 print(

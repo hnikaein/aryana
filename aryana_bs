@@ -13,7 +13,7 @@ Echo() {
 
 PostAlignment() {
   Echo "Finding the best alignment for each read..."
-  "$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" $em_param -p $mp $go $ge -o "$4_out/alignment_unsorted.sam" -h "$5.sam"
+  "$DIR/align_bs" -x "$1" -c "$3" -s "$4_out/temp.sam" $em_param -p $mp $go $ge -o "$4_out/alignment_unsorted.sam" -h "$5.sam" --mo "$5.ratio"
   Echo "Sorting the alignment SAM file..."
   LC_ALL=C sort -k 3,3 -k 4,4n "$4_out/alignment_unsorted.sam" >>"$5.sam"
   #	Echo "Computing methylation ratios with additional arguments: $me"
